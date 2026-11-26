@@ -1,1 +1,65 @@
 # html2pdf-go
+
+pure Go の HTML→PDF 変換エンジンです。現在開発中で、変換処理はまだ実装されていません（`Convert` は `ErrNotImplemented` を返します）。
+
+## ライブラリとしての使い方
+
+```sh
+go get github.com/kujirahand/html2pdf-go
+```
+
+```go
+package main
+
+import (
+	"bytes"
+	"log"
+	"os"
+
+	html2pdf "github.com/kujirahand/html2pdf-go"
+)
+
+func main() {
+	var buf bytes.Buffer
+	src := []byte("<h1>Hello</h1><p>こんにちは</p>")
+	if err := html2pdf.Convert(src, &buf, &html2pdf.Options{PageSize: "A4"}); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile("out.pdf", buf.Bytes(), 0o644); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+## CLI の使い方
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
+
+html2pdf input.html                    # input.pdf を出力
+html2pdf -o out.pdf -page-size A4 input.html
+```
+
+## フォルダ構成
+
+| パス | 内容 |
+|---|---|
+| `html2pdf.go` | 公開 API（`Convert`, `ConvertFile`, `Options`） |
+| `cmd/html2pdf/` | CLI ツール |
+| `internal/dom` | HTML パースと文書ツリー |
+| `internal/css` | CSS パース、カスケード、計算済みスタイル |
+| `internal/text` | フォント計測、折り返し・禁則処理 |
+| `internal/layout` | ボックス生成、レイアウト、ページネーション |
+| `internal/render` | レイアウト結果の描画 |
+| `internal/pdf` | PDF 書き出し |
+| `examples/basic/` | 最小の使用例 |
+| `testdata/` | テスト用 HTML |
+| `docs/` | 設計ドキュメント |
+
+## 対応範囲とロードマップ
+
+[docs/architecture.md](docs/architecture.md) を参照してください。
+
+## ライセンス
+
+MIT ライセンスです。詳細は `LICENSE` ファイルを参照してください。
