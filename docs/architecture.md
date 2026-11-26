@@ -43,10 +43,13 @@ PDF
 
 請求書 HTML の実測に基づきます。
 
-- **タグ**: `h1`, `p`, `div`, `br`, `table`, `tr`, `th`, `td`, `img`, `center`
+- **タグ**: `h1`, `p`, `div`, `br`, `table`, `tr`, `th`, `td`, `img`, `center`, `ul`, `li`, `ol`（`ul`, `li`, `ol` は請求書では未使用だが、一般的な文書で必須のため初期対応範囲に含める）
 - **セレクタ**: `*`、要素、`.class`、`要素.class`、子孫（`.total td` など）
 - **プロパティ**: `font-size`, `font-weight`, `color`, `background-color`, `text-align`, `text-decoration`, `line-height`, `margin`（および各辺）, `padding`（および各辺）, `border`（および各辺）, `width`, `page-break-after`
-- **単位**: `px`, `em`, `%`
+- **単位**: 長さ系プロパティ（`width`, `margin`, `padding`, `font-size` など）でサポートする単位は `px`, `em`, `rem`, `%`, `pt`, `mm`, `cm`, `in`、および単位なしの `0`
+  - 換算基準: 1px = 0.75pt（96dpi → 72pt）、1in = 25.4mm = 72pt
+  - `em` は当該要素の `font-size` 基準（ただし `font-size` 自身の指定では親要素の `font-size` 基準）、`rem` はルート要素の `font-size` 基準
+  - `%` はプロパティごとに基準が異なる（`width` 系は包含ブロックの幅）
 
 ## 非目標（初期）
 
@@ -61,6 +64,6 @@ PDF
 | バージョン | 内容 |
 |---|---|
 | v0 | テキストのみ描画 |
-| v1 | ブロックと罫線 |
+| v1 | ブロックと罫線（リスト `ul`/`ol`/`li` のマーカー・番号・インデントを含む） |
 | v2 | テーブル |
 | v3 | 画像と改ページ |
