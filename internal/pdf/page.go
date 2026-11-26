@@ -1,0 +1,137 @@
+package pdf
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+)
+
+// Page is a single page; drawing methods append to its content stream.
+type Page struct {
+	w             *Writer
+	width, height float64
+	buf           bytes.Buffer
+	chunks        []*fontChunk // font chunks used, in first-use order
+	chunkSet      map[*fontChunk]bool
+	images        []*Image
+	imageSet      map[*Image]bool
+	objID         int
+	contentID     int
+}
+
+// AddPage appends a page of the given size in points.
+func (w *Writer) AddPage(width, height float64) *Page {
+	p := &Page{
+		w:        w,
+		width:    width,
+		height:   height,
+		chunkSet: make(map[*fontChunk]bool),
+		imageSet: make(map[*Image]bool),
+	}
+	w.pages = append(w.pages, p)
+	return p
+}
+
+// fy converts a top-left-origin y to PDF's bottom-left-origin y.
+func (p *Page) fy(y float64) float64 { return p.height - y }
+
+// SetFillColor sets the fill color; components are 0..1.
+func (p *Page) SetFillColor(r, g, b float64) {
+	fmt.Fprintf(&p.buf, "%s %s %s rg\n", num(r), num(g), num(b))
+}
+
+// SetStrokeColor sets the stroke color; components are 0..1.
+func (p *Page) SetStrokeColor(r, g, b float64) {
+	fmt.Fprintf(&p.buf, "%s %s %s RG\n", num(r), num(g), num(b))
+}
+
+func (p *Page) rect(x, y, w, h float64, op string) {
+	fmt.Fprintf(&p.buf, "%s %s %s %s re %s\n", num(x), num(p.fy(y+h)), num(w), num(h), op)
+}
+
+// FillRect fills a rectangle whose top-left corner is (x, y).
+func (p *Page) FillRect(x, y, w, h float64) { p.rect(x, y, w, h, "f") }
+
+// StrokeRect strokes a rectangle outline.
+func (p *Page) StrokeRect(x, y, w, h, lineWidth float64) {
+	fmt.Fprintf(&p.buf, "%s w\n", num(lineWidth))
+	p.rect(x, y, w, h, "S")
+}
+
+// FillStrokeRect fills and strokes a rectangle.
+func (p *Page) FillStrokeRect(x, y, w, h, lineWidth float64) {
+	fmt.Fprintf(&p.buf, "%s w\n", num(lineWidth))
+	p.rect(x, y, w, h, "B")
+}
+
+// DrawLine strokes a line segment.
+func (p *Page) DrawLine(x1, y1, x2, y2, lineWidth float64) {
+	fmt.Fprintf(&p.buf, "%s w\n%s %s m %s %s l S\n",
+		num(lineWidth), num(x1), num(p.fy(y1)), num(x2), num(p.fy(y2)))
+}
+
+// ShowText draws s with its baseline origin at (x, y) in the current fill color.
+func (p *Page) ShowText(f *Font, size, x, y float64, s string) {
+	type run struct {
+		chunk *fontChunk
+		codes []byte
+	}
+	var runs []run
+	for _, r := range s {
+		if r < 0x20 {
+			continue
+		}
+		c, code := f.code(r)
+		if len(runs) == 0 || runs[len(runs)-1].chunk != c {
+			runs = append(runs, run{chunk: c})
+		}
+		last := &runs[len(runs)-1]
+		last.codes = append(last.codes, code)
+	}
+	if len(runs) == 0 {
+		return
+	}
+	fmt.Fprintf(&p.buf, "BT\n1 0 0 1 %s %s Tm\n", num(x), num(p.fy(y)))
+	for _, r := range runs {
+		if !p.chunkSet[r.chunk] {
+			p.chunkSet[r.chunk] = true
+			p.chunks = append(p.chunks, r.chunk)
+		}
+		// The text position advances after each Tj, so chunk switches stay aligned.
+		fmt.Fprintf(&p.buf, "/%s %s Tf\n<%X> Tj\n", r.chunk.name, num(size), r.codes)
+	}
+	p.buf.WriteString("ET\n")
+}
+
+// DrawImage draws img into the rectangle with top-left corner (x, y).
+func (p *Page) DrawImage(img *Image, x, y, w, h float64) {
+	if !p.imageSet[img] {
+		p.imageSet[img] = true
+		p.images = append(p.images, img)
+	}
+	fmt.Fprintf(&p.buf, "q %s 0 0 %s %s %s cm /%s Do Q\n",
+		num(w), num(h), num(x), num(p.fy(y+h)), img.name())
+}
+
+func (w *Writer) writePage(p *Page) {
+	w.stream(p.contentID, "", p.buf.Bytes(), true)
+	var res strings.Builder
+	res.WriteString("<<")
+	if len(p.chunks) > 0 {
+		res.WriteString(" /Font <<")
+		for _, c := range p.chunks {
+			fmt.Fprintf(&res, " /%s %d 0 R", c.name, c.objID)
+		}
+		res.WriteString(" >>")
+	}
+	if len(p.images) > 0 {
+		res.WriteString(" /XObject <<")
+		for _, im := range p.images {
+			fmt.Fprintf(&res, " /%s %d 0 R", im.name(), im.objID)
+		}
+		res.WriteString(" >>")
+	}
+	res.WriteString(" >>")
+	w.obj(p.objID, fmt.Sprintf("<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %s %s] /Resources %s /Contents %d 0 R >>",
+		w.pagesID, num(p.width), num(p.height), res.String(), p.contentID))
+}
