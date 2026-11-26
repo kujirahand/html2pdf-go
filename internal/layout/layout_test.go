@@ -72,26 +72,29 @@ func TestInvoiceThreePages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// 実寸では僅かに溢れるため 0.95 で調整する（wkhtmltopdf の smart shrinking 相当）。
-	// At real size the first page overflows slightly, so adjust with 0.95.
-	pages := runOpts(t, string(src), Options{Scale: 0.95})
+	// 実寸（Scale なし）で 3 ページに収まる。名前と印鑑を同じ行にしたことで
+	// 差出人欄が低くなり、以前あった約 6pt の溢れは解消した。
+	// Fits on 3 pages at real size; putting the name and the stamp on one
+	// row made the sender box short enough to remove the old overflow.
+	pages := run(t, string(src))
 	if len(pages) != 3 {
 		t.Errorf("invoice laid out on %d pages, want 3", len(pages))
+	}
+}
+
+func TestInvoiceScaledPagesKeepRealSize(t *testing.T) {
+	src, err := os.ReadFile("../../testdata/invoice.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages := runOpts(t, string(src), Options{Scale: 0.95})
+	if len(pages) != 3 {
+		t.Errorf("scaled invoice laid out on %d pages, want 3", len(pages))
 	}
 	for _, p := range pages {
 		if p.Scale != 0.95 || p.Width < 595 || p.Width > 596 {
 			t.Errorf("page = %vx%v scale %v, want real size with scale 0.95", p.Width, p.Height, p.Scale)
 		}
-	}
-}
-
-func TestInvoiceRealSizeOverflows(t *testing.T) {
-	src, err := os.ReadFile("../../testdata/invoice.html")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pages := run(t, string(src)); len(pages) != 4 {
-		t.Errorf("invoice at real size laid out on %d pages, want 4", len(pages))
 	}
 }
 
