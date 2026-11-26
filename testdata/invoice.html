@@ -1,0 +1,196 @@
+<html><head><meta charset="utf-8"></head><body>
+<!-- ダミーの請求書サンプルです。氏名・住所・口座・金額はすべて架空の値です。 -->
+<style>
+* { padding:0; margin:0; }
+body {
+    padding: 1em;
+    font-size: 1.3em;
+    line-height: 2.em;
+}
+h1 {
+    text-align: center;
+    padding: 10px;
+    color: black;
+    border-top: 1px solid navy;
+    border-bottom: 1px solid navy;
+    font-size: 1.9em;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.right { text-align: right; padding: 10px; }
+.center { text-align: center; }
+.pad { padding: 15px; }
+.to {
+    padding: 10px;
+    width: 45%;
+    font-size: 1.0em;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid navy;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+.from {
+    padding: 10px;
+    border: 1px solid navy;
+    text-align: left;
+    font-size: 1.2em;
+}
+.underline { text-decoration: underline; }
+.furikomi {
+    padding: 10px;
+    width: 50%;
+    text-align: left;
+    border: 1px solid navy;
+}
+.total th {
+    text-align: right;
+    padding: 8px;
+    font-size: 1.5em;
+}
+.total td {
+    border-bottom: 1px solid navy;
+    font-size: 1.7em;
+}
+.bikou {
+    border: 1px solid navy;
+    padding: 10px;
+}
+table.meisai {
+    border-left: 1px solid navy;
+    border-top: 1px solid navy;
+}
+.meisai th {
+    background-color: navy;
+    color: white;
+    border-right: 1px solid navy;
+    border-bottom: 1px solid navy;
+    padding: 8px;
+    font-size: 1.3em;
+}
+.meisai td {
+    border-right: 1px solid navy;
+    border-bottom: 1px solid navy;
+    padding: 8px;
+    font-size: 1.3em;
+}
+.r {
+    text-align: right;
+}
+.yinkan {
+    width: 2.2em;
+}
+</style>
+
+<!-- page 1 -->
+<p class="right">2026年1月31日</p>
+<h1>請 求 書</h1>
+<div class="to">
+<p>株式会社ダミー商事　ダミーニュース</p>
+<p>ニュース編集部　経理担当 御中</p>
+</div>
+
+<table width="100%">
+<tr><td width="50%"></td>
+<td width="50%">
+<div class="from">〒100-0001<br>
+住所: 東京都千代田区千代田1-1-1<br>
+サンプルマンション101号室<br>
+電話: 090-0000-0000<br><br>
+山 田　太 郎<br>
+<p class="right">　<img src="stamp.png" class="yinkan" /></p>&nbsp;<br>
+</div>
+</td></tr>
+</table>
+<br><br>
+<p class="center pad">下記のとおり、御請求申し上げます。</p>
+<br>
+<center><table class="total" width="50%">
+    <tr><th>税抜き金額:</th><td>¥10,000</td></tr>
+    <tr><th>消費税:</th><td>¥1,000</td></tr>
+    <tr><th>税込金額:</th><td>¥11,000</td></tr>
+</table></center>
+<p class="right pad">※明細は別紙を参照</p>
+<br>
+<div class="furikomi">
+<p class="underline">お振り込み先:</p><br>
+銀行名：ダミー銀行<br>
+支店名：サンプル支店<br>
+口座種別：普通口座<br>
+口座番号：0000000<br><br>
+口座名義：山田太郎（ヤマダタロウ）
+</div>
+<br>
+<div class="bikou">
+備考: メール添付にて請求書を発行、原本不送付<br>&nbsp;
+</div>
+<br>
+<!-- 改ページ -->
+<div style="page-break-after:always;"></div>
+
+<!-- page 2 -->
+<p class="right">2026年1月31日</p>
+<h1>納 品 書</h1>
+<div class="to">
+<p>株式会社ダミー商事　ダミーニュース</p>
+<p>ニュース編集部　経理担当 御中</p>
+</div>
+
+<table width="100%">
+<tr><td width="50%"></td>
+<td width="50%">
+<div class="from">〒100-0001<br>
+住所: 東京都千代田区千代田1-1-1<br>
+サンプルマンション101号室<br>
+電話: 090-0000-0000<br><br>
+山 田　太 郎<br>
+<p class="right">　<img src="stamp.png" class="yinkan" />　</p>&nbsp;<br>
+</div>
+</td></tr>
+</table>
+<br><br>
+<p class="center pad">下記のとおり、納品いたしました。</p>
+<center><table class="total" width="50%">
+    <tr><th>合計金額:</th><td>¥10,000</td></tr>
+</table></center>
+<p class="right pad">※明細は別紙を参照</p>
+<br>
+<div class="bikou">
+備考:<br>消費税は請求時に別途計上いたします。
+</div>
+<br>
+<!-- 改ページ -->
+<div style="page-break-after:always;"></div>
+
+<!-- page 3 -->
+<p class="right">2026年1月31日</p>
+<h1>明 細</h1>
+<br>
+<br>
+<table class="meisai" width="100%">
+<tr>
+    <th>No.</th>
+    <th width="50%">品名</th>
+    <th>数量</th>
+    <th>単価</th>
+    <th>金額</th>
+    <th>備考</th>
+</tr>
+<tr>
+    <td class="r">1</td>
+    <td>ダミー記事の執筆料（サンプル）</td>
+    <td class="r">1</td>
+    <td class="r">6,000</td>
+    <td class="r">6,000</td>
+    <td></td>
+</tr>
+<tr>
+    <td class="r">2</td>
+    <td>ダミー記事の執筆料（サンプル2）</td>
+    <td class="r">1</td>
+    <td class="r">4,000</td>
+    <td class="r">4,000</td>
+    <td></td>
+</tr>
+</table>
+</body></html>
