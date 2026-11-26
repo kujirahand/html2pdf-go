@@ -42,6 +42,7 @@ func reorderArgs(args []string) []string {
 func main() {
 	out := flag.String("o", "", "output PDF path (default: input with .pdf extension)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
+	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
 	flag.Usage = func() {
@@ -61,10 +62,11 @@ func main() {
 	}
 
 	opts := &html2pdf.Options{
-		PageSize: *pageSize,
-		BaseDir:  filepath.Dir(input),
-		Scale:    *scale,
-		Margin:   *margin,
+		PageSize:  *pageSize,
+		Landscape: *landscape,
+		BaseDir:   filepath.Dir(input),
+		Scale:     *scale,
+		Margin:    *margin,
 	}
 	if err := html2pdf.ConvertFile(input, output, opts); err != nil {
 		fmt.Fprintln(os.Stderr, err)

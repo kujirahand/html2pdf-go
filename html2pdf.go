@@ -23,6 +23,8 @@ type Options struct {
 	// PageWidth and PageHeight are in points; 0 means derive from PageSize.
 	PageWidth  float64
 	PageHeight float64
+	// Landscape swaps the page width and height.
+	Landscape bool
 	// BaseDir is used to resolve relative paths such as images.
 	BaseDir string
 	// FontDirs lists extra directories to search for fonts.
@@ -60,6 +62,9 @@ func (o *Options) pageSize() (w, h float64, err error) {
 	}
 	if h <= 0 {
 		h = size[1]
+	}
+	if o.Landscape {
+		w, h = h, w
 	}
 	return w, h, nil
 }
