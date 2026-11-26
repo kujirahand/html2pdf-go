@@ -83,7 +83,14 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 		if it.Stroke != nil {
 			pg.SetStrokeColor(it.Stroke.R, it.Stroke.G, it.Stroke.B)
 		}
+		rounded := it.RadiusX != [4]float64{} && it.RadiusY != [4]float64{}
 		switch {
+		case rounded && it.Fill != nil && it.Stroke != nil:
+			pg.FillStrokeRoundedRect(it.X, it.Y, it.W, it.H, it.LineWidth, it.RadiusX, it.RadiusY)
+		case rounded && it.Fill != nil:
+			pg.FillRoundedRect(it.X, it.Y, it.W, it.H, it.RadiusX, it.RadiusY)
+		case rounded && it.Stroke != nil:
+			pg.StrokeRoundedRect(it.X, it.Y, it.W, it.H, it.LineWidth, it.RadiusX, it.RadiusY)
 		case it.Fill != nil && it.Stroke != nil:
 			pg.FillStrokeRect(it.X, it.Y, it.W, it.H, it.LineWidth)
 		case it.Fill != nil:

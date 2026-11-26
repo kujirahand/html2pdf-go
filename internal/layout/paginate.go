@@ -47,7 +47,14 @@ func (l *layouter) paginate() []*Page {
 			for k := pageOf(p.y); k <= pageOf(p.y+p.h-pageEps); k++ {
 				if top, bot := span(k, p.y, p.h); bot-top > pageEps {
 					c := p.color
-					pages[k].Items = append(pages[k].Items, RectItem{X: p.x, Y: top + off(k), W: p.w, H: bot - top, Fill: &c})
+					pages[k].Items = append(pages[k].Items, RectItem{X: p.x, Y: top + off(k), W: p.w, H: bot - top, Fill: &c, RadiusX: p.rx, RadiusY: p.ry})
+				}
+			}
+		case pRoundStroke:
+			for k := pageOf(p.y); k <= pageOf(p.y+p.h-pageEps); k++ {
+				if top, bot := span(k, p.y, p.h); bot-top > pageEps {
+					c := p.color
+					pages[k].Items = append(pages[k].Items, RectItem{X: p.x, Y: top + off(k), W: p.w, H: bot - top, Stroke: &c, LineWidth: p.lw, RadiusX: p.rx, RadiusY: p.ry})
 				}
 			}
 		case pHLine:

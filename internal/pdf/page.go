@@ -78,6 +78,64 @@ func (p *Page) FillStrokeRect(x, y, w, h, lineWidth float64) {
 	p.rect(x, y, w, h, "B")
 }
 
+// kappa is the cubic Bezier control-point factor that approximates a
+// quarter circle.
+const kappa = 0.5522847498
+
+// roundedRect appends a closed rounded-rectangle path followed by op. Radii
+// are ordered top-left, top-right, bottom-right, bottom-left and are clamped
+// to half the width and height; a zero radius gives a square corner.
+func (p *Page) roundedRect(x, y, w, h float64, rx, ry [4]float64, op string) {
+	x, y, w, h = p.sc(x), p.sc(y), p.sc(w), p.sc(h)
+	for i := 0; i < 4; i++ {
+		rx[i] = min(max(p.sc(rx[i]), 0), w/2)
+		ry[i] = min(max(p.sc(ry[i]), 0), h/2)
+	}
+	pt := func(px, py float64) string { return num(px) + " " + num(p.fy(py)) }
+	curve := func(x1, y1, x2, y2, x3, y3 float64) {
+		fmt.Fprintf(&p.buf, "%s %s %s c\n", pt(x1, y1), pt(x2, y2), pt(x3, y3))
+	}
+	r, b := x+w, y+h
+	// Start after the top-left corner and walk clockwise (in top-left-origin
+	// coordinates).
+	fmt.Fprintf(&p.buf, "%s m\n", pt(x+rx[0], y))
+	fmt.Fprintf(&p.buf, "%s l\n", pt(r-rx[1], y))
+	if rx[1] > 0 && ry[1] > 0 {
+		curve(r-rx[1]+rx[1]*kappa, y, r, y+ry[1]-ry[1]*kappa, r, y+ry[1])
+	}
+	fmt.Fprintf(&p.buf, "%s l\n", pt(r, b-ry[2]))
+	if rx[2] > 0 && ry[2] > 0 {
+		curve(r, b-ry[2]+ry[2]*kappa, r-rx[2]+rx[2]*kappa, b, r-rx[2], b)
+	}
+	fmt.Fprintf(&p.buf, "%s l\n", pt(x+rx[3], b))
+	if rx[3] > 0 && ry[3] > 0 {
+		curve(x+rx[3]-rx[3]*kappa, b, x, b-ry[3]+ry[3]*kappa, x, b-ry[3])
+	}
+	fmt.Fprintf(&p.buf, "%s l\n", pt(x, y+ry[0]))
+	if rx[0] > 0 && ry[0] > 0 {
+		curve(x, y+ry[0]-ry[0]*kappa, x+rx[0]-rx[0]*kappa, y, x+rx[0], y)
+	}
+	fmt.Fprintf(&p.buf, "h %s\n", op)
+}
+
+// FillRoundedRect fills a rectangle with elliptical corners; rx and ry are
+// the corner radii (top-left, top-right, bottom-right, bottom-left).
+func (p *Page) FillRoundedRect(x, y, w, h float64, rx, ry [4]float64) {
+	p.roundedRect(x, y, w, h, rx, ry, "f")
+}
+
+// StrokeRoundedRect strokes a rounded rectangle outline.
+func (p *Page) StrokeRoundedRect(x, y, w, h, lineWidth float64, rx, ry [4]float64) {
+	fmt.Fprintf(&p.buf, "%s w\n", num(p.sc(lineWidth)))
+	p.roundedRect(x, y, w, h, rx, ry, "S")
+}
+
+// FillStrokeRoundedRect fills and strokes a rounded rectangle.
+func (p *Page) FillStrokeRoundedRect(x, y, w, h, lineWidth float64, rx, ry [4]float64) {
+	fmt.Fprintf(&p.buf, "%s w\n", num(p.sc(lineWidth)))
+	p.roundedRect(x, y, w, h, rx, ry, "B")
+}
+
 // DrawLine strokes a line segment.
 func (p *Page) DrawLine(x1, y1, x2, y2, lineWidth float64) {
 	x1, y1, x2, y2, lineWidth = p.sc(x1), p.sc(y1), p.sc(x2), p.sc(y2), p.sc(lineWidth)

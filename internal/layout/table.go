@@ -263,7 +263,7 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 			l.noUnits++
 			l.flow(c.n, c.st, cx+c.bm.b[css.Left]+c.bm.p[css.Left], cy, innerW)
 			l.noUnits--
-			l.drawBorders(c.st, c.bm, cx, rowTop, cellW, rowH)
+			l.drawBorders(c.st, c.bm, cx, rowTop, cellW, rowH, [4]float64{}, [4]float64{}) // cell radii are not supported
 		}
 		if r.st.BackgroundColor != nil && rowH > 0 {
 			l.prims[rowSlot] = prim{kind: pFill, x: tx, y: rowTop, w: contentW, h: rowH, color: *r.st.BackgroundColor}
@@ -274,10 +274,11 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 		yy += rowH
 	}
 	bottom := yy + bm.p[css.Bottom] + bm.b[css.Bottom]
+	rx, ry := boxRadii(st, tableW, bottom-top)
 	if st.BackgroundColor != nil {
-		l.prims[slot] = prim{kind: pFill, x: left, y: top, w: tableW, h: bottom - top, color: *st.BackgroundColor}
+		l.prims[slot] = prim{kind: pFill, x: left, y: top, w: tableW, h: bottom - top, color: *st.BackgroundColor, rx: rx, ry: ry}
 	}
-	l.drawBorders(st, bm, left, top, tableW, bottom-top)
+	l.drawBorders(st, bm, left, top, tableW, bottom-top, rx, ry)
 	l.extendUnits(before, top, bottom)
 	if st.PageBreakAfter {
 		l.forceBreak()

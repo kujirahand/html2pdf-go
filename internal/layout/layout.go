@@ -18,6 +18,7 @@ const (
 	pVLine // vertical line at x from y to y+h
 	pText
 	pImage
+	pRoundStroke // rounded rectangle outline; x, y, w, h is the path, lw its width
 )
 
 // prim is a drawing primitive in flow coordinates.
@@ -31,6 +32,9 @@ type prim struct {
 	bold       bool
 	underline  bool
 	src        string
+	// rx and ry are corner radii for pFill and pRoundStroke (top-left,
+	// top-right, bottom-right, bottom-left); all zero means square.
+	rx, ry [4]float64
 }
 
 // unit is an atomic vertical extent that pagination never splits, or a
@@ -209,8 +213,68 @@ func isBlockLevel(display string) bool {
 	return false
 }
 
-func (l *layouter) drawBorders(st *css.Style, bm boxm, x, y, w, h float64) {
+// boxRadii resolves the border radii of a w x h border box. X percentages
+// refer to the box width and Y percentages to the box height. Following CSS
+// (§5.5), if the radii on any side add up to more than that side's length,
+// all radii are scaled down by the same factor.
+func boxRadii(st *css.Style, w, h float64) (rx, ry [4]float64) {
+	fs := st.FontSize.Value
+	for i := 0; i < 4; i++ {
+		rx[i] = max(0, st.BorderRadiusX[i].Resolve(fs, css.RootFontSize, w))
+		ry[i] = max(0, st.BorderRadiusY[i].Resolve(fs, css.RootFontSize, h))
+		if rx[i] == 0 || ry[i] == 0 {
+			// A corner with a zero radius on either axis is square.
+			rx[i], ry[i] = 0, 0
+		}
+	}
+	f := 1.0
+	fit := func(sum, length float64) {
+		if sum > length && sum > 0 {
+			f = min(f, length/sum)
+		}
+	}
+	fit(rx[css.TopLeft]+rx[css.TopRight], w)
+	fit(rx[css.BottomLeft]+rx[css.BottomRight], w)
+	fit(ry[css.TopLeft]+ry[css.BottomLeft], h)
+	fit(ry[css.TopRight]+ry[css.BottomRight], h)
+	if f < 1 {
+		for i := 0; i < 4; i++ {
+			rx[i] *= f
+			ry[i] *= f
+		}
+	}
+	return rx, ry
+}
+
+// isRounded reports whether any corner has a non-zero radius.
+func isRounded(rx, ry [4]float64) bool {
+	for i := 0; i < 4; i++ {
+		if rx[i] > 0 && ry[i] > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// drawBorders draws the borders of a box. With rounded corners and a uniform
+// border (same width and color on every side) it emits one rounded stroke;
+// borders that differ per side fall back to four straight lines, which ignore
+// the radii.
+func (l *layouter) drawBorders(st *css.Style, bm boxm, x, y, w, h float64, rx, ry [4]float64) {
 	b := bm.b
+	if isRounded(rx, ry) && b[0] > 0 && b[0] == b[1] && b[0] == b[2] && b[0] == b[3] &&
+		st.BorderColor[0] == st.BorderColor[1] && st.BorderColor[0] == st.BorderColor[2] && st.BorderColor[0] == st.BorderColor[3] {
+		// Stroke along the middle of the border: inset the box by half the
+		// width and shrink the radii to match.
+		half := b[0] / 2
+		p := prim{kind: pRoundStroke, x: x + half, y: y + half, w: max(w-b[0], 0), h: max(h-b[0], 0), lw: b[0], color: st.BorderColor[0]}
+		for i := 0; i < 4; i++ {
+			p.rx[i] = max(rx[i]-half, 0)
+			p.ry[i] = max(ry[i]-half, 0)
+		}
+		l.emit(p)
+		return
+	}
 	if b[css.Top] > 0 {
 		l.emit(prim{kind: pHLine, x: x, y: y + b[css.Top]/2, w: w, lw: b[css.Top], color: st.BorderColor[css.Top]})
 	}
@@ -261,10 +325,11 @@ func (l *layouter) block(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 	l.marker = nil
 	bottom := end + bm.p[css.Bottom] + bm.b[css.Bottom]
 
+	rx, ry := boxRadii(st, boxW, bottom-top)
 	if st.BackgroundColor != nil && bottom > top {
-		l.prims[slot] = prim{kind: pFill, x: boxX, y: top, w: boxW, h: bottom - top, color: *st.BackgroundColor}
+		l.prims[slot] = prim{kind: pFill, x: boxX, y: top, w: boxW, h: bottom - top, color: *st.BackgroundColor, rx: rx, ry: ry}
 	}
-	l.drawBorders(st, bm, boxX, top, boxW, bottom-top)
+	l.drawBorders(st, bm, boxX, top, boxW, bottom-top, rx, ry)
 	hasBorder := bm.b[css.Top]+bm.b[css.Right]+bm.b[css.Bottom]+bm.b[css.Left] > 0
 	if len(l.units) == before && bottom > top {
 		l.addUnit(top, bottom)

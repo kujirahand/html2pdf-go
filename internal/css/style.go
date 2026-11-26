@@ -34,6 +34,10 @@ type Style struct {
 	BorderStyle    [4]string // "none" or "solid"
 	Width          *Length   // nil means auto
 	PageBreakAfter bool
+	// BorderRadiusX and BorderRadiusY are the horizontal and vertical corner
+	// radii, ordered top-left, top-right, bottom-right, bottom-left.
+	BorderRadiusX [4]Length
+	BorderRadiusY [4]Length
 
 	borderColorSet [4]bool
 	lhLen          *Length
@@ -186,6 +190,90 @@ func (s *Style) setBorderSide(i int, v string) {
 	s.BorderColor[i], s.borderColorSet[i] = col, colSet
 }
 
+// Corner indexes for Style.BorderRadiusX and BorderRadiusY.
+const (
+	TopLeft = iota
+	TopRight
+	BottomRight
+	BottomLeft
+)
+
+// expandCorners maps 1-4 values to top-left, top-right, bottom-right,
+// bottom-left.
+func expandCorners(v []Length) ([4]Length, bool) {
+	var o [4]Length
+	switch len(v) {
+	case 1:
+		o = [4]Length{v[0], v[0], v[0], v[0]}
+	case 2:
+		o = [4]Length{v[0], v[1], v[0], v[1]}
+	case 3:
+		o = [4]Length{v[0], v[1], v[2], v[1]}
+	case 4:
+		o = [4]Length{v[0], v[1], v[2], v[3]}
+	default:
+		return o, false
+	}
+	return o, true
+}
+
+func parseRadiusList(v string) ([]Length, bool) {
+	var ls []Length
+	for _, t := range splitTokens(v) {
+		l, ok := ParseLength(t)
+		if !ok || l.Value < 0 {
+			return nil, false
+		}
+		ls = append(ls, l)
+	}
+	return ls, len(ls) > 0
+}
+
+// setBorderRadius applies the border-radius shorthand: X radii, optionally
+// followed by "/" and Y radii (which default to the X radii).
+func (s *Style) setBorderRadius(val string) {
+	xs, ys := val, ""
+	hasY := false
+	if i := strings.Index(val, "/"); i >= 0 {
+		xs, ys, hasY = val[:i], val[i+1:], true
+	}
+	xl, ok := parseRadiusList(xs)
+	if !ok {
+		return
+	}
+	x, ok := expandCorners(xl)
+	if !ok {
+		return
+	}
+	y := x
+	if hasY {
+		yl, ok := parseRadiusList(ys)
+		if !ok {
+			return
+		}
+		if y, ok = expandCorners(yl); !ok {
+			return
+		}
+	}
+	s.BorderRadiusX, s.BorderRadiusY = x, y
+}
+
+// setCornerRadius applies a border-<corner>-radius longhand: X [Y].
+func (s *Style) setCornerRadius(i int, val string) {
+	ls, ok := parseRadiusList(val)
+	if !ok || len(ls) > 2 {
+		return
+	}
+	s.BorderRadiusX[i], s.BorderRadiusY[i] = ls[0], ls[len(ls)-1]
+}
+
+var cornerProps = map[string]int{
+	"border-top-left-radius":     TopLeft,
+	"border-top-right-radius":    TopRight,
+	"border-bottom-right-radius": BottomRight,
+	"border-bottom-left-radius":  BottomLeft,
+}
+
 // apply applies one declaration. parentFontSize is in points.
 func (s *Style) apply(prop, val string, parentFontSize float64) {
 	lv := strings.ToLower(val)
@@ -277,6 +365,8 @@ func (s *Style) apply(prop, val string, parentFontSize float64) {
 		case "auto", "avoid":
 			s.PageBreakAfter = false
 		}
+	case "border-radius":
+		s.setBorderRadius(val)
 	case "border":
 		for i := 0; i < 4; i++ {
 			s.setBorderSide(i, val)
@@ -319,6 +409,10 @@ func (s *Style) apply(prop, val string, parentFontSize float64) {
 			s.borderColorSet = [4]bool{true, true, true, true}
 		}
 	default:
+		if i, ok := cornerProps[prop]; ok {
+			s.setCornerRadius(i, val)
+			return
+		}
 		s.applySide(prop, val)
 	}
 }

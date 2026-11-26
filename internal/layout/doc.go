@@ -50,6 +50,9 @@ type RectItem struct {
 	Fill       *css.Color
 	Stroke     *css.Color
 	LineWidth  float64
+	// RadiusX and RadiusY are the corner radii (top-left, top-right,
+	// bottom-right, bottom-left); all zero means a square rectangle.
+	RadiusX, RadiusY [4]float64
 }
 
 // LineItem draws a straight line.
