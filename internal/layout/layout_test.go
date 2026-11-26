@@ -117,3 +117,29 @@ func TestInvoiceTableHeadersNotWrapped(t *testing.T) {
 		}
 	}
 }
+
+func TestSiblingMarginsCollapse(t *testing.T) {
+	pages := run(t, `<body><div style="margin-bottom:40px">AAA</div><div style="margin-top:40px">BBB</div></body>`)
+	if len(pages) != 1 {
+		t.Fatalf("got %d pages, want 1", len(pages))
+	}
+	var ya, yb float64
+	for _, it := range pages[0].Items {
+		if tx, ok := it.(TextItem); ok {
+			switch tx.Text {
+			case "AAA":
+				ya = tx.Y
+			case "BBB":
+				yb = tx.Y
+			}
+		}
+	}
+	if ya == 0 || yb == 0 {
+		t.Fatalf("texts not found: AAA=%v BBB=%v", ya, yb)
+	}
+	// Line height 12pt + collapsed margin max(30pt, 30pt) = 42pt between
+	// baselines. Without collapsing the gap would be 12 + 30 + 30 = 72pt.
+	if d := yb - ya; d < 36 || d > 48 {
+		t.Errorf("baseline distance = %.1f, want about 42 (collapsed margins)", d)
+	}
+}
