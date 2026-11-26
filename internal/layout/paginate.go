@@ -60,11 +60,11 @@ func (l *layouter) paginate() []*Page {
 		case pHLine:
 			k := pageOf(p.y)
 			y := p.y + off(k)
-			pages[k].Items = append(pages[k].Items, LineItem{X1: p.x, Y1: y, X2: p.x + p.w, Y2: y, LineWidth: p.lw, Color: p.color})
+			pages[k].Items = append(pages[k].Items, LineItem{X1: p.x, Y1: y, X2: p.x + p.w, Y2: y, LineWidth: p.lw, Color: p.color, Style: p.style})
 		case pVLine:
 			for k := pageOf(p.y); k <= pageOf(p.y+p.h-pageEps); k++ {
 				if top, bot := span(k, p.y, p.h); bot-top > pageEps {
-					pages[k].Items = append(pages[k].Items, LineItem{X1: p.x, Y1: top + off(k), X2: p.x, Y2: bot + off(k), LineWidth: p.lw, Color: p.color})
+					pages[k].Items = append(pages[k].Items, LineItem{X1: p.x, Y1: top + off(k), X2: p.x, Y2: bot + off(k), LineWidth: p.lw, Color: p.color, Style: p.style})
 				}
 			}
 		case pText:

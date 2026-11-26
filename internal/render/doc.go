@@ -100,7 +100,7 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 		}
 	case layout.LineItem:
 		pg.SetStrokeColor(it.Color.R, it.Color.G, it.Color.B)
-		pg.DrawLine(it.X1, it.Y1, it.X2, it.Y2, it.LineWidth)
+		pg.DrawStyledLine(it.X1, it.Y1, it.X2, it.Y2, it.LineWidth, it.Style)
 	case layout.ImageItem:
 		// An unusable image is skipped, matching layout's handling of
 		// unreadable images, rather than failing the whole render.

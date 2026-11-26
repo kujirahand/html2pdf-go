@@ -55,10 +55,12 @@ type RectItem struct {
 	RadiusX, RadiusY [4]float64
 }
 
-// LineItem draws a straight line.
+// LineItem draws a straight line. Style is "" or "solid" for a solid line,
+// or "dashed" or "dotted".
 type LineItem struct {
 	X1, Y1, X2, Y2, LineWidth float64
 	Color                     css.Color
+	Style                     string
 }
 
 // ImageItem draws the image at Src (path resolved against BaseDir).

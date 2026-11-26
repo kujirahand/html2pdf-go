@@ -143,6 +143,27 @@ func (p *Page) DrawLine(x1, y1, x2, y2, lineWidth float64) {
 		num(lineWidth), num(x1), num(p.fy(y1)), num(x2), num(p.fy(y2)))
 }
 
+// DrawStyledLine strokes a line segment in the given style: "dashed" (dashes
+// of 3 line widths with 2 line width gaps), "dotted" (round dots spaced 2 line
+// widths apart), or anything else for a solid line. The dash and cap settings
+// are scoped to the line with q/Q.
+func (p *Page) DrawStyledLine(x1, y1, x2, y2, lineWidth float64, style string) {
+	lw := p.sc(lineWidth)
+	var setup string
+	switch style {
+	case "dashed":
+		setup = fmt.Sprintf("[%s %s] 0 d\n", num(3*lw), num(2*lw))
+	case "dotted":
+		setup = fmt.Sprintf("1 J\n[0 %s] 0 d\n", num(2*lw))
+	default:
+		p.DrawLine(x1, y1, x2, y2, lineWidth)
+		return
+	}
+	p.buf.WriteString("q\n" + setup)
+	p.DrawLine(x1, y1, x2, y2, lineWidth)
+	p.buf.WriteString("Q\n")
+}
+
 // ShowText draws s with its baseline origin at (x, y) in the current fill color.
 func (p *Page) ShowText(f *Font, size, x, y float64, s string) {
 	size, x, y = p.sc(size), p.sc(x), p.sc(y)

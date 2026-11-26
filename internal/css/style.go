@@ -31,7 +31,7 @@ type Style struct {
 	Padding        [4]Length
 	BorderWidth    [4]Length
 	BorderColor    [4]Color
-	BorderStyle    [4]string // "none" or "solid"
+	BorderStyle    [4]string // "none", "solid", "dashed", "dotted" or "double"
 	Width          *Length   // nil means auto
 	PageBreakAfter bool
 	// BorderRadiusX and BorderRadiusY are the horizontal and vertical corner
@@ -154,7 +154,9 @@ func parseBorderStyle(t string) (string, bool) {
 	switch strings.ToLower(t) {
 	case "none", "hidden":
 		return "none", true
-	case "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset":
+	case "dashed", "dotted", "double":
+		return strings.ToLower(t), true
+	case "solid", "groove", "ridge", "inset", "outset":
 		return "solid", true
 	}
 	return "", false

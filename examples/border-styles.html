@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>border-style sample</title>
+<style>
+* { margin: 0; padding: 0; }
+body { font-size: 11pt; color: #222222; }
+h1 { font-size: 16pt; margin-bottom: 12px; }
+.box { margin-bottom: 14px; padding: 10px 14px; border-color: #2f5496; border-width: 4px; }
+.solid { border-style: solid; }
+.dashed { border-style: dashed; }
+.dotted { border-style: dotted; }
+.double { border-style: double; border-width: 6px; }
+.rounded { border: 3px dashed #c0504d; border-radius: 12px; }
+</style>
+</head>
+<body>
+<h1>border-style</h1>
+<div class="box solid">solid</div>
+<div class="box dashed">dashed</div>
+<div class="box dotted">dotted</div>
+<div class="box double">double</div>
+<div class="box rounded">dashed + border-radius (falls back to straight dashed lines)</div>
+</body>
+</html>

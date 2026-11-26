@@ -35,6 +35,9 @@ type prim struct {
 	// rx and ry are corner radii for pFill and pRoundStroke (top-left,
 	// top-right, bottom-right, bottom-left); all zero means square.
 	rx, ry [4]float64
+	// style is the line style for pHLine and pVLine: "" or "solid",
+	// "dashed" or "dotted".
+	style string
 }
 
 // unit is an atomic vertical extent that pagination never splits, or a
@@ -78,7 +81,7 @@ func (l *layouter) boxMetrics(st *css.Style, cw float64) boxm {
 	for i := 0; i < 4; i++ {
 		bm.m[i] = st.Margin[i].Resolve(fs, css.RootFontSize, cw)
 		bm.p[i] = max(0, st.Padding[i].Resolve(fs, css.RootFontSize, cw))
-		if st.BorderStyle[i] == "solid" {
+		if s := st.BorderStyle[i]; s != "none" && s != "hidden" && s != "" {
 			bm.b[i] = max(0, st.BorderWidth[i].Resolve(fs, css.RootFontSize, cw))
 		}
 	}
@@ -259,10 +262,17 @@ func isRounded(rx, ry [4]float64) bool {
 // drawBorders draws the borders of a box. With rounded corners and a uniform
 // border (same width and color on every side) it emits one rounded stroke;
 // borders that differ per side fall back to four straight lines, which ignore
-// the radii.
+// the radii. The rounded stroke is solid only, so a box with any dashed,
+// dotted or double side also falls back to straight lines.
 func (l *layouter) drawBorders(st *css.Style, bm boxm, x, y, w, h float64, rx, ry [4]float64) {
 	b := bm.b
-	if isRounded(rx, ry) && b[0] > 0 && b[0] == b[1] && b[0] == b[2] && b[0] == b[3] &&
+	allSolid := true
+	for _, s := range st.BorderStyle {
+		if s != "solid" {
+			allSolid = false
+		}
+	}
+	if allSolid && isRounded(rx, ry) && b[0] > 0 && b[0] == b[1] && b[0] == b[2] && b[0] == b[3] &&
 		st.BorderColor[0] == st.BorderColor[1] && st.BorderColor[0] == st.BorderColor[2] && st.BorderColor[0] == st.BorderColor[3] {
 		// Stroke along the middle of the border: inset the box by half the
 		// width and shrink the radii to match.
@@ -276,16 +286,44 @@ func (l *layouter) drawBorders(st *css.Style, bm boxm, x, y, w, h float64, rx, r
 		return
 	}
 	if b[css.Top] > 0 {
-		l.emit(prim{kind: pHLine, x: x, y: y + b[css.Top]/2, w: w, lw: b[css.Top], color: st.BorderColor[css.Top]})
+		l.emitBorderLine(pHLine, x, y+b[css.Top]/2, w, b[css.Top], st.BorderColor[css.Top], st.BorderStyle[css.Top])
 	}
 	if b[css.Bottom] > 0 {
-		l.emit(prim{kind: pHLine, x: x, y: y + h - b[css.Bottom]/2, w: w, lw: b[css.Bottom], color: st.BorderColor[css.Bottom]})
+		l.emitBorderLine(pHLine, x, y+h-b[css.Bottom]/2, w, b[css.Bottom], st.BorderColor[css.Bottom], st.BorderStyle[css.Bottom])
 	}
 	if b[css.Left] > 0 {
-		l.emit(prim{kind: pVLine, x: x + b[css.Left]/2, y: y, h: h, lw: b[css.Left], color: st.BorderColor[css.Left]})
+		l.emitBorderLine(pVLine, x+b[css.Left]/2, y, h, b[css.Left], st.BorderColor[css.Left], st.BorderStyle[css.Left])
 	}
 	if b[css.Right] > 0 {
-		l.emit(prim{kind: pVLine, x: x + w - b[css.Right]/2, y: y, h: h, lw: b[css.Right], color: st.BorderColor[css.Right]})
+		l.emitBorderLine(pVLine, x+w-b[css.Right]/2, y, h, b[css.Right], st.BorderColor[css.Right], st.BorderStyle[css.Right])
+	}
+}
+
+// emitBorderLine emits one border side centered on (x, y) with length n
+// along its axis (width for pHLine, height for pVLine). A double border of
+// width lw becomes two solid lines of lw/3, offset by lw/3 either side of the
+// center, so the PDF layer only needs to know about dashes and dots.
+func (l *layouter) emitBorderLine(kind primKind, x, y, n, lw float64, color css.Color, style string) {
+	mk := func(x, y, lw float64, style string) prim {
+		p := prim{kind: kind, x: x, y: y, lw: lw, color: color, style: style}
+		if kind == pHLine {
+			p.w = n
+		} else {
+			p.h = n
+		}
+		return p
+	}
+	if style != "double" {
+		l.emit(mk(x, y, lw, style))
+		return
+	}
+	third := lw / 3
+	if kind == pHLine {
+		l.emit(mk(x, y-third, third, ""))
+		l.emit(mk(x, y+third, third, ""))
+	} else {
+		l.emit(mk(x-third, y, third, ""))
+		l.emit(mk(x+third, y, third, ""))
 	}
 }
 

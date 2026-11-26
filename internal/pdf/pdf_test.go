@@ -2,9 +2,11 @@ package pdf
 
 import (
 	"bytes"
+	"compress/zlib"
 	"image"
 	"image/color"
 	"image/png"
+	"io"
 	"strconv"
 	"strings"
 	"testing"
@@ -56,6 +58,53 @@ func TestTextPDF(t *testing.T) {
 		if !bytes.Contains(out, []byte(want)) {
 			t.Errorf("output lacks %q", want)
 		}
+	}
+}
+
+// contentStreams returns the inflated content of every Flate stream in out.
+func contentStreams(out []byte) string {
+	var sb strings.Builder
+	rest := out
+	for {
+		i := bytes.Index(rest, []byte("stream\n"))
+		if i < 0 {
+			break
+		}
+		rest = rest[i+len("stream\n"):]
+		j := bytes.Index(rest, []byte("\nendstream"))
+		if j < 0 {
+			break
+		}
+		if zr, err := zlib.NewReader(bytes.NewReader(rest[:j])); err == nil {
+			data, _ := io.ReadAll(zr)
+			sb.Write(data)
+		}
+		rest = rest[j:]
+	}
+	return sb.String()
+}
+
+func TestDrawStyledLine(t *testing.T) {
+	var buf bytes.Buffer
+	w := NewWriter(&buf)
+	p := w.AddPage(595, 842)
+	p.DrawStyledLine(10, 10, 100, 10, 2, "dashed")
+	p.DrawStyledLine(10, 20, 100, 20, 2, "dotted")
+	p.DrawStyledLine(10, 30, 100, 30, 2, "solid")
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	cs := contentStreams(buf.Bytes())
+	for _, want := range []string{"[6 4] 0 d", "1 J", "[0 4] 0 d"} {
+		if !strings.Contains(cs, want) {
+			t.Errorf("content stream lacks %q:\n%s", want, cs)
+		}
+	}
+	if n := strings.Count(cs, " d\n"); n != 2 {
+		t.Errorf("got %d dash operators, want 2 (solid line must not set one)", n)
+	}
+	if strings.Count(cs, "q\n") != strings.Count(cs, "Q\n") {
+		t.Errorf("unbalanced q/Q:\n%s", cs)
 	}
 }
 
