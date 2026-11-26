@@ -29,6 +29,20 @@ func TestMeasure(t *testing.T) {
 	}
 }
 
+func TestLineMetricsTypo(t *testing.T) {
+	f := testFace(t)
+	if f.LineAscent(100) <= 0 || f.LineDescent(100) < 0 {
+		t.Fatalf("invalid line metrics: %v %v", f.LineAscent(100), f.LineDescent(100))
+	}
+	if f.lineAsc == f.ascent && f.lineDsc == f.descent {
+		t.Skip("font does not use OS/2 typo metrics")
+	}
+	line, full := f.LineAscent(100)+f.LineDescent(100), f.Ascent(100)+f.Descent(100)
+	if line >= full {
+		t.Errorf("typo line height %v should be smaller than Ascent+Descent %v", line, full)
+	}
+}
+
 func TestBreakLinesBasic(t *testing.T) {
 	f := testFace(t)
 	if got := BreakLines(f, "", 10, 100); len(got) != 0 {

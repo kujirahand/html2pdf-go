@@ -39,6 +39,14 @@ PDF
 | `internal/render` | レイアウト済みページを `pdf` パッケージ経由で描画する |
 | `internal/pdf` | PDF ファイルの書き出し（オブジェクト、コンテンツストリーム、フォント・画像の埋め込み） |
 
+## Scale（縮小・拡大率）
+
+`Options.Scale`（CLI では `-scale`）で内容全体を縮小・拡大できます。wkhtmltopdf の zoom / smart shrinking や、Chrome の printToPDF の `scale` に相当する調整機能です。0 以下は 1.0 として扱います。
+
+- `layout` は「実ページ寸法 / Scale」の仮想ページでレイアウトし、返す `Page` の `Width`/`Height` は実寸に戻して `Scale` を持たせる
+- `render` は `Page.Scale` を `pdf.Page.SetScale` に渡し、`pdf` が描画時に座標・サイズ・線幅・フォントサイズへ Scale を掛ける（Y 軸の反転は実寸のページ高さで行う）
+- Scale が 1 のときは従来と同じ結果になる
+
 ## 当面の対応範囲
 
 請求書 HTML の実測に基づきます。

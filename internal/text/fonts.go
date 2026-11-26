@@ -158,28 +158,38 @@ func ParseFace(data []byte) (*Face, error) {
 			return nil, fmt.Errorf("text: empty font collection")
 		}
 		var first *sfnt.Font
+		firstIdx := 0
 		for i := 0; i < n; i++ {
 			sf, err := c.Font(i)
 			if err != nil {
 				continue
 			}
 			if first == nil {
-				first = sf
+				first, firstIdx = sf, i
 			}
 			if hasJPName(sf) {
-				return newFace(sf), nil
+				return newFace(sf, data, ttcOffset(data, i)), nil
 			}
 		}
 		if first == nil {
 			return nil, fmt.Errorf("text: no parsable face in collection")
 		}
-		return newFace(first), nil
+		return newFace(first, data, ttcOffset(data, firstIdx)), nil
 	}
 	sf, err := sfnt.Parse(data)
 	if err != nil {
 		return nil, fmt.Errorf("text: parse font: %w", err)
 	}
-	return newFace(sf), nil
+	return newFace(sf, data, 0), nil
+}
+
+// ttcOffset returns the table directory offset of face i in a TTC, or -1.
+func ttcOffset(data []byte, i int) int {
+	p := 12 + 4*i
+	if p+4 > len(data) {
+		return -1
+	}
+	return int(uint32(data[p])<<24 | uint32(data[p+1])<<16 | uint32(data[p+2])<<8 | uint32(data[p+3]))
 }
 
 func hasJPName(sf *sfnt.Font) bool {

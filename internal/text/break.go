@@ -57,10 +57,32 @@ func BreakLines(f *Face, s string, size float64, maxWidth float64) []string {
 		return []string{s}
 	}
 	rs := []rune(s)
-	n := len(rs)
-	pw := make([]float64, n+1) // prefix widths
+	adv := make([]float64, len(rs))
 	for i, r := range rs {
-		pw[i+1] = pw[i] + f.Advance(r, size)
+		adv[i] = f.Advance(r, size)
+	}
+	spans := BreakSpans(rs, adv, maxWidth)
+	lines := make([]string, len(spans))
+	for i, sp := range spans {
+		lines[i] = string(rs[sp[0]:sp[1]])
+	}
+	return lines
+}
+
+// BreakSpans is the core of BreakLines. It takes the runes and their advance
+// widths and returns each line as a half-open [start, end) range of rs.
+// Trailing spaces are excluded from a span; spaces at a break are skipped.
+func BreakSpans(rs []rune, adv []float64, maxWidth float64) [][2]int {
+	n := len(rs)
+	if n == 0 {
+		return nil
+	}
+	if maxWidth <= 0 {
+		return [][2]int{{0, n}}
+	}
+	pw := make([]float64, n+1) // prefix widths
+	for i := range rs {
+		pw[i+1] = pw[i] + adv[i]
 	}
 	const eps = 1e-6
 
@@ -75,7 +97,7 @@ func BreakLines(f *Face, s string, size float64, maxWidth float64) []string {
 		return b
 	}
 
-	var lines []string
+	var spans [][2]int
 	start := 0
 	for start < n {
 		best, over := -1, -1
@@ -102,11 +124,11 @@ func BreakLines(f *Face, s string, size float64, maxWidth float64) []string {
 		for t > start && rs[t-1] == ' ' {
 			t--
 		}
-		lines = append(lines, string(rs[start:t]))
+		spans = append(spans, [2]int{start, t})
 		start = best
 		for start < n && rs[start] == ' ' {
 			start++
 		}
 	}
-	return lines
+	return spans
 }

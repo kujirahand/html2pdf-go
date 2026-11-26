@@ -42,10 +42,14 @@ type Face struct {
 	ppem    fixed.Int26_6 // ppem == upem, so 26.6 values are font units * 64
 	ascent  float64       // font units
 	descent float64       // font units, positive
+	lineAsc float64       // line-box ascent in font units (OS/2 typo when usable)
+	lineDsc float64       // line-box descent in font units, positive
 	adv     map[uint16]advEntry
 }
 
-func newFace(sf *sfnt.Font) *Face {
+// newFace wraps sf. data and off locate the face's table directory (off is
+// non-zero for TTC members) so OS/2 typo metrics can be read.
+func newFace(sf *sfnt.Font, data []byte, off int) *Face {
 	upem := float64(sf.UnitsPerEm())
 	if upem <= 0 {
 		upem = 1000
@@ -63,7 +67,53 @@ func newFace(sf *sfnt.Font) *Face {
 		f.ascent = 0.88 * upem
 		f.descent = 0.12 * upem
 	}
+	f.lineAsc, f.lineDsc = f.ascent, f.descent
+	if a, d, ok := typoMetrics(data, off); ok {
+		f.lineAsc, f.lineDsc = float64(a), float64(d)
+	}
 	return f
+}
+
+// typoMetrics reads sTypoAscender/sTypoDescender from the OS/2 table of the
+// face whose table directory starts at off. ok is false when there is no
+// OS/2 table or the ascender is not positive. The returned descender is
+// positive.
+//
+// The typo metrics are used for line layout regardless of the fsSelection
+// USE_TYPO_METRICS bit: for CJK fonts such as Noto Sans CJK the hhea/win
+// metrics span 1.448em, which makes the CSS "normal" line height far wider
+// than the values document layouts are designed for, while the typo
+// metrics (880/120 = 1.0em) match the glyph design box. This follows the
+// CSS recommendation that "normal" line height sit roughly between 1.0
+// and 1.2.
+func typoMetrics(data []byte, off int) (asc, desc int, ok bool) {
+	u16 := func(p int) int { return int(data[p])<<8 | int(data[p+1]) }
+	u32 := func(p int) int {
+		return int(uint32(data[p])<<24 | uint32(data[p+1])<<16 | uint32(data[p+2])<<8 | uint32(data[p+3]))
+	}
+	if off < 0 || off+12 > len(data) {
+		return 0, 0, false
+	}
+	n := u16(off + 4)
+	for i := 0; i < n; i++ {
+		rec := off + 12 + i*16
+		if rec+16 > len(data) {
+			break
+		}
+		if string(data[rec:rec+4]) != "OS/2" {
+			continue
+		}
+		o, l := u32(rec+8), u32(rec+12)
+		if l < 72 || o < 0 || o+72 > len(data) {
+			return 0, 0, false
+		}
+		asc, desc = int(int16(u16(o+68))), -int(int16(u16(o+70)))
+		if asc <= 0 {
+			return 0, 0, false
+		}
+		return asc, max(desc, 0), true
+	}
+	return 0, 0, false
 }
 
 // UnitsPerEm returns the font design units per em.
@@ -74,6 +124,14 @@ func (f *Face) Ascent(size float64) float64 { return f.ascent / f.upem * size }
 
 // Descent returns the (positive) descent in points at the given font size.
 func (f *Face) Descent(size float64) float64 { return f.descent / f.upem * size }
+
+// LineAscent returns the line-box ascent in points: OS/2 sTypoAscender when
+// the font sets USE_TYPO_METRICS, otherwise Ascent.
+func (f *Face) LineAscent(size float64) float64 { return f.lineAsc / f.upem * size }
+
+// LineDescent returns the (positive) line-box descent in points: OS/2
+// sTypoDescender when the font sets USE_TYPO_METRICS, otherwise Descent.
+func (f *Face) LineDescent(size float64) float64 { return f.lineDsc / f.upem * size }
 
 // GlyphID returns the glyph index for r, or 0 (.notdef) if the font has no glyph.
 func (f *Face) GlyphID(r rune) uint16 {

@@ -3,7 +3,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 
@@ -18,10 +17,6 @@ const src = `<html><body>
 func main() {
 	var buf bytes.Buffer
 	err := html2pdf.Convert([]byte(src), &buf, &html2pdf.Options{PageSize: "A4"})
-	if errors.Is(err, html2pdf.ErrNotImplemented) {
-		fmt.Println("conversion is not implemented yet")
-		return
-	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

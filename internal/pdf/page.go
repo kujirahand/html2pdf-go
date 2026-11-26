@@ -10,6 +10,7 @@ import (
 type Page struct {
 	w             *Writer
 	width, height float64
+	scale         float64 // multiplier for drawing coordinates; <=0 means 1
 	buf           bytes.Buffer
 	chunks        []*fontChunk // font chunks used, in first-use order
 	chunkSet      map[*fontChunk]bool
@@ -32,6 +33,18 @@ func (w *Writer) AddPage(width, height float64) *Page {
 	return p
 }
 
+// SetScale makes the drawing methods multiply coordinates, sizes, line widths,
+// and font sizes by s. Values <= 0 or 1 leave them unchanged.
+func (p *Page) SetScale(s float64) { p.scale = s }
+
+// sc applies the page scale to v.
+func (p *Page) sc(v float64) float64 {
+	if p.scale <= 0 || p.scale == 1 {
+		return v
+	}
+	return v * p.scale
+}
+
 // fy converts a top-left-origin y to PDF's bottom-left-origin y.
 func (p *Page) fy(y float64) float64 { return p.height - y }
 
@@ -46,6 +59,7 @@ func (p *Page) SetStrokeColor(r, g, b float64) {
 }
 
 func (p *Page) rect(x, y, w, h float64, op string) {
+	x, y, w, h = p.sc(x), p.sc(y), p.sc(w), p.sc(h)
 	fmt.Fprintf(&p.buf, "%s %s %s %s re %s\n", num(x), num(p.fy(y+h)), num(w), num(h), op)
 }
 
@@ -54,24 +68,26 @@ func (p *Page) FillRect(x, y, w, h float64) { p.rect(x, y, w, h, "f") }
 
 // StrokeRect strokes a rectangle outline.
 func (p *Page) StrokeRect(x, y, w, h, lineWidth float64) {
-	fmt.Fprintf(&p.buf, "%s w\n", num(lineWidth))
+	fmt.Fprintf(&p.buf, "%s w\n", num(p.sc(lineWidth)))
 	p.rect(x, y, w, h, "S")
 }
 
 // FillStrokeRect fills and strokes a rectangle.
 func (p *Page) FillStrokeRect(x, y, w, h, lineWidth float64) {
-	fmt.Fprintf(&p.buf, "%s w\n", num(lineWidth))
+	fmt.Fprintf(&p.buf, "%s w\n", num(p.sc(lineWidth)))
 	p.rect(x, y, w, h, "B")
 }
 
 // DrawLine strokes a line segment.
 func (p *Page) DrawLine(x1, y1, x2, y2, lineWidth float64) {
+	x1, y1, x2, y2, lineWidth = p.sc(x1), p.sc(y1), p.sc(x2), p.sc(y2), p.sc(lineWidth)
 	fmt.Fprintf(&p.buf, "%s w\n%s %s m %s %s l S\n",
 		num(lineWidth), num(x1), num(p.fy(y1)), num(x2), num(p.fy(y2)))
 }
 
 // ShowText draws s with its baseline origin at (x, y) in the current fill color.
 func (p *Page) ShowText(f *Font, size, x, y float64, s string) {
+	size, x, y = p.sc(size), p.sc(x), p.sc(y)
 	type run struct {
 		chunk *fontChunk
 		codes []byte
@@ -109,6 +125,7 @@ func (p *Page) DrawImage(img *Image, x, y, w, h float64) {
 		p.imageSet[img] = true
 		p.images = append(p.images, img)
 	}
+	x, y, w, h = p.sc(x), p.sc(y), p.sc(w), p.sc(h)
 	fmt.Fprintf(&p.buf, "q %s 0 0 %s %s %s cm /%s Do Q\n",
 		num(w), num(h), num(x), num(p.fy(y+h)), img.name())
 }
