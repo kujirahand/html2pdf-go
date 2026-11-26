@@ -27,7 +27,7 @@ func (c *Computed) Style(n *dom.Node) *Style {
 
 // uaSheet is the user-agent stylesheet.
 const uaSheet = `
-head, style, script, title, meta, link { display: none }
+head, style, script, title, meta, link, noscript, iframe, template, object, embed, svg { display: none }
 body, div, p, h1, h2, h3, h4, h5, h6, blockquote, pre, center, section, article, header, footer, address { display: block }
 ul, ol { display: block }
 li { display: list-item }

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 
@@ -29,6 +30,9 @@ type Options struct {
 	// Scale shrinks (<1) or enlarges (>1) the content, like wkhtmltopdf's
 	// zoom or Chrome's printToPDF scale. 0 or less means 1.0.
 	Scale float64
+	// Margin is the page margin in points, applied to all four sides.
+	// 0 means no margin.
+	Margin float64
 }
 
 // pageSizes maps upper-case names to (width, height) in points.
@@ -65,6 +69,9 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if opts == nil {
 		opts = &Options{}
 	}
+	if math.IsNaN(opts.Scale) || math.IsInf(opts.Scale, 0) {
+		return fmt.Errorf("html2pdf: invalid scale %v", opts.Scale)
+	}
 	pageW, pageH, err := opts.pageSize()
 	if err != nil {
 		return err
@@ -83,6 +90,11 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 		PageHeight: pageH,
 		BaseDir:    opts.BaseDir,
 		Scale:      opts.Scale,
+
+		MarginTop:    opts.Margin,
+		MarginRight:  opts.Margin,
+		MarginBottom: opts.Margin,
+		MarginLeft:   opts.Margin,
 	})
 	if err != nil {
 		return err

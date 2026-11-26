@@ -106,7 +106,8 @@ func isWhitespaceRun(run []*dom.Node) bool {
 	var check func(n *dom.Node) bool
 	check = func(n *dom.Node) bool {
 		if n.IsText() {
-			return strings.TrimSpace(n.Text) == ""
+			// Only ASCII whitespace counts; U+00A0 (&nbsp;) is visible content.
+			return strings.Trim(n.Text, " \t\n\r\f\v") == ""
 		}
 		if n.Tag == "br" || n.Tag == "img" {
 			return false
@@ -243,7 +244,11 @@ func (l *layouter) block(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 	// between two block siblings is max(prev bottom margin, this top
 	// margin), not their sum. y already includes the previous margin, so
 	// shift up by the overlap. Parent/child collapsing is not done.
-	overlap := min(l.lastMB, bm.m[css.Top])
+	// Negative margins are not collapsed.
+	overlap := 0.0
+	if l.lastMB >= 0 && bm.m[css.Top] >= 0 {
+		overlap = min(l.lastMB, bm.m[css.Top])
+	}
 	top := y + bm.m[css.Top] - overlap
 	slot := l.reserve()
 	before := len(l.units)

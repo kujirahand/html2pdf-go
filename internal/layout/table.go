@@ -83,7 +83,10 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 		}
 	}
 	// Sibling margin collapsing, as in block().
-	overlap := min(l.lastMB, bm.m[css.Top])
+	overlap := 0.0
+	if l.lastMB >= 0 && bm.m[css.Top] >= 0 {
+		overlap = min(l.lastMB, bm.m[css.Top])
+	}
 	top := y + bm.m[css.Top] - overlap
 	if ncols == 0 {
 		l.lastMB = bm.m[css.Bottom]

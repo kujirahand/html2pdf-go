@@ -17,6 +17,13 @@ import (
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
 
+// Image dimension limits; larger images are skipped. Keep in sync with
+// internal/layout.
+const (
+	maxImageDim    = 8192
+	maxImagePixels = 33000000
+)
+
 var pngSignature = []byte("\x89PNG\r\n\x1a\n")
 
 type renderer struct {
@@ -88,11 +95,11 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 		pg.SetStrokeColor(it.Color.R, it.Color.G, it.Color.B)
 		pg.DrawLine(it.X1, it.Y1, it.X2, it.Y2, it.LineWidth)
 	case layout.ImageItem:
-		img, err := r.image(it.Src)
-		if err != nil {
-			return err
+		// An unusable image is skipped, matching layout's handling of
+		// unreadable images, rather than failing the whole render.
+		if img, err := r.image(it.Src); err == nil {
+			pg.DrawImage(img, it.X, it.Y, it.W, it.H)
 		}
-		pg.DrawImage(img, it.X, it.Y, it.W, it.H)
 	}
 	return nil
 }
@@ -108,6 +115,14 @@ func (r *renderer) image(src string) (*pdf.Image, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("render: read image: %w", err)
+	}
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("render: decode image %s: %w", src, err)
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > maxImageDim || cfg.Height > maxImageDim ||
+		cfg.Width*cfg.Height > maxImagePixels {
+		return nil, fmt.Errorf("render: image %s too large (%dx%d)", src, cfg.Width, cfg.Height)
 	}
 	if !bytes.HasPrefix(data, pngSignature) {
 		decoded, _, err := image.Decode(bytes.NewReader(data))

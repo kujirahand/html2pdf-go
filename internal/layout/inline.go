@@ -14,6 +14,13 @@ import (
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
 
+// Image dimension limits; larger images are treated as unreadable so a
+// hostile file cannot exhaust memory. Keep in sync with internal/render.
+const (
+	maxImageDim    = 8192
+	maxImagePixels = 33000000
+)
+
 const (
 	nbsp    = ' '
 	objChar = '￼' // stands in for an inline image in a run
@@ -100,7 +107,9 @@ func (l *layouter) loadImage(src string) (string, *imgInfo) {
 	}
 	info := &imgInfo{}
 	if f, err := os.Open(p); err == nil {
-		if cfg, _, err := image.DecodeConfig(f); err == nil && cfg.Width > 0 && cfg.Height > 0 {
+		if cfg, _, err := image.DecodeConfig(f); err == nil && cfg.Width > 0 && cfg.Height > 0 &&
+			cfg.Width <= maxImageDim && cfg.Height <= maxImageDim &&
+			cfg.Width*cfg.Height <= maxImagePixels {
 			info = &imgInfo{w: cfg.Width, h: cfg.Height, ok: true}
 		}
 		f.Close()
