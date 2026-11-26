@@ -63,6 +63,8 @@ html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 
 [docs/architecture.md](docs/architecture.md) を参照してください。
 
+対応する HTML 要素・CSS の一覧は [docs/reference-ja.md](docs/reference-ja.md)（English: [docs/reference.md](docs/reference.md)）を参照してください。
+
 ## ライセンス
 
 MIT ライセンスです。詳細は `LICENSE` ファイルを参照してください。
