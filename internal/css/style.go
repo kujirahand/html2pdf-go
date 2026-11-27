@@ -34,6 +34,7 @@ type Style struct {
 	BorderColor    [4]Color
 	BorderStyle    [4]string // "none", "solid", "dashed", "dotted" or "double"
 	Width          *Length   // nil means auto
+	Height         *Length   // nil means auto; only iframe uses it
 	PageBreakAfter bool
 	// BorderRadiusX and BorderRadiusY are the horizontal and vertical corner
 	// radii, ordered top-left, top-right, bottom-right, bottom-left.
@@ -379,6 +380,13 @@ func (s *Style) apply(prop, val string, parentFontSize float64) {
 			s.Width = nil
 		} else if l, ok := ParseLength(val); ok && l.Value >= 0 {
 			s.Width = &l
+		}
+	case "height":
+		// Percentages are rejected: the parent height is indefinite.
+		if lv == "auto" {
+			s.Height = nil
+		} else if l, ok := ParseLength(val); ok && l.Value >= 0 && l.Unit != UnitPercent {
+			s.Height = &l
 		}
 	case "page-break-after", "break-after":
 		switch lv {

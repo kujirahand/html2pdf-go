@@ -8,6 +8,7 @@ import (
 	"image/jpeg"
 	pngpkg "image/png"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -127,5 +128,57 @@ func TestPageSize(t *testing.T) {
 	}
 	if _, _, err := (&Options{PageSize: "B9"}).pageSize(); err == nil {
 		t.Error("unknown page size should fail")
+	}
+}
+
+func TestConvertFileExternalCSS(t *testing.T) {
+	skipWithoutFonts(t)
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	write("style.css", "p { color: red }")
+	in := write("in.html", `<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="http://example.com/x.css"><p>hello</p>`)
+	out := filepath.Join(dir, "out.pdf")
+	if err := ConvertFile(in, out, &Options{BaseDir: dir}); err != nil {
+		t.Fatalf("ConvertFile: %v", err)
+	}
+	pdf, err := os.ReadFile(out)
+	if err != nil || !bytes.HasPrefix(pdf, []byte("%PDF-")) {
+		t.Fatalf("bad output: %v", err)
+	}
+
+	bad := write("bad.html", `<link rel="stylesheet" href="missing.css"><p>hello</p>`)
+	badOut := filepath.Join(dir, "bad.pdf")
+	if err := ConvertFile(bad, badOut, &Options{BaseDir: dir}); err == nil {
+		t.Error("ConvertFile with a missing stylesheet succeeded, want error")
+	}
+	if _, err := os.Stat(badOut); err == nil {
+		t.Error("failed conversion left an output file")
+	}
+}
+
+func TestConvertFrameset(t *testing.T) {
+	skipWithoutFonts(t)
+	dir := t.TempDir()
+	for name, body := range map[string]string{
+		"a.html": "<p>left</p>",
+		"b.html": "<p>right</p>",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	src := `<frameset cols="50%,50%"><frame src="a.html"><frame src="b.html"></frameset>`
+	var buf bytes.Buffer
+	if err := Convert([]byte(src), &buf, &Options{BaseDir: dir}); err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	if !bytes.HasPrefix(buf.Bytes(), []byte("%PDF-")) {
+		t.Error("output is not a PDF")
 	}
 }

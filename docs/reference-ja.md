@@ -6,11 +6,12 @@
 
 ## 1. 概要
 
-- 描画されるのは `<body>` の中身だけです。それ以外（`<head>`、`<title>`、`<meta>` など）は表示されません。
-- スタイルの指定方法は次の 2 つだけです。
+- 描画されるのは `<body>` の中身だけです（`<frameset>` 文書ではフレームの内容。「フレーム」を参照）。それ以外（`<head>`、`<title>`、`<meta>` など）は表示されません。
+- スタイルの指定方法は次の 3 つです。
   - 文書内のどこにある `<style>` 要素でも読み込まれます（すべて、出現順）。
+  - `<link rel="stylesheet" href="...">` 要素。`<style>` 要素と合わせて出現順に適用されます。読み込まれるのはローカルファイルだけで、相対パスはベースディレクトリが基準です。`href` に `://` を含むものと `data:` で始まるものは無視され（リモート CSS は取得しません）、`rel` に `alternate` を含むものも無視されます。読み込めないローカルファイルを指す場合は、変換がエラーになります。
   - 要素の `style` 属性。
-- `<link rel="stylesheet">` は読み込まれません。外部 CSS ファイルは無視されます。`@import` もスキップされます。
+- `@import` はスキップされます（外部 CSS ファイルの中でも同じです）。
 - `<script>` は破棄され、JavaScript は実行されません。
 - CSS コメント（`/* ... */`）は除去されます。未知のプロパティや不正な値は黙って無視されます。
 - アットルールのブロック（`@media`、`@page`、`@font-face`、`@keyframes` など）は、中に入れ子になったルールも含めて丸ごと読み飛ばされます。
@@ -28,7 +29,32 @@
 | `body` | ブロック、margin 8px | 描画の起点。 |
 | `div`, `section`, `article`, `header`, `footer`, `address` | ブロック | `address` は斜体になりません。 |
 | `center` | ブロック、`text-align: center` | |
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | 非表示（`display: none`） | 子要素を含めて一切描画されません。 |
+| `frameset` | フレームのグリッド | 下の「フレーム」を参照。 |
+| `frame` | グリッドの 1 セル | 下の「フレーム」を参照。`noframes` の中身は描画されません。 |
+| `iframe` | ブロックレベルの埋め込み文書 | 下の「インラインフレーム」を参照。 |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | 非表示（`display: none`） | 子要素を含めて一切描画されません。 |
+
+### フレーム
+
+`<frameset>` を含む文書（複数ある場合は最初の 1 つが使われます）は、`<body>` の代わりにフレームを並べた 1 ページとして描画されます。
+
+- `rows` と `cols` はカンマ区切りのリストです。各トークンは px 数値（× 0.75 ポイント）、全体に対する割合（`30%`）、相対長（`*` は重み 1、`2*` は重み 2。ほかのトークンの残りを分け合う）のいずれかです。属性が無い方向は `100%` として扱います。領域は余白の内側のページ全体です。
+- セルの数は行数 × 列数で、`frame` 要素が出現順に割り当てられます。余ったセルは空になり、余った frame は無視されます。
+- `frame` の `src` は、ベースディレクトリ基準のローカルファイルとして読み込まれます。読めない場合は変換がエラーになります。URL である `src`（`//` で始まるもの、または `https:`、`data:`、`about:`、`blob:` などのスキーム付きのもの）と、`src` の無い frame は空のセルになります。
+- 各フレーム文書は、セルの大きさをページサイズ、余白 0、外側と同じ Scale で個別にレイアウトされます。その文書の外部 CSS や画像は、そのファイルのあるディレクトリが基準になり、フレーム文書自体が frameset でもかまいません。
+- フレーム文書の最初のページだけが表示され、内容はセルでクリップされます。
+- `px` と `%` のトラックの合計が領域を超える場合は、すべてが比例して縮んで領域に収まり、相対長のトラックは 0 になります。
+- 上限（入れ子 8 段、フレーム文書の総数 1000。frame、iframe、`srcdoc` を数える）を超えると変換エラーになります。
+
+### インラインフレーム
+
+ブロックレベルの子要素として現れた `iframe` は、文書を埋め込んだボックスとして描画されます。
+
+- ボックスの大きさは、CSS の `width` / `height`、次に `width` / `height` 属性（ピクセル。`width` の % は親のコンテンツ幅に対する割合で、`height` の % は既定値にフォールバック）、最後に HTML の既定値 300x150 px の順で決まります。マージン、パディング、罫線は他のブロックと同じ扱いで、フレーム文書はコンテンツ領域に収まります。
+- `srcdoc` があればその HTML を文書として使います（HTML の仕様どおり `src` より優先）。ローカルの `src` は基準ディレクトリから読み、読めない場合は変換エラーになります。URL である `src`（「フレーム」を参照）や、ソースが無い場合は空のボックスになります。
+- フレーム文書はコンテンツ領域の大きさでレイアウトされ、最初のページだけがボックスでクリップされて表示されます。フレームと iframe は、入れ子 8 段、フレーム文書の総数 1000 の上限を共有し、どちらかを超えると変換エラーになります。
+- `span` や `a` などのインライン要素の中にある `iframe` は描画されません。ブロックの流れの直接の子である `iframe`（`p` の直接の子を含む）は、ブロックとして描画されます。
+- 表のセル内の `iframe` は、列幅の計算で解決済みの幅（上のサイズの決め方）として数えられます。
 
 ### ブロックのテキスト
 
@@ -77,15 +103,19 @@
 
 ## 3. 対応属性
 
-実装が読む属性は次のものだけです。それ以外の属性（`href`、`alt`、`height`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
+実装が読む属性は次のものだけです。それ以外の属性（`href`、`alt`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
 
 | 属性 | 対象要素 | 効果 |
 |---|---|---|
 | `class` | すべての要素 | `.class` セレクタのマッチに使われます（空白区切りの複数指定可）。 |
 | `id` | すべての要素 | `#id` セレクタのマッチに使われます（大文字小文字を区別する）。 |
 | `style` | すべての要素 | インラインの宣言。優先順位は最高です。 |
+| `src` | `iframe`、`frame` | ローカルの HTML ファイルのパス（`BaseDir` 基準）。URL（`//` で始まるもの、または `https:`、`data:`、`about:` などのスキーム付きのもの）は読み込まれず、空のボックス／セルになります。読めないファイルはエラーです。`iframe` では `srcdoc` が優先されます。 |
+| `srcdoc` | `iframe` | 埋め込む文書の HTML ソース。`src` より優先されます。 |
+| `rows`、`cols` | `frameset` | カンマ区切りのトラックの大きさ（px、割合、相対長 `*` / `2*`）。`px` と `%` のトラックが領域を超える場合は、比例して縮んで領域に収まります。 |
 | `src` | `img` | 画像ファイルのパス、または `data:` URI。相対パスは `BaseDir` を基準に解決されます。`data:` URI は base64 形式（`data:image/png;base64,...`）とパーセントエンコード形式（`data:image/gif,...`）に対応し、メディアタイプを指定する場合は `image/*` でなければなりません。デコードできるのは PNG・JPEG・GIF です。`http(s)://` の URL（`://` を含むもの）は読み込まれません。 |
-| `width` | すべての要素（意味があるのは `img`、`table`、`td`、`th`、ブロック要素） | CSS の長さとして解釈され、単位なしの数値は px。最も優先順位の低い `width` として扱われ、CSS の `width` があればそちらが優先されます。負の値や不正な値は無視されます。 |
+| `width` | すべての要素（意味があるのは `img`、`iframe`、`table`、`td`、`th`、ブロック要素） | CSS の長さとして解釈され、単位なしの数値は px。最も優先順位の低い `width` として扱われ、CSS の `width` があればそちらが優先されます。負の値や不正な値は無視されます。 |
+| `height` | `iframe` | 単位なしの px 数値のみ（% は無視）。最も優先順位の低い `height` として扱われ、CSS の `height` があればそちらが優先されます。 |
 | `colspan` | `td`, `th` | 結合する列数。1 以下や数値でない値は 1 として扱われます。上限は 1000。 |
 
 ## 4. CSS セレクタ
@@ -200,7 +230,8 @@
 
 | セレクタ | 既定値 |
 |---|---|
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `iframe` | `display: block` |
 | `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `ul`, `ol` | `display: block` |
 | `li` | `display: list-item` |
 | `table` | `display: table` |
@@ -231,7 +262,7 @@
 
 ## 9. レイアウトの挙動
 
-**ブロック。** `width` は content 幅で、padding と罫線はその外側に加わります。縦方向の margin は隣り合うブロック同士で相殺されます（大きい方が採用）。親子間の margin 相殺はなく、負の margin は相殺されません。`height`、`min-*`、`max-*` は存在しないため、高さは常に内容で決まります。背景や罫線を持つブロックは、1 ページに収まるなら 1 ページにまとめられます。
+**ブロック。** `width` は content 幅で、padding と罫線はその外側に加わります。縦方向の margin は隣り合うブロック同士で相殺されます（大きい方が採用）。親子間の margin 相殺はなく、負の margin は相殺されません。`height`、`min-*`、`max-*` は存在しない（ただし `iframe` のボックスでは `height` が効く）ため、高さは常に内容で決まります。背景や罫線を持つブロックは、1 ページに収まるなら 1 ページにまとめられます。
 
 **インライン内容。** インライン要素が影響するのは、テキストの `color`、`font-size`、`font-weight`、下線、`line-height` だけです。インライン要素の margin、padding、罫線は無視されますが、`background-color` はテキストの背面に描かれます（折り返す場合は行ごとに分割されます）。空白（改行を含み、`pre` の中でも）は 1 個の空白に畳まれ、行頭の空白は捨てられます。`&nbsp;` は保持され、そこでは改行されません。インライン内容の中のブロック要素は新しい行を始めます。
 
@@ -264,13 +295,13 @@
 ## 10. 未対応
 
 - フォントとテキスト: `font-style`（斜体）、`font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
-- ボックス: `height`、`min-width`、`max-width`、`min-height`、`max-height`、`box-sizing`、`overflow`、`outline`、`box-shadow`、`opacity`、`visibility`、`margin: auto` による中央寄せ。
+- ボックス: `height`（`iframe` を除く）、`min-width`、`max-width`、`min-height`、`max-height`、`box-sizing`、`overflow`、`outline`、`box-shadow`、`opacity`、`visibility`、`margin: auto` による中央寄せ。
 - レイアウト: `float`、`clear`、`position`（`absolute`、`fixed`、`relative`、`sticky`）、`z-index`、flex、grid、マルチカラム、`inline-block` の挙動。
 - 表: `rowspan`、`border-collapse`、`border-spacing`、`cellspacing` / `cellpadding`、表の `caption`、`colgroup` / `col`、セルの `vertical-align`、`table-layout`、セルの `border-radius`。
 - リスト: `list-style`、`list-style-type`、`ol` の `start`、独自マーカー。
 - 背景: `background-image`、グラデーション、`background-position`、`background-repeat`。
 - セレクタとルール: 属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
-- その他: 外部 CSS ファイル、リモート画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
+- その他: リモート CSS、リモートのフレーム、リモート画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
 
 ## 11. 変換オプション
 

@@ -93,6 +93,10 @@ func (l *layouter) collectBg(n *dom.Node, out *[]seg, bg *css.Color) {
 	case "img":
 		*out = append(*out, seg{kind: segImg, text: n.Attr["src"], st: st, bg: bg})
 		return
+	case "iframe":
+		// Only a block-level iframe is drawn (see flow); its fallback
+		// content is never shown.
+		return
 	}
 	block := isBlockLevel(st.Display)
 	if block {
@@ -408,7 +412,11 @@ func (l *layouter) contentWidths(n *dom.Node, st *css.Style, cw float64) (mn, mx
 		flush()
 		a, b := l.contentWidths(c, cs, cw)
 		bm := l.boxMetrics(cs, cw)
-		if cs.Width != nil && cs.Width.Unit != css.UnitPercent {
+		if c.Tag == "iframe" {
+			// The box is as wide as it is drawn (see iframe).
+			w, _ := iframeSize(cs, cw)
+			a, b = w, w
+		} else if cs.Width != nil && cs.Width.Unit != css.UnitPercent {
 			w := cs.Width.Resolve(cs.FontSize.Value, css.RootFontSize, cw)
 			a, b = w, w
 		}

@@ -27,9 +27,10 @@ func (c *Computed) Style(n *dom.Node) *Style {
 
 // uaSheet is the user-agent stylesheet.
 const uaSheet = `
-head, style, script, title, meta, link, noscript, iframe, template, object, embed, svg { display: none }
+head, style, script, title, meta, link, noscript, template, object, embed, svg { display: none }
 body, div, p, h1, h2, h3, h4, h5, h6, blockquote, pre, center, section, article, header, footer, address { display: block }
 ul, ol { display: block }
+iframe { display: block }
 li { display: list-item }
 table { display: table }
 thead, tbody, tfoot { display: table-row-group }
@@ -94,7 +95,7 @@ func matchRules(rules []rule, n *dom.Node) []matched {
 }
 
 // ComputeStyles runs the cascade over doc.Body and its descendants. The
-// cascade order, lowest to highest, is: HTML width attribute hint, user-agent
+// cascade order, lowest to highest, is: HTML width and height attribute hints, user-agent
 // stylesheet, author stylesheets (by specificity, then source order), and the
 // inline style attribute.
 func ComputeStyles(doc *dom.Document, stylesheetText []string) *Computed {
@@ -120,6 +121,14 @@ func ComputeStyles(doc *dom.Document, stylesheetText []string) *Computed {
 					l.Unit = UnitPX
 				}
 				s.Width = &l
+			}
+		}
+		if v, ok := n.Attr["height"]; ok {
+			// A percentage has no definite parent height to refer to, so
+			// only plain pixel numbers are hints.
+			if l, ok := ParseLength(v); ok && l.Value >= 0 && l.Unit == UnitNone {
+				l.Unit = UnitPX
+				s.Height = &l
 			}
 		}
 		for _, rules := range [][]rule{uaRules, author} {

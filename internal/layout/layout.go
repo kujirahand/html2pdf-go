@@ -19,6 +19,7 @@ const (
 	pText
 	pImage
 	pRoundStroke // rounded rectangle outline; x, y, w, h is the path, lw its width
+	pFrame       // iframe document: items relative to x, y, clipped to w x h
 )
 
 // prim is a drawing primitive in flow coordinates.
@@ -39,6 +40,8 @@ type prim struct {
 	// style is the line style for pHLine and pVLine: "" or "solid",
 	// "dashed" or "dotted".
 	style string
+	// items is the first page of the frame document for pFrame.
+	items []Item
 }
 
 // unit is an atomic vertical extent that pagination never splits, or a
@@ -67,6 +70,8 @@ type layouter struct {
 	// the current flow, for sibling margin collapsing. flow() saves and
 	// restores it so nested flows start with a clean state.
 	lastMB float64
+	// err is the first error from an iframe's document.
+	err error
 }
 
 // boxm holds resolved margin, padding, and border widths (top, right, bottom, left).
@@ -384,6 +389,67 @@ func (l *layouter) block(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 	return bottom + bm.m[css.Bottom]
 }
 
+// iframeSize returns the content-box size of an <iframe>: the CSS (or
+// width/height attribute) size, or the HTML default of 300x150 px. cw is the
+// width a percentage width refers to.
+func iframeSize(st *css.Style, cw float64) (w, h float64) {
+	fs := st.FontSize.Value
+	w, h = 300*0.75, 150*0.75
+	if st.Width != nil {
+		w = st.Width.Resolve(fs, css.RootFontSize, cw)
+	}
+	if st.Height != nil {
+		h = st.Height.Resolve(fs, css.RootFontSize, 0)
+	}
+	return max(w, 0), max(h, 0)
+}
+
+// iframe lays out element n as a block-level embedded box. Its content box is
+// the CSS or attribute size, or the HTML default of 300x150 px, and the frame
+// document is placed in it. Margin, padding, border and background work as
+// for a block; the box is one unbreakable unit.
+func (l *layouter) iframe(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
+	bm := l.boxMetrics(st, cw)
+	contentW, contentH := iframeSize(st, cw)
+	boxX := x + bm.m[css.Left]
+	boxW := contentW + bm.hExtra()
+	boxH := contentH + bm.p[css.Top] + bm.p[css.Bottom] + bm.b[css.Top] + bm.b[css.Bottom]
+	// Sibling margin collapsing, as in block.
+	overlap := 0.0
+	if l.lastMB >= 0 && bm.m[css.Top] >= 0 {
+		overlap = min(l.lastMB, bm.m[css.Top])
+	}
+	top := y + bm.m[css.Top] - overlap
+	bottom := top + boxH
+
+	// Layout has no error path through block and flow, so the first frame
+	// error is kept for Layout to return; later frames are skipped.
+	var items []Item
+	if contentW > 0 && contentH > 0 && l.err == nil {
+		var err error
+		if items, err = l.iframeItems(n, contentW, contentH); err != nil {
+			l.err = err
+		}
+	}
+	rx, ry := boxRadii(st, boxW, boxH)
+	if st.BackgroundColor != nil && bottom > top {
+		l.emit(prim{kind: pFill, x: boxX, y: top, w: boxW, h: boxH, color: *st.BackgroundColor, rx: rx, ry: ry})
+	}
+	if items != nil {
+		l.emit(prim{kind: pFrame, x: boxX + bm.b[css.Left] + bm.p[css.Left], y: top + bm.b[css.Top] + bm.p[css.Top],
+			w: contentW, h: contentH, items: items})
+	}
+	l.drawBorders(st, bm, boxX, top, boxW, boxH, rx, ry)
+	if bottom > top {
+		l.addUnit(top, bottom)
+	}
+	if st.PageBreakAfter {
+		l.forceBreak()
+	}
+	l.lastMB = bm.m[css.Bottom]
+	return bottom + bm.m[css.Bottom]
+}
+
 func (l *layouter) newMarker(n *dom.Node, st *css.Style, x float64) *marker {
 	s := "• "
 	if p := n.Parent; p != nil && p.Tag == "ol" {
@@ -443,6 +509,9 @@ func (l *layouter) flow(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 		cs := l.styles.Style(c)
 		switch {
 		case cs.Display == "none":
+		case c.Tag == "iframe" && cs.Display == "block":
+			flushRun()
+			y = l.iframe(c, cs, x, y, cw)
 		case cs.Display == "table":
 			flushRun()
 			y = l.table(c, cs, x, y, cw)
