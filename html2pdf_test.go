@@ -2,6 +2,11 @@ package html2pdf
 
 import (
 	"bytes"
+	"encoding/base64"
+	"image"
+	"image/gif"
+	"image/jpeg"
+	pngpkg "image/png"
 	"os"
 	"strings"
 	"testing"
@@ -68,6 +73,46 @@ func TestConvertFontFile(t *testing.T) {
 	}
 	if !bytes.HasPrefix(buf.Bytes(), []byte("%PDF-")) {
 		t.Errorf("output is not a PDF")
+	}
+}
+
+func TestConvertDataURIImage(t *testing.T) {
+	skipWithoutFonts(t)
+	var png bytes.Buffer
+	if err := pngpkg.Encode(&png, image.NewRGBA(image.Rect(0, 0, 8, 8))); err != nil {
+		t.Fatal(err)
+	}
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png.Bytes())
+	var buf bytes.Buffer
+	if err := Convert([]byte(`<p>hi <img src="`+uri+`"></p>`), &buf, nil); err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	if !bytes.Contains(buf.Bytes(), []byte("/Subtype /Image")) {
+		t.Error("PDF does not contain an image object")
+	}
+}
+
+func TestConvertDataURIImageFormats(t *testing.T) {
+	skipWithoutFonts(t)
+	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	var g, j bytes.Buffer
+	if err := gif.Encode(&g, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := jpeg.Encode(&j, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	for name, uri := range map[string]string{
+		"gif":  "data:image/gif;base64," + base64.StdEncoding.EncodeToString(g.Bytes()),
+		"jpeg": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(j.Bytes()),
+	} {
+		var buf bytes.Buffer
+		if err := Convert([]byte(`<p>hi <img src="`+uri+`"></p>`), &buf, nil); err != nil {
+			t.Fatalf("%s: Convert: %v", name, err)
+		}
+		if !bytes.Contains(buf.Bytes(), []byte("/Subtype /Image")) {
+			t.Errorf("%s: PDF does not contain an image object", name)
+		}
 	}
 }
 
