@@ -1,7 +1,9 @@
 package text
 
 import (
+	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -103,11 +105,127 @@ func (s *FontSet) FaceFor(families []string, bold bool) *Face {
 	return s.Regular
 }
 
+type monoLocaleClass int
+
+const (
+	monoLocaleUnknown monoLocaleClass = iota
+	monoLocaleJapanese
+	monoLocaleWestern
+)
+
+// detectMonoLocaleClass classifies the process locale from LC_ALL, LC_CTYPE,
+// then LANG. An explicitly configured Japanese locale receives Japanese
+// browser-style defaults; other non-C/POSIX locales receive Western defaults.
+func detectMonoLocaleClass() monoLocaleClass {
+	locale := ""
+	for _, key := range []string{"LC_ALL", "LC_CTYPE", "LANG"} {
+		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+			locale = strings.ToLower(value)
+			break
+		}
+	}
+	if locale == "" ||
+		locale == "c" ||
+		locale == "posix" ||
+		strings.HasPrefix(locale, "c.") ||
+		strings.HasPrefix(locale, "posix") {
+		return monoLocaleUnknown
+	}
+	if strings.HasPrefix(locale, "ja") {
+		return monoLocaleJapanese
+	}
+	return monoLocaleWestern
+}
+
+// preferredMonoNames returns the fixed-font defaults a web browser would
+// use for an OS and locale class, modelled on Chrome's per-locale settings:
+// MS Gothic on Japanese Windows, Courier New on English Windows, Osaka-Mono
+// on Japanese macOS, Courier on English macOS, and the usual fontconfig
+// choices on Linux (Noto Sans Mono CJK JP for Japanese, DejaVu/Liberation
+// Mono for Western). The names are lower-cased index keys, tried in order.
+//
+// When the locale class is unknown (no locale in the environment, common
+// for GUI apps and daemons), the lists are merged in the order that is
+// harmless on that OS: Windows tries Courier New first because it always
+// ships with Windows while MS Gothic may not; macOS tries the Japanese
+// list first because Osaka-Mono rarely exists on non-Japanese Macs; other
+// systems try Noto Sans Mono CJK JP first, then the Western list, then the
+// remaining Japanese candidates, without duplicates.
+func preferredMonoNames(goos string, class monoLocaleClass) []string {
+	japanese := map[string][]string{
+		"windows": {
+			"ms gothic", "ｍｓ ゴシック", "biz udgothic", "biz udゴシック",
+			"ms ui gothic",
+		},
+		"darwin": {
+			"osaka-mono", "osaka-等幅", "osaka－等幅", "osaka",
+			"noto sans mono cjk jp", "hiragino kaku gothic pron",
+			"hiragino kaku gothic pro",
+		},
+		"other": {
+			"noto sans mono cjk jp", "ipamona pgothic", "ipamona gothic",
+			"ipa mona pgothic", "takao gothic", "vl gothic", "biz udgothic",
+			"ms gothic", "osaka-mono",
+		},
+	}
+	western := map[string][]string{
+		"windows": {"courier new", "consolas", "lucida console", "courier"},
+		"darwin":  {"courier", "menlo", "monaco", "courier new"},
+		"other": {
+			"dejavu sans mono", "liberation mono", "noto sans mono",
+			"ubuntu mono", "courier new", "courier",
+		},
+	}
+
+	platform := goos
+	if platform != "windows" && platform != "darwin" {
+		platform = "other"
+	}
+
+	copyNames := func(names []string) []string {
+		return append([]string(nil), names...)
+	}
+	mergeUnique := func(groups ...[]string) []string {
+		seen := make(map[string]bool)
+		var names []string
+		for _, group := range groups {
+			for _, name := range group {
+				if !seen[name] {
+					seen[name] = true
+					names = append(names, name)
+				}
+			}
+		}
+		return names
+	}
+
+	switch class {
+	case monoLocaleJapanese:
+		return copyNames(japanese[platform])
+	case monoLocaleWestern:
+		return copyNames(western[platform])
+	default:
+		switch platform {
+		case "windows":
+			return mergeUnique(western["windows"], japanese["windows"])
+		case "darwin":
+			return mergeUnique(japanese["darwin"], western["darwin"])
+		default:
+			return mergeUnique(
+				[]string{"noto sans mono cjk jp"},
+				western["other"],
+				japanese["other"][1:],
+			)
+		}
+	}
+}
+
 // monospace returns an installed monospace face, or nil if there is none.
-// Candidates are families whose lower-cased name contains "mono". Names
-// containing "cjk" or "jp" come first, then the rest, alphabetically within
-// each group. The first candidate with Japanese glyphs wins; failing that, the
-// first candidate that loads. The result is cached per weight.
+// It first tries the browser-style defaults for the current OS and locale
+// (see preferredMonoNames). If none of them is installed, it falls back to
+// a generic scan of families whose lower-cased name contains "mono": names
+// containing "cjk" or "jp" come first, then the rest alphabetically, and a
+// face with Japanese glyphs is preferred. The result is cached per weight.
 func (s *FontSet) monospace(bold bool) *Face {
 	w := 0
 	if bold {
@@ -119,6 +237,28 @@ func (s *FontSet) monospace(bold bool) *Face {
 		return s.mono[w]
 	}
 	s.once.Do(s.buildIndex)
+
+	loadFamily := func(fam *family) *Face {
+		if fam == nil {
+			return nil
+		}
+		path := fam.regular
+		if (bold && fam.bold != "") || path == "" {
+			path = fam.bold
+		}
+		if path == "" {
+			return nil
+		}
+		return s.load(path)
+	}
+
+	for _, name := range preferredMonoNames(runtime.GOOS, detectMonoLocaleClass()) {
+		if f := loadFamily(s.index[name]); f != nil {
+			s.mono[w], s.monoDone[w] = f, true
+			return f
+		}
+	}
+
 	var names []string
 	for k := range s.index {
 		if strings.Contains(k, "mono") {
@@ -139,12 +279,7 @@ func (s *FontSet) monospace(bold bool) *Face {
 	})
 	var faces []*Face
 	for _, k := range names {
-		fam := s.index[k]
-		path := fam.regular
-		if (bold && fam.bold != "") || path == "" {
-			path = fam.bold
-		}
-		if f := s.load(path); f != nil {
+		if f := loadFamily(s.index[k]); f != nil {
 			faces = append(faces, f)
 		}
 	}
