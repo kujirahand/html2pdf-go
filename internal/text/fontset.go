@@ -375,7 +375,9 @@ func styleScore(f *Face, weight string) int {
 		sc += 4
 	}
 	plain := sub == weight ||
-		(weight == "regular" && (sub == "" || sub == "book" || sub == "roman"))
+		(weight == "regular" && (sub == "" || sub == "book" || sub == "roman" ||
+			strings.HasPrefix(sub, "regular "))) ||
+		(weight == "bold" && strings.HasPrefix(sub, "bold "))
 	if plain {
 		return sc
 	}
@@ -393,6 +395,12 @@ func styleScore(f *Face, weight string) int {
 		}
 	case strings.Contains(sub, "light") || strings.Contains(sub, "thin"):
 		sc++
+	}
+	if weight == "bold" && !strings.Contains(sub, "bold") {
+		// In the bold slot only via the OS/2 bold bit, with a subfamily
+		// that does not claim bold at all: rank it below true bold
+		// designs and their near neighbours.
+		sc += 2
 	}
 	return sc
 }

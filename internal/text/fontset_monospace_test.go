@@ -103,6 +103,16 @@ func TestStyleScore(t *testing.T) {
 	if got := styleScore(&Face{subfamily: "bold"}, "bold"); got != 0 {
 		t.Errorf("exact bold should score 0, got %d", got)
 	}
+	if got := styleScore(&Face{subfamily: "bold italic"}, "bold"); got != 4 {
+		t.Errorf("bold italic for the bold slot should score 4 (italic only), got %d", got)
+	}
+	// A face that reaches the bold slot only via the OS/2 bold bit (its
+	// subfamily does not claim bold) ranks below a semibold design.
+	bitOnly := styleScore(&Face{subfamily: "regular"}, "bold")
+	semi := styleScore(&Face{subfamily: "semibold"}, "bold")
+	if !(semi < bitOnly) {
+		t.Errorf("semibold (%d) should rank before a bold-bit-only regular (%d) for the bold slot", semi, bitOnly)
+	}
 }
 
 func TestDetectMonoLocaleClass(t *testing.T) {
