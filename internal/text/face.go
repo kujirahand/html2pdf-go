@@ -126,11 +126,11 @@ func (f *Face) Ascent(size float64) float64 { return f.ascent / f.upem * size }
 func (f *Face) Descent(size float64) float64 { return f.descent / f.upem * size }
 
 // LineAscent returns the line-box ascent in points: OS/2 sTypoAscender when
-// the font sets USE_TYPO_METRICS, otherwise Ascent.
+// available, otherwise Ascent.
 func (f *Face) LineAscent(size float64) float64 { return f.lineAsc / f.upem * size }
 
 // LineDescent returns the (positive) line-box descent in points: OS/2
-// sTypoDescender when the font sets USE_TYPO_METRICS, otherwise Descent.
+// sTypoDescender when available, otherwise Descent.
 func (f *Face) LineDescent(size float64) float64 { return f.lineDsc / f.upem * size }
 
 // GlyphID returns the glyph index for r, or 0 (.notdef) if the font has no glyph.

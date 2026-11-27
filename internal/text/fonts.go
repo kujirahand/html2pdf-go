@@ -88,48 +88,54 @@ func isBoldName(base string) bool { return strings.Contains(strings.ToLower(base
 
 func isCJKName(base string) bool { return strings.Contains(strings.ToLower(base), "cjk") }
 
-// firstLoadable loads the first file whose base name satisfies match.
-func firstLoadable(files []string, match func(base string) bool) (*Face, string) {
+// hasJapaneseGlyphs reports whether f can render Japanese text (checked via 'あ').
+func hasJapaneseGlyphs(f *Face) bool { return f.GlyphID('あ') != 0 }
+
+// firstLoadable loads the first file whose base name satisfies match and
+// whose face satisfies ok (nil accepts any face).
+func firstLoadable(files []string, match func(base string) bool, ok func(*Face) bool) (*Face, string) {
 	for _, p := range files {
 		if !match(filepath.Base(p)) {
 			continue
 		}
-		if f, err := loadFace(p); err == nil {
+		if f, err := loadFace(p); err == nil && (ok == nil || ok(f)) {
 			return f, p
 		}
 	}
 	return nil, ""
 }
 
+// pickRegular prefers well-known Japanese font names; every other candidate
+// must actually contain Japanese glyphs, otherwise nil is returned.
 func pickRegular(files []string) (*Face, string) {
 	for _, name := range regularNames {
-		if f, p := firstLoadable(files, func(b string) bool { return b == name }); f != nil {
+		if f, p := firstLoadable(files, func(b string) bool { return b == name }, nil); f != nil {
 			return f, p
 		}
 	}
-	if f, p := firstLoadable(files, func(b string) bool { return isCJKName(b) && !isBoldName(b) }); f != nil {
+	if f, p := firstLoadable(files, func(b string) bool { return isCJKName(b) && !isBoldName(b) }, hasJapaneseGlyphs); f != nil {
 		return f, p
 	}
-	if f, p := firstLoadable(files, func(b string) bool { return !isBoldName(b) }); f != nil {
+	if f, p := firstLoadable(files, func(b string) bool { return !isBoldName(b) }, hasJapaneseGlyphs); f != nil {
 		return f, p
 	}
-	return firstLoadable(files, func(string) bool { return true })
+	return firstLoadable(files, func(string) bool { return true }, hasJapaneseGlyphs)
 }
 
 func pickBold(files []string, regPath string) *Face {
 	for _, name := range boldNames {
-		if f, _ := firstLoadable(files, func(b string) bool { return b == name }); f != nil {
+		if f, _ := firstLoadable(files, func(b string) bool { return b == name }, nil); f != nil {
 			return f
 		}
 	}
 	// Sibling of a fallback regular face, e.g. Foo-Regular.ttf -> Foo-Bold.ttf.
 	if base := filepath.Base(regPath); strings.Contains(base, "Regular") {
 		want := filepath.Join(filepath.Dir(regPath), strings.Replace(base, "Regular", "Bold", 1))
-		if f, err := loadFace(want); err == nil {
+		if f, err := loadFace(want); err == nil && hasJapaneseGlyphs(f) {
 			return f
 		}
 	}
-	f, _ := firstLoadable(files, func(b string) bool { return isCJKName(b) && isBoldName(b) })
+	f, _ := firstLoadable(files, func(b string) bool { return isCJKName(b) && isBoldName(b) }, hasJapaneseGlyphs)
 	return f
 }
 

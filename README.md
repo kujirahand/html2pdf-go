@@ -1,6 +1,6 @@
 # html2pdf-go
 
-pure Go の HTML→PDF 変換エンジンです。現在開発中で、変換処理はまだ実装されていません（`Convert` は `ErrNotImplemented` を返します）。
+pure Go の HTML→PDF 変換エンジンです。HTML のパース、CSS の適用、レイアウト、PDF の書き出しまで実装済みです。対応する HTML/CSS の範囲は [docs/reference-ja.md](docs/reference-ja.md) を参照してください。
 
 ## ライブラリとしての使い方
 
