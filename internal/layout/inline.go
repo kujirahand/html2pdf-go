@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"bytes"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
+	"github.com/kujirahand/html2pdf-go/internal/datauri"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
@@ -95,7 +97,24 @@ func (l *layouter) collect(n *dom.Node, out *[]seg) {
 
 // loadImage reads (and caches) the dimensions of an image file.
 func (l *layouter) loadImage(src string) (string, *imgInfo) {
-	if src == "" || strings.Contains(src, "://") || strings.HasPrefix(src, "data:") {
+	if len(src) >= 5 && strings.EqualFold(src[:5], "data:") {
+		if info, ok := l.imgs[src]; ok {
+			return src, info
+		}
+	}
+	if data, isData, err := datauri.Decode(src); isData {
+		info := &imgInfo{}
+		if err == nil {
+			if cfg, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil && cfg.Width > 0 && cfg.Height > 0 &&
+				cfg.Width <= maxImageDim && cfg.Height <= maxImageDim &&
+				cfg.Width*cfg.Height <= maxImagePixels {
+				info = &imgInfo{w: cfg.Width, h: cfg.Height, ok: true}
+			}
+		}
+		l.imgs[src] = info
+		return src, info
+	}
+	if src == "" || strings.Contains(src, "://") {
 		return "", &imgInfo{}
 	}
 	p := src

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/kujirahand/html2pdf-go/internal/datauri"
 	"github.com/kujirahand/html2pdf-go/internal/layout"
 	"github.com/kujirahand/html2pdf-go/internal/pdf"
 	"github.com/kujirahand/html2pdf-go/internal/text"
@@ -124,29 +125,35 @@ func (r *renderer) image(src string) (*pdf.Image, error) {
 	if img, ok := r.images[src]; ok {
 		return img, nil
 	}
-	data, err := os.ReadFile(src)
-	if err != nil && !filepath.IsAbs(src) {
-		data, err = os.ReadFile(filepath.Join(r.baseDir, src))
+	data, isData, err := datauri.Decode(src)
+	label := src
+	if isData {
+		label = "data URI"
+	} else {
+		data, err = os.ReadFile(src)
+		if err != nil && !filepath.IsAbs(src) {
+			data, err = os.ReadFile(filepath.Join(r.baseDir, src))
+		}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("render: read image: %w", err)
 	}
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("render: decode image %s: %w", src, err)
+		return nil, fmt.Errorf("render: decode image %s: %w", label, err)
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > maxImageDim || cfg.Height > maxImageDim ||
 		cfg.Width*cfg.Height > maxImagePixels {
-		return nil, fmt.Errorf("render: image %s too large (%dx%d)", src, cfg.Width, cfg.Height)
+		return nil, fmt.Errorf("render: image %s too large (%dx%d)", label, cfg.Width, cfg.Height)
 	}
 	if !bytes.HasPrefix(data, pngSignature) {
 		decoded, _, err := image.Decode(bytes.NewReader(data))
 		if err != nil {
-			return nil, fmt.Errorf("render: decode image %s: %w", src, err)
+			return nil, fmt.Errorf("render: decode image %s: %w", label, err)
 		}
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, decoded); err != nil {
-			return nil, fmt.Errorf("render: re-encode image %s: %w", src, err)
+			return nil, fmt.Errorf("render: re-encode image %s: %w", label, err)
 		}
 		data = buf.Bytes()
 	}

@@ -38,6 +38,7 @@ PDF
 | `internal/css` | CSS のパース、セレクタマッチング、カスケード、計算済みスタイルの生成 |
 | `internal/text` | フォントの読み込み・計測、文字列の整形（折り返し・禁則処理） |
 | `internal/layout` | ボックスツリーの生成、ブロック/テーブルレイアウト、ページネーション |
+| `internal/datauri` | `data:` URI のデコード（base64／パーセントエンコード）。`layout` と `render` が画像ソースとして使う |
 | `internal/render` | レイアウト済みページを `pdf` パッケージ経由で描画する |
 | `internal/pdf` | PDF ファイルの書き出し（オブジェクト、コンテンツストリーム、フォント・画像の埋め込み） |
 
