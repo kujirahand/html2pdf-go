@@ -117,7 +117,9 @@ func main() {
 
 		FontFileBold: *fontBold,
 		MarkdownCSS:  extraCSS,
-		OnFontUse:    func(u html2pdf.FontUse) { uses = append(uses, u) },
+	}
+	if *verbose {
+		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
 	err := html2pdf.ConvertMarkdownFile(input, output, opts)
 	if *verbose {

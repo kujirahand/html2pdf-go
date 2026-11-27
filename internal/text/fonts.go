@@ -37,21 +37,37 @@ func DefaultFontDirs() []string {
 }
 
 // LoadFonts finds a Japanese-capable font in dirs (or in default locations
-// if dirs is empty). If no bold face is found, Bold falls back to Regular.
+// if dirs is empty). Earlier directories take precedence: Regular comes from
+// the first directory with a usable face, and Bold is looked up in that
+// directory first, then in the remaining ones. If no bold face is found,
+// Bold falls back to Regular.
 func LoadFonts(dirs []string) (*Fonts, error) {
 	search := dirs
 	if len(search) == 0 {
 		search = DefaultFontDirs()
 	}
-	var files []string
-	for _, d := range search {
-		files = append(files, listFontFiles(d)...)
+	files := make([][]string, len(search))
+	for i, d := range search {
+		files[i] = listFontFiles(d)
 	}
-	reg, regPath := pickRegular(files)
+	var reg *Face
+	var regPath string
+	regDir := -1
+	for i, fl := range files {
+		if reg, regPath = pickRegular(fl); reg != nil {
+			regDir = i
+			break
+		}
+	}
 	if reg == nil {
 		return nil, fmt.Errorf("text: no usable font found in %v", search)
 	}
-	bold := pickBold(files, regPath)
+	bold := pickBold(files[regDir], regPath)
+	for i := 0; bold == nil && i < len(files); i++ {
+		if i != regDir {
+			bold = pickBold(files[i], regPath)
+		}
+	}
 	if bold == nil {
 		bold = reg
 	}

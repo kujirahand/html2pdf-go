@@ -24,14 +24,19 @@ type Dir struct {
 // Gather returns the font directories in search order: the comma-separated
 // flagDirs, then the HTML2PDF_FONT_DIRS environment variable, then the
 // operating system's font directories. Empty entries are dropped and a
-// directory that appears more than once keeps its first occurrence.
+// directory that appears more than once (compared after filepath.Clean, so a
+// trailing slash or "./" makes no difference) keeps its first occurrence.
 func Gather(flagDirs string) []Dir {
 	var dirs []Dir
 	seen := map[string]bool{}
 	add := func(origin string, paths []string) {
 		for _, p := range paths {
 			p = strings.TrimSpace(p)
-			if p == "" || seen[p] {
+			if p == "" {
+				continue
+			}
+			p = filepath.Clean(p)
+			if seen[p] {
 				continue
 			}
 			seen[p] = true

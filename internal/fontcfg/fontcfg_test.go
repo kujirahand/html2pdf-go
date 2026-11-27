@@ -38,6 +38,18 @@ func TestGatherDedupAndEmpty(t *testing.T) {
 	}
 }
 
+func TestGatherDedupNormalizesPaths(t *testing.T) {
+	t.Setenv(EnvVar, "/x/")
+	got := Gather("/x/,./y,y/")
+	want := []Dir{{"/x", "flag"}, {"y", "flag"}}
+	for _, p := range text.DefaultFontDirs() {
+		want = append(want, Dir{p, "os"})
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Gather = %v, want %v", got, want)
+	}
+}
+
 func TestGatherEnvOnlyAndNone(t *testing.T) {
 	t.Setenv(EnvVar, "")
 	got := Gather("")

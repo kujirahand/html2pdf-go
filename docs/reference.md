@@ -317,7 +317,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `Landscape` | bool | Swaps width and height of the `PageSize` size. |
 | `BaseDir` | string | Directory against which relative image paths resolve. |
 | `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Only the given directories are searched; empty = standard system font directories. The library reads no environment variable or config file. An error is returned if no usable font is found. Also searched by `font-family` names. |
-| `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, empty for the default face), `Bold` and `Path` (the font file). nil = no callback. |
+| `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, normalized for matching, i.e. lower-cased; empty for the default face), `Bold` (bold was requested; if there is no bold face, `Path` is the regular file and `Bold` is still true) and `Path` (the font file). nil = no callback. |
 | `FontFile` | string | Path of a font file used as the regular face instead of the automatic choice. If it cannot be read or parsed, `Convert` returns an error. Empty = automatic selection. |
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |

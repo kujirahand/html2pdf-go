@@ -18,10 +18,12 @@ import (
 
 // FontUse describes a font face resolved during conversion.
 type FontUse struct {
-	// Family is the font-family name that matched, or "" for the default
-	// face used when no listed family was found.
+	// Family is the font-family name that matched, normalized for matching
+	// (lower-cased), or "" for the default face used when no listed family
+	// was found.
 	Family string
-	// Bold reports whether the bold face was requested.
+	// Bold reports whether bold was requested. If there is no bold face,
+	// Path is the regular file and Bold is still true.
 	Bold bool
 	// Path is the font file the face was loaded from.
 	Path string

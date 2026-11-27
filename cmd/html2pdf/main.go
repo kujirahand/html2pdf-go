@@ -105,7 +105,9 @@ func main() {
 		FontDirs:  fontcfg.Paths(dirs),
 
 		FontFileBold: *fontBold,
-		OnFontUse:    func(u html2pdf.FontUse) { uses = append(uses, u) },
+	}
+	if *verbose {
+		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
 	err := html2pdf.ConvertFile(input, output, opts)
 	if *verbose {
