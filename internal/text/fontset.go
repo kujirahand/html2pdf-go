@@ -364,15 +364,34 @@ func (s *FontSet) buildIndex() {
 }
 
 // styleScore ranks a face for a family's regular or bold slot; lower is a
-// plainer representative of the weight.
+// plainer representative of the weight. An exact-weight face wins; other
+// weights are ordered by their distance from the slot's weight so that,
+// when a family has no exact face, a Medium or Light is picked rather
+// than whichever of e.g. Medium and Black happens to be scanned first.
 func styleScore(f *Face, weight string) int {
 	sc := 0
-	if strings.Contains(f.subfamily, "oblique") || strings.Contains(f.subfamily, "italic") {
+	sub := f.subfamily
+	if strings.Contains(sub, "oblique") || strings.Contains(sub, "italic") {
 		sc += 4
 	}
-	plain := f.subfamily == weight ||
-		(weight == "regular" && (f.subfamily == "" || f.subfamily == "book"))
-	if !plain {
+	plain := sub == weight ||
+		(weight == "regular" && (sub == "" || sub == "book" || sub == "roman"))
+	if plain {
+		return sc
+	}
+	sc++
+	switch {
+	case strings.Contains(sub, "black") || strings.Contains(sub, "heavy"):
+		sc += 3
+	case strings.Contains(sub, "extrabold") || strings.Contains(sub, "ultrabold"):
+		sc += 2
+	case strings.Contains(sub, "semibold") || strings.Contains(sub, "demibold") ||
+		strings.Contains(sub, "medium"):
+		sc += 2
+		if weight == "bold" {
+			sc--
+		}
+	case strings.Contains(sub, "light") || strings.Contains(sub, "thin"):
 		sc++
 	}
 	return sc

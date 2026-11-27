@@ -285,13 +285,22 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 			i++
 			continue
 		}
-		var w float64
+		// The rectangle hugs the run's own inline box (its font metrics
+		// and line height), not the whole line box: a small <code> run
+		// beside larger text keeps a small background.
+		var w, rAsc, rDesc float64
 		j := i
 		for j < len(cells) && cells[j].bg != nil && *cells[j].bg == *bg {
 			w += adv[j]
+			if cells[j].img != nil {
+				rAsc = max(rAsc, cells[j].img.h)
+			} else {
+				a, d := l.metrics(cells[j].st)
+				rAsc, rDesc = max(rAsc, a), max(rDesc, d)
+			}
 			j++
 		}
-		l.emit(prim{kind: pFill, x: bx, y: y, w: w, h: asc + desc, color: *bg})
+		l.emit(prim{kind: pFill, x: bx, y: baseline - rAsc, w: w, h: rAsc + rDesc, color: *bg})
 		bx += w
 		i = j
 	}

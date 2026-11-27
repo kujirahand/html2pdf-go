@@ -85,6 +85,26 @@ func TestPreferredMonoNames(t *testing.T) {
 	}
 }
 
+func TestStyleScore(t *testing.T) {
+	regular := styleScore(&Face{subfamily: "regular"}, "regular")
+	if got := styleScore(&Face{subfamily: "roman"}, "regular"); got != regular {
+		t.Errorf("roman should rank as plain regular: got %d, want %d", got, regular)
+	}
+	medium := styleScore(&Face{subfamily: "medium"}, "regular")
+	black := styleScore(&Face{subfamily: "black"}, "regular")
+	if !(medium < black) {
+		t.Errorf("medium (%d) should rank before black (%d) for the regular slot", medium, black)
+	}
+	upright := styleScore(&Face{subfamily: "black"}, "regular")
+	oblique := styleScore(&Face{subfamily: "black oblique"}, "regular")
+	if !(upright < oblique) {
+		t.Errorf("upright (%d) should rank before oblique (%d)", upright, oblique)
+	}
+	if got := styleScore(&Face{subfamily: "bold"}, "bold"); got != 0 {
+		t.Errorf("exact bold should score 0, got %d", got)
+	}
+}
+
 func TestDetectMonoLocaleClass(t *testing.T) {
 	tests := []struct {
 		name   string

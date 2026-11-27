@@ -2,9 +2,19 @@ package text
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+func containsString(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
 
 func TestFaceForMonospace(t *testing.T) {
 	fs, err := LoadFontSet(nil, "", "")
@@ -24,8 +34,10 @@ func TestFaceForMonospace(t *testing.T) {
 	if got := fs.FaceFor([]string{"monospace"}, false); hasMono {
 		if got == fs.Regular {
 			t.Error("monospace fell back to the base face although mono families are installed")
-		} else if !strings.Contains(strings.ToLower(got.FamilyName()), "mono") {
-			t.Errorf("monospace resolved to %q, want a Mono family", got.FamilyName())
+		} else if name := strings.ToLower(got.FamilyName()); !strings.Contains(name, "mono") && !containsString(preferredMonoNames(runtime.GOOS, detectMonoLocaleClass()), name) {
+			// A browser-default face such as Courier need not have
+			// "mono" in its name; anything else is unexpected.
+			t.Errorf("monospace resolved to %q, want a Mono family or a browser default", got.FamilyName())
 		}
 	}
 	if got := fs.FaceFor([]string{"serif"}, false); got != fs.Regular {
