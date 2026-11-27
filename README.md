@@ -124,7 +124,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
 ```
 
-It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
 
 From a Go program:
 

@@ -49,6 +49,7 @@ type Face struct {
 	family    string // typographic family name, "" if the font has none
 	bold      bool   // subfamily says Bold, or OS/2 fsSelection has the bold bit
 	subfamily string // lower-cased subfamily name, e.g. "regular", "bold oblique"
+	path      string // file the face was loaded from, "" if parsed from memory
 }
 
 // newFace wraps sf. data and off locate the face's table directory (off is

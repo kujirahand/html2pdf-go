@@ -48,6 +48,7 @@
 | `internal/css/` | CSS のパース、セレクタ照合、カスケード、計算済みスタイルの生成 |
 | `internal/text/` | フォントの読み込み・選択・計測、文字列の折り返しと禁則処理 |
 | `internal/layout/` | ボックス生成、ブロック／テーブルレイアウト、ページ分割（ページネーション） |
+| `internal/fontcfg/` | CLI 用のフォントフォルダ収集（`-font-dirs` → 環境変数 `HTML2PDF_FONT_DIRS` → OS 既定）。ライブラリは使わない |
 | `internal/datauri/` | `data:` URI のデコード（base64／パーセントエンコード）。`layout` と `render` が画像ソースとして使う |
 | `internal/render/` | レイアウト結果を `internal/pdf` 経由で描画する |
 | `internal/pdf/` | PDF の書き出し。オブジェクト、コンテンツストリーム、フォント（Type3 サブセット埋め込み）・画像の埋め込み |
