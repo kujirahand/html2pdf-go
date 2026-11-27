@@ -3,6 +3,7 @@ package datauri
 import (
 	"bytes"
 	"encoding/base64"
+	"strings"
 	"testing"
 )
 
@@ -40,6 +41,45 @@ func TestDecodeErrors(t *testing.T) {
 		if _, ok, err := Decode(src); !ok || err == nil {
 			t.Errorf("Decode(%q): ok=%v err=%v, want error", src, ok, err)
 		}
+	}
+}
+
+func TestDecodeParameterSyntax(t *testing.T) {
+	enc := base64.StdEncoding.EncodeToString([]byte("hello"))
+	for _, src := range []string{
+		"data:image/png;base64;charset=utf-8," + enc,
+		"data:image/png;base64;base64," + enc,
+		"data:image/png;garbage,abc",
+	} {
+		if _, ok, err := Decode(src); !ok || err == nil {
+			t.Errorf("Decode(%q): ok=%v err=%v, want error", src, ok, err)
+		}
+	}
+	got, ok, err := Decode("data:image/png;charset=utf-8;base64," + enc)
+	if !ok || err != nil || string(got) != "hello" {
+		t.Errorf("got %q, %v, %v", got, ok, err)
+	}
+}
+
+func TestDecodeTooLarge(t *testing.T) {
+	_, ok, err := Decode("data:image/png," + strings.Repeat("A", MaxBytes+1))
+	if !ok || err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Errorf("percent: ok=%v err=%v, want too large", ok, err)
+	}
+	big := strings.Repeat("QUJD", MaxBytes/3+1)
+	_, ok, err = Decode("data:image/png;base64," + big)
+	if !ok || err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Errorf("base64: ok=%v err=%v, want too large", ok, err)
+	}
+}
+
+func TestDecodeTooLargeCheckedBeforeDecoding(t *testing.T) {
+	// Every escape here is invalid, so decoding would fail with an escape
+	// error; getting the too-large error instead proves the size is
+	// checked from the scanned length before any decoding happens.
+	src := "data:image/png," + strings.Repeat("%zz", MaxBytes)
+	if _, _, err := Decode(src); err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Errorf("err = %v, want a too-large error", err)
 	}
 }
 

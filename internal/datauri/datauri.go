@@ -30,14 +30,26 @@ func Decode(src string) (data []byte, isDataURI bool, err error) {
 		return nil, true, fmt.Errorf("datauri: media type %q is not an image", mt)
 	}
 	isBase64 := false
-	for _, p := range parts[1:] {
-		if strings.EqualFold(strings.TrimSpace(p), "base64") {
+	params := parts[1:]
+	for i, p := range params {
+		p = strings.TrimSpace(p)
+		if strings.EqualFold(p, "base64") {
+			if i != len(params)-1 {
+				return nil, true, errors.New("datauri: base64 parameter must be last")
+			}
 			isBase64 = true
+			continue
+		}
+		if k, _, ok := strings.Cut(p, "="); !ok || strings.TrimSpace(k) == "" {
+			return nil, true, fmt.Errorf("datauri: invalid parameter %q", p)
 		}
 	}
 	if isBase64 {
 		data, err = decodeBase64(payload)
 	} else {
+		if percentDecodedLen(payload) > MaxBytes {
+			return nil, true, errors.New("datauri: payload too large")
+		}
 		var s string
 		s, err = url.PathUnescape(payload)
 		data = []byte(s)
@@ -51,10 +63,26 @@ func Decode(src string) (data []byte, isDataURI bool, err error) {
 	return data, true, nil
 }
 
-func decodeBase64(s string) ([]byte, error) {
-	if len(s) > MaxBytes/3*4+8 {
-		return nil, errors.New("payload too large")
+// percentDecodedLen returns the decoded length of a percent-encoded string
+// without allocating. Invalid escapes count as one byte; PathUnescape reports
+// them later.
+func percentDecodedLen(s string) int {
+	n := 0
+	for i := 0; i < len(s); n++ {
+		if s[i] == '%' && i+2 < len(s) && isHex(s[i+1]) && isHex(s[i+2]) {
+			i += 3
+		} else {
+			i++
+		}
 	}
+	return n
+}
+
+func isHex(c byte) bool {
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
+}
+
+func decodeBase64(s string) ([]byte, error) {
 	s = strings.Map(func(r rune) rune {
 		switch r {
 		case ' ', '\t', '\n', '\r', '\f', '\v':
@@ -62,6 +90,9 @@ func decodeBase64(s string) ([]byte, error) {
 		}
 		return r
 	}, s)
+	if len(s) > MaxBytes/3*4+8 {
+		return nil, errors.New("payload too large")
+	}
 	var firstErr error
 	for _, enc := range []*base64.Encoding{base64.StdEncoding, base64.RawStdEncoding, base64.URLEncoding, base64.RawURLEncoding} {
 		b, err := enc.DecodeString(s)
