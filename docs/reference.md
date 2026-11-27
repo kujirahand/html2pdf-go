@@ -284,6 +284,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
+| `MarkdownCSS` | string | Extra CSS appended after `DefaultMarkdownCSS`. Used only by `ConvertMarkdown` and `ConvertMarkdownFile`; see [markdown.md](markdown.md). |
 
 Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertFile(htmlPath, pdfPath string, opts *Options) error` (nil `opts` is allowed; `ConvertFile` writes the file only on success).
 
