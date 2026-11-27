@@ -46,7 +46,7 @@ body { font-size: 12pt; }
 | `` `code` `` | `code`; the background is not drawn (see section 5) |
 | Fenced and indented code blocks | `pre`, with line breaks and indentation preserved |
 | `-` / `1.` lists, nested lists | `ul` / `ol` |
-| `- [x]` task lists | list items; the checkbox itself is not drawn |
+| `- [x]` task lists | list items with a `[x]` / `[ ]` text marker instead of a drawn checkbox |
 | `>` blockquotes | `blockquote` |
 | GFM tables | `table` with borders |
 | `---` | `hr`, a horizontal rule (drawn through CSS) |

@@ -64,9 +64,65 @@ func markdownDocument(src []byte, extraCSS string) ([]byte, error) {
 		doc.WriteString(extraCSS)
 	}
 	doc.WriteString("</style>\n</head>\n<body>\n")
-	doc.Write(preservePreBlocks(body.Bytes()))
+	doc.Write(replaceTaskListChecks(preservePreBlocks(body.Bytes())))
 	doc.WriteString("</body>\n</html>\n")
 	return doc.Bytes(), nil
+}
+
+// replaceTaskListChecks rewrites GFM task-list checkboxes as text markers,
+// because the engine does not render form controls: without this, checked
+// and unchecked items would look exactly the same in the PDF.
+func replaceTaskListChecks(htmlSrc []byte) []byte {
+	s := string(htmlSrc)
+	s = strings.ReplaceAll(s, `<input checked="" disabled="" type="checkbox">`, "[x]")
+	s = strings.ReplaceAll(s, `<input disabled="" type="checkbox">`, "[ ]")
+	return []byte(s)
+}
+
+// indexFold returns the index of the first ASCII case-insensitive match of
+// sub in s at or after from, or -1.
+func indexFold(s, sub string, from int) int {
+	for i := from; i+len(sub) <= len(s); i++ {
+		ok := true
+		for j := 0; j < len(sub); j++ {
+			a, b := s[i+j], sub[j]
+			if 'A' <= a && a <= 'Z' {
+				a += 'a' - 'A'
+			}
+			if 'A' <= b && b <= 'Z' {
+				b += 'a' - 'A'
+			}
+			if a != b {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			return i
+		}
+	}
+	return -1
+}
+
+// tagEndIndex returns the index of the '>' that closes the tag starting at
+// or before from, skipping '>' inside quoted attribute values, or -1.
+func tagEndIndex(s string, from int) int {
+	var quote byte
+	for i := from; i < len(s); i++ {
+		c := s[i]
+		if quote != 0 {
+			if c == quote {
+				quote = 0
+			}
+			continue
+		}
+		if c == '"' || c == '\'' {
+			quote = c
+		} else if c == '>' {
+			return i
+		}
+	}
+	return -1
 }
 
 // preservePreBlocks rewrites every <pre>...</pre> block so that its line
@@ -83,34 +139,34 @@ func preservePreBlocks(htmlSrc []byte) []byte {
 	s := string(htmlSrc)
 	var out strings.Builder
 	for {
-		start := strings.Index(s, preOpen)
+		start := indexFold(s, preOpen, 0)
 		if start < 0 {
 			break
 		}
 		// The tag must be exactly <pre> or <pre ...>, not e.g. <prefix>.
-		tagEnd := strings.IndexByte(s[start:], '>')
+		tagEnd := tagEndIndex(s, start)
 		if tagEnd < 0 {
 			break
 		}
-		tagEnd += start
-		if name := s[start+len(preOpen) : tagEnd]; name != "" && name[0] != ' ' && name[0] != '\n' && name[0] != '\t' {
+		if name := s[start+len(preOpen) : tagEnd]; name != "" && name[0] != ' ' && name[0] != '\n' && name[0] != '\t' && name[0] != '\r' {
 			out.WriteString(s[:tagEnd+1])
 			s = s[tagEnd+1:]
 			continue
 		}
-		end := strings.Index(s[tagEnd:], preClose)
+		end := indexFold(s, preClose, tagEnd)
 		if end < 0 {
 			break
 		}
-		end += tagEnd
 
 		inner := s[tagEnd+1 : end]
-		if strings.HasPrefix(inner, codeOpen) {
-			if i := strings.IndexByte(inner, '>'); i >= 0 {
+		if indexFold(inner, codeOpen, 0) == 0 {
+			if i := tagEndIndex(inner, 0); i >= 0 {
 				inner = inner[i+1:]
 			}
 		}
-		inner = strings.TrimSuffix(inner, codeClose)
+		if len(inner) >= len(codeClose) && indexFold(inner[len(inner)-len(codeClose):], codeClose, 0) == 0 {
+			inner = inner[:len(inner)-len(codeClose)]
+		}
 		inner = strings.ReplaceAll(inner, "\r", "")
 
 		lines := strings.Split(inner, "\n")

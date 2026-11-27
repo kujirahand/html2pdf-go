@@ -108,3 +108,35 @@ func TestConvertMarkdownFile(t *testing.T) {
 		t.Errorf("failed conversion left an output file (stat err = %v)", err)
 	}
 }
+
+func TestMarkdownTaskListMarkers(t *testing.T) {
+	html, err := MarkdownToHTML([]byte("- [ ] pending\n- [x] done\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(html)
+	if strings.Contains(s, "<input") {
+		t.Errorf("task list checkbox <input> left in HTML: %s", s)
+	}
+	for _, want := range []string{"[ ]", "pending", "[x]", "done"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("HTML does not contain %q: %s", want, s)
+		}
+	}
+}
+
+func TestMarkdownPreRawHTMLCaseAndQuotedAttr(t *testing.T) {
+	// Raw HTML <pre> in upper case, with a '>' inside a quoted attribute,
+	// must still have its whitespace preserved.
+	html, err := MarkdownToHTML([]byte("<PRE title=\"a>b\">x  y\n  z</PRE>\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(html)
+	if !strings.Contains(s, "x&nbsp;&nbsp;y<br>&nbsp;&nbsp;z") {
+		t.Errorf("raw <PRE> whitespace was not preserved: %s", s)
+	}
+	if strings.Contains(s, "a>b") && !strings.Contains(s, `title="a>b"`) {
+		t.Errorf("quoted attribute was mangled: %s", s)
+	}
+}
