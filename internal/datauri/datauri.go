@@ -40,7 +40,7 @@ func Decode(src string) (data []byte, isDataURI bool, err error) {
 			isBase64 = true
 			continue
 		}
-		if k, _, ok := strings.Cut(p, "="); !ok || strings.TrimSpace(k) == "" {
+		if !validParam(p) {
 			return nil, true, fmt.Errorf("datauri: invalid parameter %q", p)
 		}
 	}
@@ -61,6 +61,36 @@ func Decode(src string) (data []byte, isDataURI bool, err error) {
 		return nil, true, errors.New("datauri: payload too large")
 	}
 	return data, true, nil
+}
+
+// validParam reports whether p is a MIME parameter in attribute=value form
+// (RFC 2045): the attribute is a token, and the value is a token or a
+// quoted-string.
+func validParam(p string) bool {
+	k, v, ok := strings.Cut(p, "=")
+	if !ok || !isToken(strings.TrimSpace(k)) {
+		return false
+	}
+	v = strings.TrimSpace(v)
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return !strings.ContainsAny(v[1:len(v)-1], "\"\r\n")
+	}
+	return isToken(v)
+}
+
+// isToken reports whether s is an RFC 2045 token: one or more ASCII
+// characters excluding controls, spaces and the tspecials separators.
+func isToken(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c <= ' ' || c >= 0x7f || strings.IndexByte(`()<>@,;:\"/[]?=`, c) >= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // percentDecodedLen returns the decoded length of a percent-encoded string

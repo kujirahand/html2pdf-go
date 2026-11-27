@@ -73,6 +73,23 @@ func TestDecodeTooLarge(t *testing.T) {
 	}
 }
 
+func TestDecodeParameterTokenSyntax(t *testing.T) {
+	enc := base64.StdEncoding.EncodeToString([]byte("hello"))
+	for _, src := range []string{
+		"data:image/png;bad name=x;base64," + enc, // space in attribute name
+		"data:image/png;foo=;base64," + enc,       // empty unquoted value
+		"data:image/png;=x;base64," + enc,         // empty attribute name
+	} {
+		if _, _, err := Decode(src); err == nil {
+			t.Errorf("Decode(%q) succeeded, want invalid parameter error", src)
+		}
+	}
+	// A quoted-string value is valid.
+	if _, _, err := Decode("data:image/png;charset=\"utf-8\";base64," + enc); err != nil {
+		t.Errorf("quoted-string parameter rejected: %v", err)
+	}
+}
+
 func TestDecodeTooLargeCheckedBeforeDecoding(t *testing.T) {
 	// Every escape here is invalid, so decoding would fail with an escape
 	// error; getting the too-large error instead proves the size is
