@@ -14,6 +14,7 @@ body { font-size: 11pt; color: #222222; line-height: 1.4; }
 .font-note { color: #888888; font-size: 8.5pt; margin-bottom: 14px; }
 h1 {
     font-size: 26pt;
+    font-weight: normal;
     text-align: center;
     letter-spacing: 0;
     border-bottom: 3px solid #333333;
@@ -37,7 +38,7 @@ table.head { width: 100%; margin-bottom: 6px; }
     margin-bottom: 14px;
 }
 .amount-label { font-size: 11pt; }
-.amount { font-size: 30pt; font-weight: bold; }
+.amount { font-size: 30pt; }
 .tadashi { margin-bottom: 16px; }
 table.detail { width: 100%; border: 1px solid #666666; margin-bottom: 12px; }
 .detail th {
@@ -53,7 +54,7 @@ table.detail { width: 100%; border: 1px solid #666666; margin-bottom: 12px; }
     padding: 6px 8px;
 }
 .num { text-align: right; }
-.total-row td { font-weight: bold; border-top: 2px solid #333333; }
+.total-row td { background-color: #f2f2f2; border-top: 2px solid #333333; }
 .tax-note { font-size: 9.5pt; color: #444444; margin-bottom: 26px; }
 table.foot { width: 100%; }
 .stamp-box {
@@ -65,7 +66,7 @@ table.foot { width: 100%; }
     width: 110px;
 }
 .issuer { font-size: 10.5pt; line-height: 1.5; }
-.issuer-name { font-size: 12pt; font-weight: bold; }
+.issuer-name { font-size: 12.5pt; }
 img.seal { width: 62px; }
 .dummy-note { margin-top: 22px; color: #888888; font-size: 8.5pt; }
 </style>
@@ -99,12 +100,12 @@ img.seal { width: 62px; }
 <td><div class="stamp-box">収入印紙<br>（200円）</div></td>
 <td class="right issuer">
 <span class="issuer-name">サンプルデザイン事務所</span><br>
-〒100-0001 東京都千代田区千代田1-1-1<br>
+〒000-0000 東京都サンプル区サンプル町0-0-0<br>
 電話: 090-0000-0000<br>
 担当: 山田 太郎　<img class="seal" src="../testdata/stamp.png">
 </td>
 </tr></table>
-<p class="dummy-note">※この領収書は html2pdf-go のサンプルです。会社名・住所・金額はすべて架空のものです。</p>
+<p class="dummy-note">※この領収書は html2pdf-go のサンプルです。会社名・住所・金額はすべて架空のものです。印紙欄は紙で交付する場合のものです（電子交付の領収書に印紙は不要です）。</p>
 </div>
 
 <div class="gothic">
@@ -134,12 +135,12 @@ img.seal { width: 62px; }
 <td><div class="stamp-box">収入印紙<br>（200円）</div></td>
 <td class="right issuer">
 <span class="issuer-name">サンプルデザイン事務所</span><br>
-〒100-0001 東京都千代田区千代田1-1-1<br>
+〒000-0000 東京都サンプル区サンプル町0-0-0<br>
 電話: 090-0000-0000<br>
 担当: 山田 太郎　<img class="seal" src="../testdata/stamp.png">
 </td>
 </tr></table>
-<p class="dummy-note">※この領収書は html2pdf-go のサンプルです。会社名・住所・金額はすべて架空のものです。</p>
+<p class="dummy-note">※この領収書は html2pdf-go のサンプルです。会社名・住所・金額はすべて架空のものです。印紙欄は紙で交付する場合のものです（電子交付の領収書に印紙は不要です）。</p>
 </div>
 
 </body>

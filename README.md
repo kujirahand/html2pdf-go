@@ -66,6 +66,10 @@ just samples   # サンプル PDF 一式を out/ に生成
 | `internal/render` | レイアウト結果の描画 |
 | `internal/pdf` | PDF 書き出し |
 | `examples/basic/` | 最小の使用例 |
+| `examples/*.html` | サンプル文書（住所録、領収書など） |
+| `justfile` | 開発用タスク（test / fonts / samples） |
+| `fonts/` | `just fonts` で取得する IPAex フォントの置き場（バイナリは管理対象外） |
+| `out/` | 生成したサンプル PDF の出力先（管理対象外） |
 | `testdata/` | テスト用 HTML |
 | `docs/` | 設計ドキュメント |
 

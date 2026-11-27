@@ -47,7 +47,7 @@ func main() {
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
 	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
-	fontDirs := flag.String("font-dirs", "", "comma-separated directories to search for fonts (for font-family lookup)")
+	fontDirs := flag.String("font-dirs", "", "comma-separated directories to search for fonts (replaces the default font locations)")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: html2pdf [flags] input.html")
 		flag.PrintDefaults()
