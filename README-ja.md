@@ -65,6 +65,7 @@ html2pdf -scale 0.95 hello.html                            # 全体を 95% に�
 ### 4. 次のステップ
 
 - 見た目を変える: `<style>` の中身を変えます。使える HTML 要素と CSS は [docs/reference-ja.md](docs/reference-ja.md) に一覧があります
+- 改ページする: 次のページを始めたい位置に `<page-break></page-break>` を置きます（例: `<p>Page 1</p><page-break></page-break><p>Page 2</p>`）。先頭・末尾・連続した `<page-break>` で空白ページはできません
 - Go のプログラムから使う: 次の「ライブラリとしての使い方」を見てください
 - 実例を見る: [examples/](examples/) に住所録や領収書などのサンプル HTML があります
 

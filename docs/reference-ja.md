@@ -29,6 +29,7 @@
 | `body` | ブロック、margin 8px | 描画の起点。 |
 | `div`, `section`, `article`, `header`, `footer`, `address` | ブロック | `address` は斜体になりません。 |
 | `center` | ブロック、`text-align: center` | |
+| `page-break` | ブロック、その位置で強制改ページ | 次のページを始めたい位置に `<page-break></page-break>`（または `<page-break>` だけ）を置きます。閉じていない `<page-break>` の後ろに書いた内容は、要素の後ろへ移されます。9 章を参照。 |
 | `frameset` | フレームのグリッド | 下の「フレーム」を参照。 |
 | `frame` | グリッドの 1 セル | 下の「フレーム」を参照。`noframes` の中身は描画されません。 |
 | `iframe` | ブロックレベルの埋め込み文書 | 下の「インラインフレーム」を参照。 |
@@ -232,7 +233,7 @@
 |---|---|
 | `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | `display: none` |
 | `iframe` | `display: block` |
-| `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `ul`, `ol` | `display: block` |
+| `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `page-break`, `ul`, `ol` | `display: block` |
 | `li` | `display: list-item` |
 | `table` | `display: table` |
 | `thead`, `tbody`, `tfoot` | `display: table-row-group` |
@@ -255,6 +256,7 @@
 | `center` | `text-align: center` |
 | `th` | 太字、`text-align: center` |
 | `td`, `th` | `padding: 1px` |
+| `page-break` | `page-break-after: always` |
 | `code`, `kbd`, `samp`, `tt` | `font-family: monospace`、`background-color: #f0f0f0` |
 | `pre` | `font-family: monospace` |
 
@@ -288,6 +290,7 @@
 **改ページ。**
 - テキストの行（インライン画像は行の中に含まれます）、表の行、1 ページに収まる罫線・背景付きのボックスは、ページをまたいで分割されません。1 ページより高い行やボックスも分割されず、はみ出した部分は描画されません。
 - `page-break-after` / `break-after` は、ブロックまたは表の後ろで強制的に改ページします。表のセルの内側、インライン要素、表の行では無視されます。`page-break-before`、`page-break-inside`、`break-before`、`break-inside` は未対応です。
+- `<page-break>` は強制改ページ専用の要素で、後ろの内容が次のページから始まります。`page-break-after: always`（8 章）を使って実現しているため、制限も同じです。閉じていない `<page-break>` の後ろの内容はパーサーによって要素の子になってしまうため、子要素を順序を保ったまま要素の直後へ移します。したがって `<p>a</p><page-break><p>b</p>` と書いても `b` は次のページになります。文書の先頭・末尾に置いた場合や連続して置いた場合も、空白ページはできません。インライン要素の中に置いた `<page-break>` は改ページしません。
 - テキストも画像も含まないページは破棄されるため、空白ページは作れません。
 
 **テキスト。** 基本のフェイスは通常と太字の 2 種類で、変換時に見つかった日本語対応フォント 1 つから選ばれます（Noto Sans CJK / Noto Sans JP を優先）。`FontFile` / `FontFileBold` を指定した場合はそのファイルが使われます。太字のフェイスがなければ、太字も通常のフェイスで描かれます。`font-family` では、ファミリー名でほかのインストール済みフォントも選べます（7 章）。インストール済みフォントは、初めて名前検索したときにフォントディレクトリ（`FontDirs`、なければ標準のディレクトリ）を走査して索引化されます。フォントコレクション（`.ttc`）は 1 つのフェイスがファイルを代表します。斜体はありません。
