@@ -28,7 +28,7 @@ func (c *Computed) Style(n *dom.Node) *Style {
 // uaSheet is the user-agent stylesheet.
 const uaSheet = `
 head, style, script, title, meta, link, noscript, iframe, template, object, embed, svg { display: none }
-body, div, p, h1, h2, h3, h4, h5, h6, blockquote, pre, center, section, article, header, footer, address { display: block }
+body, div, p, h1, h2, h3, h4, h5, h6, blockquote, pre, center, section, article, header, footer, address, page-break { display: block }
 ul, ol { display: block }
 li { display: list-item }
 table { display: table }
@@ -53,6 +53,7 @@ a { color: blue; text-decoration: underline }
 center { text-align: center }
 th { font-weight: bold; text-align: center }
 td, th { padding: 1px }
+page-break { page-break-after: always }
 `
 
 var uaRules = parseSheet(uaSheet)

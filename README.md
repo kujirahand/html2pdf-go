@@ -65,6 +65,7 @@ html2pdf -scale 0.95 hello.html                            # shrink everything t
 ### 4. Next steps
 
 - Change the appearance: edit the contents of the `<style>` element. The available HTML elements and CSS are listed in [docs/reference.md](docs/reference.md)
+- Start a new page: put `<page-break></page-break>` where the next page should begin, for example `<p>Page 1</p><page-break></page-break><p>Page 2</p>`. Leading, trailing, and repeated `<page-break>` elements do not create blank pages
 - Use it from a Go program: see "Using it as a library" below
 - See real examples: [examples/](examples/) contains sample HTML such as an address book and a receipt
 

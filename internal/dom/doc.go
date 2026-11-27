@@ -77,5 +77,28 @@ func Parse(r io.Reader) (*Document, error) {
 	if doc.Body == nil {
 		doc.Body = &Node{Tag: "body", Attr: map[string]string{}}
 	}
+	hoistPageBreakChildren(doc.Body)
 	return doc, nil
+}
+
+// hoistPageBreakChildren moves the children of every <page-break> element
+// to just after it, keeping their order. The HTML parser treats the unknown
+// element as a container, so <page-break><p>b</p> would otherwise nest the
+// paragraph inside it; hoisting makes the element behave as if it were void.
+func hoistPageBreakChildren(n *Node) {
+	for i := 0; i < len(n.Children); i++ {
+		c := n.Children[i]
+		if c.Tag == "page-break" && len(c.Children) > 0 {
+			moved := c.Children
+			c.Children = nil
+			rest := append([]*Node{}, n.Children[i+1:]...)
+			n.Children = append(append(n.Children[:i+1], moved...), rest...)
+			for _, m := range moved {
+				m.Parent = n
+			}
+		}
+	}
+	for _, c := range n.Children {
+		hoistPageBreakChildren(c)
+	}
 }

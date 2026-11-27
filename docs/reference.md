@@ -28,6 +28,7 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | `body` | block, margin 8px | The root of rendering. |
 | `div`, `section`, `article`, `header`, `footer`, `address` | block | `address` is not italic. |
 | `center` | block, `text-align: center` | |
+| `page-break` | block, forces a page break after it | Put `<page-break></page-break>` (or just `<page-break>`) where the next page should start. Anything written after an unclosed `<page-break>` is moved out to follow it. See section 9. |
 | `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | hidden (`display: none`) | Not drawn at all, including children. |
 
 ### Block text
@@ -200,7 +201,7 @@ Any property not listed here is ignored.
 | Selector | Default |
 |---|---|
 | `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | `display: none` |
-| `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `ul`, `ol` | `display: block` |
+| `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `page-break`, `ul`, `ol` | `display: block` |
 | `li` | `display: list-item` |
 | `table` | `display: table` |
 | `thead`, `tbody`, `tfoot` | `display: table-row-group` |
@@ -223,6 +224,7 @@ Any property not listed here is ignored.
 | `center` | `text-align: center` |
 | `th` | bold, `text-align: center` |
 | `td`, `th` | `padding: 1px` |
+| `page-break` | `page-break-after: always` |
 
 The initial font size is 16px (12pt). Elements not covered by these rules (for example `nav`, `main`, `aside`, `figure`, `dl`, `dt`, `dd`, `form`, `hr`, `fieldset`) are inline: they get no line break or margin around them, and `hr` draws nothing.
 
@@ -254,6 +256,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 **Page breaks.**
 - Lines of text (inline images sit inside lines), table rows, and bordered or filled boxes that fit on one page are never split across pages. A row or box taller than a page is not split either, and the overflow is not drawn.
 - `page-break-after` / `break-after` forces a new page after a block or a table. It is ignored inside table cells and on inline elements and table rows. `page-break-before`, `page-break-inside`, `break-before` and `break-inside` are not supported.
+- `<page-break>` is a dedicated element for a forced page break: the content after it starts on the next page. It is built on `page-break-after: always` (section 8), so the same restrictions apply. The parser would nest what follows an unclosed `<page-break>` inside it, so the children are moved to just after the element, keeping their order; `<p>a</p><page-break><p>b</p>` therefore puts `b` on the next page. A `<page-break>` at the start or end of the document, or several in a row, does not create blank pages.
 - A page that would contain no text or images is dropped, so a blank page cannot be produced.
 
 **Text.** The base faces are regular and bold, from one Japanese-capable font found at conversion time (Noto Sans CJK / Noto Sans JP preferred), or from `FontFile` / `FontFileBold` if given. If no bold face exists, bold text is drawn with the regular face. `font-family` can pick other installed fonts by family name (section 7). Installed fonts are indexed on first use by scanning the font directories (`FontDirs`, or the standard ones). For a font collection (`.ttc`) only one face represents the file. There is no italic.
