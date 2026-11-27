@@ -56,10 +56,16 @@ arm64 | aarch64) arch=arm64 ;;
 esac
 
 if [ "$version" = "latest" ]; then
-	tag=$(fetch "https://api.github.com/repos/$REPO/releases/latest" |
+	tag=$(fetch "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null |
 		grep '"tag_name"' | head -n 1 |
-		sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/') ||
-		err "failed to query the latest release"
+		sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/') || tag=""
+	if [ -z "$tag" ] && have curl; then
+		# The API is rate-limited for unauthenticated callers; fall back to
+		# the /releases/latest redirect, which has no such quota.
+		url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null) || url=""
+		tag="${url##*/tag/}"
+		[ "$tag" = "$url" ] && tag=""
+	fi
 	[ -n "$tag" ] || err "could not determine the latest release tag"
 else
 	tag="$version"
