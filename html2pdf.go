@@ -41,6 +41,9 @@ type Options struct {
 	// Margin is the page margin in points, applied to all four sides.
 	// 0 means no margin.
 	Margin float64
+	// MarkdownCSS is extra CSS appended after DefaultMarkdownCSS. It is used
+	// only by ConvertMarkdown and ConvertMarkdownFile; Convert ignores it.
+	MarkdownCSS string
 }
 
 // pageSizes maps upper-case names to (width, height) in points.

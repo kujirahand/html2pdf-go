@@ -40,15 +40,18 @@
 |---|---|
 | `html2pdf.go` | 公開 API。`Convert` / `ConvertFile` / `Options` の定義と、変換パイプラインの入口 |
 | `html2pdf_test.go` | 公開 API のテスト |
+| `markdown.go` | Markdown 変換の公開 API。`MarkdownToHTML` / `ConvertMarkdown` / `ConvertMarkdownFile` / `DefaultMarkdownCSS` と、`<pre>` の空白保持変換 |
+| `markdown_test.go` | Markdown 変換のテスト |
 | `cmd/html2pdf/` | CLI ツール本体（`main.go`）。フラグはライブラリの `Options` に対応させる |
+| `cmd/md2pdf/` | Markdown 用 CLI（`main.go`）。`html2pdf` と同じフラグに `-css` を加えたもの |
 | `internal/dom/` | HTML のパースと文書ツリーの構築 |
 | `internal/css/` | CSS のパース、セレクタ照合、カスケード、計算済みスタイルの生成 |
 | `internal/text/` | フォントの読み込み・選択・計測、文字列の折り返しと禁則処理 |
 | `internal/layout/` | ボックス生成、ブロック／テーブルレイアウト、ページ分割（ページネーション） |
 | `internal/render/` | レイアウト結果を `internal/pdf` 経由で描画する |
 | `internal/pdf/` | PDF の書き出し。オブジェクト、コンテンツストリーム、フォント（Type3 サブセット埋め込み）・画像の埋め込み |
-| `docs/` | 設計ドキュメント。二言語ペアで置く（上記ルール参照）。`architecture` は設計とパイプライン、`reference` は対応する HTML 要素・CSS の仕様一覧 |
-| `examples/` | サンプル文書と使用例。`basic/` は最小の Go 使用例、`*.html` は変換サンプル（住所録、領収書、フォント見本など） |
+| `docs/` | 設計ドキュメント。二言語ペアで置く（上記ルール参照）。`architecture` は設計とパイプライン、`reference` は対応する HTML 要素・CSS の仕様一覧、`markdown` は Markdown 変換（md2pdf）の解説 |
+| `examples/` | サンプル文書と使用例。`basic/` は最小の Go 使用例、`*.html` は変換サンプル（住所録、領収書、フォント見本など）、`sample.md` は md2pdf 用のダミー Markdown 文書 |
 | `testdata/` | テスト・サンプル生成用の入力 HTML と素材（請求書 `invoice.html`、印影のダミー画像など） |
 | `fonts/` | `just fonts` で取得する IPAex フォントの置き場。`README.md` 以外は git 管理対象外 |
 | `out/` | 生成したサンプル PDF の出力先。git 管理対象外 |
