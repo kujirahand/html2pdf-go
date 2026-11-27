@@ -21,6 +21,9 @@ type Options struct {
 	// Scale shrinks (<1) or enlarges (>1) the content; 0 or less means 1.
 	// Layout runs on a virtual page of the real size divided by Scale.
 	Scale float64
+
+	// depth is the frame nesting level; 0 for the outermost document.
+	depth int
 }
 
 // Page is one laid-out page.
@@ -70,6 +73,14 @@ type ImageItem struct {
 	X, Y, W, H float64
 }
 
+// ClipItem starts a clip to the rectangle (X, Y, W, H), or with End set ends
+// the innermost one. Only frameset pages contain them, always in pairs.
+type ClipItem struct {
+	X, Y, W, H float64
+	End        bool
+}
+
+func (ClipItem) isItem()  {}
 func (TextItem) isItem()  {}
 func (RectItem) isItem()  {}
 func (LineItem) isItem()  {}
@@ -90,10 +101,19 @@ func Layout(doc *dom.Document, styles *css.Computed, fonts *text.FontSet, opt Op
 		opt.MarginBottom /= scale
 		opt.MarginLeft /= scale
 	}
-	l := &layouter{styles: styles, fonts: fonts, opt: opt, imgs: map[string]*imgInfo{}}
-	cw := opt.PageWidth - opt.MarginLeft - opt.MarginRight
-	l.block(doc.Body, styles.Style(doc.Body), opt.MarginLeft, 0, cw)
-	pages := l.paginate()
+	var pages []*Page
+	if doc.Frameset != nil {
+		page, err := layoutFrameset(doc.Frameset, fonts, opt, scale)
+		if err != nil {
+			return nil, err
+		}
+		pages = []*Page{page}
+	} else {
+		l := &layouter{styles: styles, fonts: fonts, opt: opt, imgs: map[string]*imgInfo{}}
+		cw := opt.PageWidth - opt.MarginLeft - opt.MarginRight
+		l.block(doc.Body, styles.Style(doc.Body), opt.MarginLeft, 0, cw)
+		pages = l.paginate()
+	}
 	for _, p := range pages {
 		p.Width *= scale
 		p.Height *= scale

@@ -22,11 +22,44 @@ type Node struct {
 // IsText reports whether n is a text node.
 func (n *Node) IsText() bool { return n.Tag == "" }
 
+// SheetRef is one stylesheet source: a <style> element or a <link
+// rel="stylesheet">.
+type SheetRef struct {
+	// Href is the link target; empty for a <style> element.
+	Href string
+	// Text is the contents of a <style> element; empty for a link.
+	Text string
+}
+
 // Document is a parsed HTML document.
 type Document struct {
 	Body *Node
+	// Frameset is the first <frameset> element, or nil for a normal document.
+	Frameset *Node
 	// StylesheetText holds the contents of all <style> elements in document order.
 	StylesheetText []string
+	// Sheets lists the <style> elements and stylesheet <link> elements in
+	// document order.
+	Sheets []SheetRef
+}
+
+// isStylesheetLink reports whether attr describes a <link> that loads an
+// author stylesheet: rel contains "stylesheet" but not "alternate", and href
+// is present.
+func isStylesheetLink(attr map[string]string) bool {
+	if strings.TrimSpace(attr["href"]) == "" {
+		return false
+	}
+	var sheet, alt bool
+	for _, tok := range strings.Fields(strings.ToLower(attr["rel"])) {
+		switch tok {
+		case "stylesheet":
+			sheet = true
+		case "alternate":
+			alt = true
+		}
+	}
+	return sheet && !alt
 }
 
 // Parse reads HTML from r and builds a Document.
@@ -54,6 +87,7 @@ func Parse(r io.Reader) (*Document, error) {
 						}
 					}
 					doc.StylesheetText = append(doc.StylesheetText, sb.String())
+					doc.Sheets = append(doc.Sheets, SheetRef{Text: sb.String()})
 					continue
 				case "script":
 					continue
@@ -64,6 +98,12 @@ func Parse(r io.Reader) (*Document, error) {
 				}
 				if c.Data == "body" && doc.Body == nil {
 					doc.Body = n
+				}
+				if c.Data == "frameset" && doc.Frameset == nil {
+					doc.Frameset = n
+				}
+				if c.Data == "link" && isStylesheetLink(n.Attr) {
+					doc.Sheets = append(doc.Sheets, SheetRef{Href: strings.TrimSpace(n.Attr["href"])})
 				}
 				if parent != nil {
 					parent.Children = append(parent.Children, n)

@@ -6,11 +6,12 @@ This manual lists what html2pdf-go supports. Everything here is taken from the s
 
 ## 1. Overview
 
-- Only the contents of `<body>` are rendered. Everything else (`<head>`, `<title>`, `<meta>`, ...) is hidden.
-- Styles come from exactly two places:
+- Only the contents of `<body>` are rendered (or the frames, for a `<frameset>` document; see "Frames"). Everything else (`<head>`, `<title>`, `<meta>`, ...) is hidden.
+- Styles come from three places:
   - `<style>` elements anywhere in the document (all of them, in document order).
+  - `<link rel="stylesheet" href="...">` elements, in document order together with the `<style>` elements. Only local files are loaded, with relative paths resolved against the base directory. A link whose `href` contains `://` or starts with `data:` is ignored (remote CSS is not fetched), as is a `rel` containing `alternate`. A local file that cannot be read makes the conversion fail with an error.
   - The `style` attribute of an element.
-- `<link rel="stylesheet">` is **not** loaded: external CSS files are ignored. `@import` is skipped too.
+- `@import` is skipped, in external CSS files too.
 - `<script>` is dropped, and no JavaScript runs.
 - CSS comments (`/* ... */`) are stripped. Unknown properties and invalid values are silently ignored.
 - At-rule blocks (`@media`, `@page`, `@font-face`, `@keyframes`, ...) are skipped entirely, including the rules nested inside them.
@@ -28,7 +29,20 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | `body` | block, margin 8px | The root of rendering. |
 | `div`, `section`, `article`, `header`, `footer`, `address` | block | `address` is not italic. |
 | `center` | block, `text-align: center` | |
+| `frameset` | frame grid | See "Frames" below. |
+| `frame` | one grid cell | See "Frames" below. `noframes` content is not drawn. |
 | `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | hidden (`display: none`) | Not drawn at all, including children. |
+
+### Frames
+
+A document whose first frame container is a `<frameset>` is drawn as a single page of frames instead of `<body>`.
+
+- `rows` and `cols` are comma-separated lists. Each token is a number of pixels (× 0.75 points), a percentage of the whole area (`30%`), or a relative length (`*` has weight 1, `2*` weight 2) that shares the space left by the other tokens. A missing attribute means `100%`. The area is the page inside the margins.
+- The cells are rows × columns; `frame` elements are assigned to them in document order. Extra cells stay empty and extra frames are ignored.
+- `src` of a `frame` is read as a local file relative to the base directory; an unreadable file makes the conversion fail. A `src` containing `://`, or a missing `src`, gives an empty cell.
+- Each frame document is laid out on its own, with the cell size as the page size, no margin, and the same scale. Its own external CSS and images resolve relative to the directory of that file, and a frame document may itself be a frameset.
+- Only the first page of a frame document is shown, and its content is clipped to the cell.
+- `iframe` is not supported (it stays hidden).
 
 ### Block text
 
@@ -267,7 +281,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
-- Other: external CSS files, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
+- Other: remote CSS, `iframe`, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
 
 ## 11. Conversion options
 

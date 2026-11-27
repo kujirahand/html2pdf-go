@@ -95,7 +95,11 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
-	styles := css.ComputeStyles(doc, doc.StylesheetText)
+	sheets, err := css.ResolveSheets(doc, opts.BaseDir)
+	if err != nil {
+		return err
+	}
+	styles := css.ComputeStyles(doc, sheets)
 	pages, err := layout.Layout(doc, styles, fonts, layout.Options{
 		PageWidth:  pageW,
 		PageHeight: pageH,

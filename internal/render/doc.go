@@ -106,6 +106,12 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 		case it.Stroke != nil:
 			pg.StrokeRect(it.X, it.Y, it.W, it.H, it.LineWidth)
 		}
+	case layout.ClipItem:
+		if it.End {
+			pg.Restore()
+		} else {
+			pg.ClipRect(it.X, it.Y, it.W, it.H)
+		}
 	case layout.LineItem:
 		pg.SetStrokeColor(it.Color.R, it.Color.G, it.Color.B)
 		pg.DrawStyledLine(it.X1, it.Y1, it.X2, it.Y2, it.LineWidth, it.Style)
