@@ -10,7 +10,19 @@ First, let's convert one HTML file into a PDF with the CLI. It takes just a few 
 
 ### 1. Install it
 
-Prebuilt binaries for Linux, macOS and Windows are on the [GitHub Releases page](https://github.com/kujirahand/html2pdf-go/releases). Or, with Go:
+Prebuilt binaries for Linux, macOS and Windows are on the [GitHub Releases page](https://github.com/kujirahand/html2pdf-go/releases). To install the latest release from the command line:
+
+```sh
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.ps1 | iex
+```
+
+The binaries are unsigned, so downloading them in a browser makes the OS block them (Gatekeeper / SmartScreen); installing with these scripts avoids that, and they verify the SHA-256 checksum before installing. Or, with Go:
 
 ```sh
 go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
