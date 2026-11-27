@@ -4,6 +4,70 @@
 
 A pure-Go HTML-to-PDF conversion engine. HTML parsing, CSS application, layout, and PDF writing are all implemented. For the supported range of HTML/CSS, see [docs/reference.md](docs/reference.md).
 
+## Tutorial
+
+First, let's convert one HTML file into a PDF with the CLI. It takes just a few minutes.
+
+### 1. Install it
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
+```
+
+### 2. Create an HTML file
+
+Create a file named `hello.html` with the following content. It is a minimal example with a heading, a paragraph, a list, a table, and styling in a `<style>` element.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-size: 12pt; margin: 48px; }
+  h1 { font-size: 20pt; color: #205090; }
+  table { border: 1px solid #333; }
+  th, td { border: 1px solid #333; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<h1>My first PDF</h1>
+<p>This PDF was made with html2pdf-go. Japanese text such as こんにちは works as-is, too.</p>
+<ul>
+  <li>Headings and paragraphs</li>
+  <li>Lists</li>
+  <li>Tables</li>
+</ul>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Page size</td><td>A4</td></tr>
+  <tr><td>Font</td><td>Chosen automatically</td></tr>
+</table>
+</body>
+</html>
+```
+
+### 3. Convert it to PDF
+
+```sh
+html2pdf hello.html
+```
+
+This creates `hello.pdf` in the same folder. Open it and you should see a PDF with a large blue heading and a table with borders.
+
+To change the output file or the page settings, pass options:
+
+```sh
+html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # output file and margins
+html2pdf -scale 0.95 hello.html                            # shrink everything to 95%
+```
+
+### 4. Next steps
+
+- Change the appearance: edit the contents of the `<style>` element. The available HTML elements and CSS are listed in [docs/reference.md](docs/reference.md)
+- Use it from a Go program: see "Using it as a library" below
+- See real examples: [examples/](examples/) contains sample HTML such as an address book and a receipt
+
 ## Using it as a library
 
 ```sh
@@ -54,26 +118,6 @@ just test      # go test ./...
 just fonts     # downloads the IPAex fonts into fonts/ (does nothing if already downloaded)
 just samples   # generates the sample PDFs into out/
 ```
-
-## Repository layout
-
-| Path | Contents |
-|---|---|
-| `html2pdf.go` | Public API (`Convert`, `ConvertFile`, `Options`) |
-| `cmd/html2pdf/` | CLI tool |
-| `internal/dom` | HTML parsing and the document tree |
-| `internal/css` | CSS parsing, the cascade, and computed styles |
-| `internal/text` | Font measurement, line breaking and line-break rules (kinsoku) |
-| `internal/layout` | Box generation, layout, and pagination |
-| `internal/render` | Rendering of the layout result |
-| `internal/pdf` | PDF writing |
-| `examples/basic/` | Minimal usage example |
-| `examples/*.html` | Sample documents (address book, receipt, etc.) |
-| `justfile` | Development tasks (test / fonts / samples) |
-| `fonts/` | Where `just fonts` downloads the IPAex fonts (the binaries are not tracked) |
-| `out/` | Output directory for generated sample PDFs (not tracked) |
-| `testdata/` | HTML files for tests |
-| `docs/` | Design documents |
 
 ## Supported range and roadmap
 

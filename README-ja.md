@@ -4,6 +4,70 @@
 
 pure Go の HTML→PDF 変換エンジンです。HTML のパース、CSS の適用、レイアウト、PDF の書き出しまで実装済みです。対応する HTML/CSS の範囲は [docs/reference-ja.md](docs/reference-ja.md) を参照してください。
 
+## チュートリアル
+
+まずは CLI で、HTML ファイルを 1 つ PDF に変換してみます。所要時間は数分です。
+
+### 1. インストールする
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
+```
+
+### 2. HTML ファイルを作る
+
+`hello.html` という名前で、次の内容のファイルを作ります。見出し・段落・箇条書き・表と、`<style>` での見た目の指定を含む、最小の例です。
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-size: 12pt; margin: 48px; }
+  h1 { font-size: 20pt; color: #205090; }
+  table { border: 1px solid #333; }
+  th, td { border: 1px solid #333; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<h1>はじめての PDF</h1>
+<p>これは html2pdf-go で作った PDF です。日本語もそのまま表示できます。</p>
+<ul>
+  <li>見出しと段落</li>
+  <li>箇条書き</li>
+  <li>表</li>
+</ul>
+<table>
+  <tr><th>項目</th><th>内容</th></tr>
+  <tr><td>ページサイズ</td><td>A4</td></tr>
+  <tr><td>フォント</td><td>自動で選ばれます</td></tr>
+</table>
+</body>
+</html>
+```
+
+### 3. PDF に変換する
+
+```sh
+html2pdf hello.html
+```
+
+同じフォルダに `hello.pdf` ができます。開いてみると、見出しが青く大きくなり、表に罫線が引かれた PDF になっているはずです。
+
+出力先やページ設定を変えたいときは、オプションを指定します。
+
+```sh
+html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # 出力先と余白を指定
+html2pdf -scale 0.95 hello.html                            # 全体を 95% に縮小
+```
+
+### 4. 次のステップ
+
+- 見た目を変える: `<style>` の中身を変えます。使える HTML 要素と CSS は [docs/reference-ja.md](docs/reference-ja.md) に一覧があります
+- Go のプログラムから使う: 次の「ライブラリとしての使い方」を見てください
+- 実例を見る: [examples/](examples/) に住所録や領収書などのサンプル HTML があります
+
 ## ライブラリとしての使い方
 
 ```sh
@@ -54,26 +118,6 @@ just test      # go test ./...
 just fonts     # IPAex フォントを fonts/ に取得（取得済みなら何もしない）
 just samples   # サンプル PDF 一式を out/ に生成
 ```
-
-## フォルダ構成
-
-| パス | 内容 |
-|---|---|
-| `html2pdf.go` | 公開 API（`Convert`, `ConvertFile`, `Options`） |
-| `cmd/html2pdf/` | CLI ツール |
-| `internal/dom` | HTML パースと文書ツリー |
-| `internal/css` | CSS パース、カスケード、計算済みスタイル |
-| `internal/text` | フォント計測、折り返し・禁則処理 |
-| `internal/layout` | ボックス生成、レイアウト、ページネーション |
-| `internal/render` | レイアウト結果の描画 |
-| `internal/pdf` | PDF 書き出し |
-| `examples/basic/` | 最小の使用例 |
-| `examples/*.html` | サンプル文書（住所録、領収書など） |
-| `justfile` | 開発用タスク（test / fonts / samples） |
-| `fonts/` | `just fonts` で取得する IPAex フォントの置き場（バイナリは管理対象外） |
-| `out/` | 生成したサンプル PDF の出力先（管理対象外） |
-| `testdata/` | テスト用 HTML |
-| `docs/` | 設計ドキュメント |
 
 ## 対応範囲とロードマップ
 
