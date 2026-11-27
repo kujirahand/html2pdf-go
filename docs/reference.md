@@ -37,7 +37,8 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | `p` | block, margin `1em 0` | |
 | `h1` – `h6` | block, bold, sized and spaced by the built-in defaults (section 8) | |
 | `blockquote` | block, margin `1em 0` | No indentation. |
-| `pre` | block | No monospace font; whitespace and newlines are still collapsed. |
+| `pre` | block, monospace | Uses a monospace font; whitespace and newlines are still collapsed. |
+| `code`, `kbd`, `samp`, `tt` | inline, monospace, background `#f0f0f0` | |
 | `br` | forced line break | |
 | `b`, `strong` | bold | |
 | `u`, `ins` | underline | |
@@ -167,9 +168,9 @@ Any property not listed here is ignored.
 | `display` | any keyword | Layout recognizes `none`, `block`, `list-item`, `table`, `table-row-group`, `table-row`, `table-cell`, `table-caption`. Every other value (`inline`, `inline-block`, `flex`, `grid`, ...) is treated as inline. Not validated. |
 | `font-size` | length, or `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | Keywords: 9, 10, 13, 16, 18, 24, 32px; `smaller` = 0.8333em, `larger` = 1.2em. A unitless number or negative value is ignored. Inherited. |
 | `font-weight` | `bold`, `bolder`, `normal`, `lighter`, number | `bold`/`bolder` = 700, `normal`/`lighter` = 400. A number of 700 or more is drawn bold, otherwise regular (only two faces exist). Inherited. |
-| `font-family` | comma-separated family names | Quotes (`'` or `"`) and surrounding whitespace are stripped from each name. Names are tried in order against the family names of installed fonts (case-insensitive, name table only, not file names); the first match is used, in its bold face for bold text. Generic names (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`) are skipped. With no match, the base font is used. Inherited. |
+| `font-family` | comma-separated family names | Quotes (`'` or `"`) and surrounding whitespace are stripped from each name. Names are tried in order against the family names of installed fonts (case-insensitive, name table only, not file names); the first match is used, in its bold face for bold text. The generic name `monospace` resolves to an installed monospace font (families whose name contains "Mono"; Japanese-capable ones preferred), falling back to the base font when none is installed. If the resolved monospace font has no Japanese glyphs, Japanese text set in it is not drawn. The other generic names (`serif`, `sans-serif`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`) are skipped. With no match, the base font is used. Inherited. |
 | `color` | color | Inherited. Also the default border color. |
-| `background-color` | color | Drawn on blocks, tables, rows (`tr`) and cells. Not drawn on inline elements. |
+| `background-color` | color | Drawn on blocks, tables, rows (`tr`) and cells. Also drawn behind inline elements, per line. |
 | `background` | shorthand | Only the first color token is used; everything else (images, position, ...) is ignored. The values `transparent` and `none` clear the background. |
 | `text-align` | `left`, `right`, `center` | `justify` and `start` become `left`; `end` becomes `right`. Inherited. Also centers a table narrower than its container. |
 | `text-decoration`, `text-decoration-line` | contains `underline` or `none` | Only underline is supported; `line-through` and `overline` are ignored. Inherited. |
@@ -223,6 +224,8 @@ Any property not listed here is ignored.
 | `center` | `text-align: center` |
 | `th` | bold, `text-align: center` |
 | `td`, `th` | `padding: 1px` |
+| `code`, `kbd`, `samp`, `tt` | `font-family: monospace`, `background-color: #f0f0f0` |
+| `pre` | `font-family: monospace` |
 
 The initial font size is 16px (12pt). Elements not covered by these rules (for example `nav`, `main`, `aside`, `figure`, `dl`, `dt`, `dd`, `form`, `hr`, `fieldset`) are inline: they get no line break or margin around them, and `hr` draws nothing.
 
@@ -230,7 +233,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 **Blocks.** `width` sets the content width; padding and border are added outside it. Vertical margins collapse between adjacent block siblings (the larger one wins); there is no parent/child margin collapsing, and negative margins do not collapse. `height`, `min-*` and `max-*` do not exist, so heights always follow the content. A block with a background or border that fits on one page is kept on one page.
 
-**Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, underline and `line-height`. Margin, padding, border and background on inline elements are ignored. Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
+**Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, underline and `line-height`. Margin, padding and border on inline elements are ignored, but `background-color` is drawn behind the text run (split per line when it wraps). Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
 
 **Line breaking and kinsoku (Japanese line-break rules).**
 - A line breaks at spaces, and between CJK characters (CJK ideographs and kana, Hangul, CJK compatibility and full-width forms, and U+20000–3FFFF).

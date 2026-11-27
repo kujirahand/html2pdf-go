@@ -2,8 +2,36 @@ package text
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
+
+func TestFaceForMonospace(t *testing.T) {
+	fs, err := LoadFontSet(nil, "", "")
+	if err != nil {
+		t.Skipf("no usable base font: %v", err)
+	}
+	// When the font index contains any "mono" family, monospace must
+	// resolve to one of them; only skip the strict check when the system
+	// genuinely has no monospace font.
+	fs.once.Do(fs.buildIndex)
+	hasMono := false
+	for k := range fs.index {
+		if strings.Contains(k, "mono") {
+			hasMono = true
+		}
+	}
+	if got := fs.FaceFor([]string{"monospace"}, false); hasMono {
+		if got == fs.Regular {
+			t.Error("monospace fell back to the base face although mono families are installed")
+		} else if !strings.Contains(strings.ToLower(got.FamilyName()), "mono") {
+			t.Errorf("monospace resolved to %q, want a Mono family", got.FamilyName())
+		}
+	}
+	if got := fs.FaceFor([]string{"serif"}, false); got != fs.Regular {
+		t.Error("serif should still give the base regular face")
+	}
+}
 
 const notoSerifCJK = "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"
 
@@ -37,6 +65,35 @@ func TestFontSetFaceForFallsBackToBase(t *testing.T) {
 	}
 	if got := fs.FaceFor(nil, true); got != fs.Bold {
 		t.Error("no families with bold should give the base bold face")
+	}
+}
+
+func TestIndexPrefersUprightRegular(t *testing.T) {
+	fs, err := LoadFontSet(nil, "", "")
+	if err != nil {
+		t.Skipf("no system fonts: %v", err)
+	}
+	fs.once.Do(fs.buildIndex)
+	checked := 0
+	for _, key := range []string{"dejavu sans mono", "liberation mono", "noto sans mono"} {
+		fam := fs.index[key]
+		if fam == nil || fam.regular == "" {
+			continue
+		}
+		f, err := loadFace(fam.regular)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(f.subfamily, "oblique") || strings.Contains(f.subfamily, "italic") {
+			t.Errorf("%s: regular slot picked the slanted face %s (subfamily %q)", key, fam.regular, f.subfamily)
+		}
+		if strings.Contains(f.subfamily, "black") {
+			t.Errorf("%s: regular slot picked a Black face %s", key, fam.regular)
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Skip("no known monospace family installed")
 	}
 }
 

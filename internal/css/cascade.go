@@ -53,6 +53,8 @@ a { color: blue; text-decoration: underline }
 center { text-align: center }
 th { font-weight: bold; text-align: center }
 td, th { padding: 1px }
+code, kbd, samp, tt { font-family: monospace; background-color: #f0f0f0 }
+pre { font-family: monospace }
 `
 
 var uaRules = parseSheet(uaSheet)

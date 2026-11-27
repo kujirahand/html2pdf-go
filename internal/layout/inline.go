@@ -42,6 +42,10 @@ type seg struct {
 	kind segKind
 	text string // character data, or the src of an image
 	st   *css.Style
+	// bg is the background color of the innermost inline ancestor that has
+	// one, or nil. background-color is not inherited by the cascade, so
+	// collect tracks it separately for the inline background painting.
+	bg *css.Color
 }
 
 type imgBox struct {
@@ -58,6 +62,7 @@ type cellr struct {
 	r   rune
 	st  *css.Style
 	img *imgBox
+	bg  *css.Color // inline background from seg, nil for none
 }
 
 type para struct {
@@ -66,9 +71,15 @@ type para struct {
 }
 
 // collect appends the inline content of n to out.
-func (l *layouter) collect(n *dom.Node, out *[]seg) {
+func (l *layouter) collect(n *dom.Node, out *[]seg) { l.collectBg(n, out, nil) }
+
+// collectBg is collect with the inline background in effect at n: the
+// background color of the nearest inline ancestor that sets one. A
+// block-level element's own background is painted by the block code, so it
+// does not become the inline background of its children.
+func (l *layouter) collectBg(n *dom.Node, out *[]seg, bg *css.Color) {
 	if n.IsText() {
-		*out = append(*out, seg{kind: segText, text: n.Text, st: l.styles.Style(n)})
+		*out = append(*out, seg{kind: segText, text: n.Text, st: l.styles.Style(n), bg: bg})
 		return
 	}
 	st := l.styles.Style(n)
@@ -80,15 +91,17 @@ func (l *layouter) collect(n *dom.Node, out *[]seg) {
 		*out = append(*out, seg{kind: segBr, st: st})
 		return
 	case "img":
-		*out = append(*out, seg{kind: segImg, text: n.Attr["src"], st: st})
+		*out = append(*out, seg{kind: segImg, text: n.Attr["src"], st: st, bg: bg})
 		return
 	}
 	block := isBlockLevel(st.Display)
 	if block {
 		*out = append(*out, seg{kind: segSoft, st: st})
+	} else if st.BackgroundColor != nil {
+		bg = st.BackgroundColor
 	}
 	for _, c := range n.Children {
-		l.collect(c, out)
+		l.collectBg(c, out, bg)
 	}
 	if block {
 		*out = append(*out, seg{kind: segSoft, st: st})
@@ -178,11 +191,11 @@ func (l *layouter) paragraphs(segs []seg, cw float64) []para {
 			for _, r := range s.text {
 				if isSpace(r) {
 					if len(cur) > 0 && cur[len(cur)-1].r != ' ' {
-						cur = append(cur, cellr{r: ' ', st: s.st})
+						cur = append(cur, cellr{r: ' ', st: s.st, bg: s.bg})
 					}
 					continue
 				}
-				cur = append(cur, cellr{r: r, st: s.st})
+				cur = append(cur, cellr{r: r, st: s.st, bg: s.bg})
 			}
 		case segBr:
 			out = append(out, para{cells: cur, endSt: s.st})
@@ -194,7 +207,7 @@ func (l *layouter) paragraphs(segs []seg, cw float64) []para {
 			cur = nil
 		case segImg:
 			if box := l.imageBox(s.st, s.text, cw); box != nil {
-				cur = append(cur, cellr{r: objChar, st: s.st, img: box})
+				cur = append(cur, cellr{r: objChar, st: s.st, img: box, bg: s.bg})
 			}
 		}
 	}
@@ -260,6 +273,28 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 		x0 = x + (cw-width)/2
 	}
 	x0 = max(x0, x)
+
+	// Inline backgrounds go first so they sit behind the text. The color
+	// comes from the cell's inline ancestor (see seg.bg), not from the
+	// text node's own style: background-color is not inherited.
+	bx := x0
+	for i := 0; i < len(cells); {
+		bg := cells[i].bg
+		if bg == nil {
+			bx += adv[i]
+			i++
+			continue
+		}
+		var w float64
+		j := i
+		for j < len(cells) && cells[j].bg != nil && *cells[j].bg == *bg {
+			w += adv[j]
+			j++
+		}
+		l.emit(prim{kind: pFill, x: bx, y: y, w: w, h: asc + desc, color: *bg})
+		bx += w
+		i = j
+	}
 
 	if m := l.marker; m != nil {
 		l.marker = nil
