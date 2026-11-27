@@ -107,6 +107,41 @@ func TestFrameset(t *testing.T) {
 	}
 }
 
+func TestFramesetNested(t *testing.T) {
+	pages := layoutFrameFiles(t, map[string]string{
+		"index.html": `<frameset rows="50%,50%"><frame src="a.html">` +
+			`<frameset cols="50%,50%"><frame src="b.html"><frame src="c.html"></frameset></frameset>`,
+		"a.html": `<body><p>FRAMEA</p></body>`,
+		"b.html": `<body><p>FRAMEB</p></body>`,
+		"c.html": `<body><p>FRAMEC</p></body>`,
+	}, "index.html")
+	if len(pages) != 1 {
+		t.Fatalf("got %d pages, want 1", len(pages))
+	}
+	a, b, c := findText(pages[0], "FRAMEA"), findText(pages[0], "FRAMEB"), findText(pages[0], "FRAMEC")
+	if a == nil || b == nil || c == nil {
+		t.Fatalf("frame texts missing: a=%v b=%v c=%v", a, b, c)
+	}
+	if a.Y >= 150 || b.Y < 150 || c.Y < 150 {
+		t.Errorf("frame texts misplaced vertically: a.Y=%v b.Y=%v c.Y=%v", a.Y, b.Y, c.Y)
+	}
+	if b.X >= c.X {
+		t.Errorf("b.X=%v should be left of c.X=%v", b.X, c.X)
+	}
+	if n := len(iframeClips(pages[0])); n != 3 {
+		t.Errorf("clips=%d, want 3", n)
+	}
+	ends := 0
+	for _, it := range pages[0].Items {
+		if ci, ok := it.(ClipItem); ok && ci.End {
+			ends++
+		}
+	}
+	if ends != 3 {
+		t.Errorf("ends=%d, want 3", ends)
+	}
+}
+
 func TestFramesetMissingFrame(t *testing.T) {
 	fonts, err := text.LoadFontSet(nil, "", "")
 	if err != nil {

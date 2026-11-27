@@ -30,32 +30,54 @@ func layoutFrameset(fs *dom.Node, fonts *text.FontSet, opt Options, scale float6
 	page := &Page{Width: opt.PageWidth, Height: opt.PageHeight}
 	areaW := opt.PageWidth - opt.MarginLeft - opt.MarginRight
 	areaH := opt.PageHeight - opt.MarginTop - opt.MarginBottom
-	cols := frameTracks(fs.Attr["cols"], areaW)
-	rows := frameTracks(fs.Attr["rows"], areaH)
-	frames := collectFrames(fs, nil)
+	if err := layoutFramesetIn(page, fs, fonts, opt, scale, opt.MarginLeft, opt.MarginTop, areaW, areaH); err != nil {
+		return nil, err
+	}
+	return page, nil
+}
 
-	y := opt.MarginTop
+// layoutFramesetIn splits the w x h rectangle at (x, y) into the rows and
+// cols of fs and appends the cells to page. A nested <frameset> takes one
+// cell and is split again within it. opt.depth is the nesting level of fs.
+func layoutFramesetIn(page *Page, fs *dom.Node, fonts *text.FontSet, opt Options, scale, x0, y0, w, h float64) error {
+	if opt.depth >= maxFrameDepth {
+		return fmt.Errorf("layout: frames nested more than %d levels deep", maxFrameDepth)
+	}
+	cols := frameTracks(fs.Attr["cols"], w)
+	rows := frameTracks(fs.Attr["rows"], h)
+	cells := frameCells(fs)
+
+	y := y0
 	for r, rh := range rows {
-		x := opt.MarginLeft
+		x := x0
 		for c, cw := range cols {
-			if i := r*len(cols) + c; i < len(frames) && cw > 0 && rh > 0 {
-				items, err := layoutFrame(frames[i], fonts, opt, scale, cw, rh)
-				if err != nil {
-					return nil, err
-				}
-				if items != nil {
-					page.Items = append(page.Items, ClipItem{X: x, Y: y, W: cw, H: rh})
-					for _, it := range items {
-						page.Items = append(page.Items, translate(it, x, y))
+			if i := r*len(cols) + c; i < len(cells) && cw > 0 && rh > 0 {
+				cell := cells[i]
+				if cell.Tag == "frameset" {
+					sub := opt
+					sub.depth = opt.depth + 1
+					if err := layoutFramesetIn(page, cell, fonts, sub, scale, x, y, cw, rh); err != nil {
+						return err
 					}
-					page.Items = append(page.Items, ClipItem{End: true})
+				} else {
+					items, err := layoutFrame(cell, fonts, opt, scale, cw, rh)
+					if err != nil {
+						return err
+					}
+					if items != nil {
+						page.Items = append(page.Items, ClipItem{X: x, Y: y, W: cw, H: rh})
+						for _, it := range items {
+							page.Items = append(page.Items, translate(it, x, y))
+						}
+						page.Items = append(page.Items, ClipItem{End: true})
+					}
 				}
 			}
 			x += cw
 		}
 		y += rh
 	}
-	return page, nil
+	return nil
 }
 
 // layoutFrame lays out the document a frame refers to in a w x h cell (in
@@ -125,16 +147,13 @@ func (l *layouter) iframeItems(n *dom.Node, w, h float64) ([]Item, error) {
 	return layoutFrame(n, l.fonts, l.opt, scale, w, h)
 }
 
-// collectFrames appends the <frame> elements under n in document order,
-// skipping <noframes>.
-func collectFrames(n *dom.Node, out []*dom.Node) []*dom.Node {
-	for _, c := range n.Children {
-		switch c.Tag {
-		case "frame":
+// frameCells returns the direct <frame> and <frameset> children of fs in
+// document order. A nested frameset is one cell, not flattened.
+func frameCells(fs *dom.Node) []*dom.Node {
+	var out []*dom.Node
+	for _, c := range fs.Children {
+		if c.Tag == "frame" || c.Tag == "frameset" {
 			out = append(out, c)
-		case "noframes":
-		default:
-			out = collectFrames(c, out)
 		}
 	}
 	return out
