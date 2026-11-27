@@ -2,12 +2,14 @@ package layout
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/kujirahand/html2pdf-go/internal/text"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 func run(t *testing.T, src string) []*Page {
@@ -22,6 +24,27 @@ func runOpts(t *testing.T, src string, opt Options) []*Page {
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}
+	return layoutWithFonts(t, src, opt, fonts)
+}
+
+// invoiceFonts fixes font metrics for the fixture's pagination assertions.
+// Go Regular lacks Japanese glyphs, so these tests exercise layout rather than
+// verifying the appearance of Japanese text.
+func invoiceFonts(t *testing.T) *text.FontSet {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "regular.ttf")
+	if err := os.WriteFile(path, goregular.TTF, 0600); err != nil {
+		t.Fatal(err)
+	}
+	fonts, err := text.LoadFontSet([]string{filepath.Dir(path)}, path, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fonts
+}
+
+func layoutWithFonts(t *testing.T, src string, opt Options, fonts *text.FontSet) []*Page {
+	t.Helper()
 	doc, err := dom.Parse(strings.NewReader(src))
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +99,7 @@ func TestInvoiceThreePages(t *testing.T) {
 	// 差出人欄が低くなり、以前あった約 6pt の溢れは解消した。
 	// Fits on 3 pages at real size; putting the name and the stamp on one
 	// row made the sender box short enough to remove the old overflow.
-	pages := run(t, string(src))
+	pages := layoutWithFonts(t, string(src), Options{}, invoiceFonts(t))
 	if len(pages) != 3 {
 		t.Errorf("invoice laid out on %d pages, want 3", len(pages))
 	}
@@ -87,7 +110,7 @@ func TestInvoiceScaledPagesKeepRealSize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pages := runOpts(t, string(src), Options{Scale: 0.95})
+	pages := layoutWithFonts(t, string(src), Options{Scale: 0.95}, invoiceFonts(t))
 	if len(pages) != 3 {
 		t.Errorf("scaled invoice laid out on %d pages, want 3", len(pages))
 	}
@@ -104,7 +127,7 @@ func TestInvoiceTableHeadersNotWrapped(t *testing.T) {
 		t.Fatal(err)
 	}
 	found := map[string]bool{}
-	for _, p := range run(t, string(src)) {
+	for _, p := range layoutWithFonts(t, string(src), Options{}, invoiceFonts(t)) {
 		for _, it := range p.Items {
 			switch ti := it.(type) {
 			case TextItem:
