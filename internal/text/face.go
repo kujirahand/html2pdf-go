@@ -36,18 +36,19 @@ type advEntry struct {
 
 // Face is a single font face. It is safe for concurrent use.
 type Face struct {
-	sf      *sfnt.Font
-	mu      sync.Mutex // guards buf and adv
-	buf     sfnt.Buffer
-	upem    float64
-	ppem    fixed.Int26_6 // ppem == upem, so 26.6 values are font units * 64
-	ascent  float64       // font units
-	descent float64       // font units, positive
-	lineAsc float64       // line-box ascent in font units (OS/2 typo when usable)
-	lineDsc float64       // line-box descent in font units, positive
-	adv     map[uint16]advEntry
-	family  string // typographic family name, "" if the font has none
-	bold    bool   // subfamily says Bold, or OS/2 fsSelection has the bold bit
+	sf        *sfnt.Font
+	mu        sync.Mutex // guards buf and adv
+	buf       sfnt.Buffer
+	upem      float64
+	ppem      fixed.Int26_6 // ppem == upem, so 26.6 values are font units * 64
+	ascent    float64       // font units
+	descent   float64       // font units, positive
+	lineAsc   float64       // line-box ascent in font units (OS/2 typo when usable)
+	lineDsc   float64       // line-box descent in font units, positive
+	adv       map[uint16]advEntry
+	family    string // typographic family name, "" if the font has none
+	bold      bool   // subfamily says Bold, or OS/2 fsSelection has the bold bit
+	subfamily string // lower-cased subfamily name, e.g. "regular", "bold oblique"
 }
 
 // newFace wraps sf. data and off locate the face's table directory (off is
@@ -74,7 +75,7 @@ func newFace(sf *sfnt.Font, data []byte, off int) *Face {
 	if a, d, ok := typoMetrics(data, off); ok {
 		f.lineAsc, f.lineDsc = float64(a), float64(d)
 	}
-	f.family, f.bold = faceNames(sf, data, off)
+	f.family, f.bold, f.subfamily = faceNames(sf, data, off)
 	return f
 }
 
@@ -85,10 +86,10 @@ const (
 	nameIDTypographicSubfamily sfnt.NameID = 17
 )
 
-// faceNames returns the family name (NameID 16, else 1) and whether the face
-// is bold: the subfamily (NameID 17, else 2) contains "Bold", or OS/2
-// fsSelection has the bold bit (0x20).
-func faceNames(sf *sfnt.Font, data []byte, off int) (family string, bold bool) {
+// faceNames returns the family name (NameID 16, else 1), whether the face
+// is bold, and the lower-cased subfamily name (NameID 17, else 2). Bold is
+// the subfamily containing "Bold", or the OS/2 fsSelection bold bit (0x20).
+func faceNames(sf *sfnt.Font, data []byte, off int) (family string, bold bool, subfamily string) {
 	var b sfnt.Buffer
 	pick := func(ids ...sfnt.NameID) string {
 		for _, id := range ids {
@@ -99,11 +100,12 @@ func faceNames(sf *sfnt.Font, data []byte, off int) (family string, bold bool) {
 		return ""
 	}
 	family = pick(nameIDTypographicFamily, sfnt.NameIDFamily)
-	bold = strings.Contains(strings.ToLower(pick(nameIDTypographicSubfamily, sfnt.NameIDSubfamily)), "bold")
+	subfamily = strings.ToLower(pick(nameIDTypographicSubfamily, sfnt.NameIDSubfamily))
+	bold = strings.Contains(subfamily, "bold")
 	if o, l, ok := findTable(data, off, "OS/2"); ok && l >= 64 && o+64 <= len(data) {
 		bold = bold || data[o+63]&0x20 != 0 // low byte of fsSelection at offset 62
 	}
-	return family, bold
+	return family, bold, subfamily
 }
 
 // FamilyName returns the font family name from the name table (the

@@ -37,7 +37,8 @@
 | `p` | ブロック、margin `1em 0` | |
 | `h1` – `h6` | ブロック、太字。サイズと余白は組み込みの既定値（8 章） | |
 | `blockquote` | ブロック、margin `1em 0` | インデントなし。 |
-| `pre` | ブロック | 等幅フォントにはならず、空白・改行も畳まれます。 |
+| `pre` | ブロック、等幅 | 等幅フォントで描かれます。空白・改行は引き続き畳まれます。 |
+| `code`, `kbd`, `samp`, `tt` | インライン、等幅、背景 `#f0f0f0` | |
 | `br` | 強制改行 | |
 | `b`, `strong` | 太字 | |
 | `u`, `ins` | 下線 | |
@@ -167,9 +168,9 @@
 | `display` | 任意のキーワード | レイアウトが認識するのは `none`、`block`、`list-item`、`table`、`table-row-group`、`table-row`、`table-cell`、`table-caption`。それ以外の値（`inline`、`inline-block`、`flex`、`grid` など）はすべてインライン扱い。値の検証はありません。 |
 | `font-size` | 長さ、または `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | キーワードは 9, 10, 13, 16, 18, 24, 32px。`smaller` = 0.8333em、`larger` = 1.2em。単位なしの数値や負の値は無視。継承されます。 |
 | `font-weight` | `bold`, `bolder`, `normal`, `lighter`, 数値 | `bold`/`bolder` = 700、`normal`/`lighter` = 400。数値は 700 以上なら太字、未満なら通常（フェイスは 2 種類のみ）。継承されます。 |
-| `font-family` | カンマ区切りのファミリー名 | 各名前から前後の空白と引用符（`'` または `"`）を取り除きます。名前は先頭から順に、インストール済みフォントのファミリー名（大文字小文字を区別せず、name テーブルのみ。ファイル名では照合しない）と照合され、最初に一致したものが使われます（太字なら その太字フェイス）。汎用名（`serif`、`sans-serif`、`monospace`、`cursive`、`fantasy`、`system-ui`、`ui-serif`、`ui-sans-serif`、`ui-monospace`、`ui-rounded`）は読み飛ばされます。一致がなければ基本フォントを使います。継承されます。 |
+| `font-family` | カンマ区切りのファミリー名 | 各名前から前後の空白と引用符（`'` または `"`）を取り除きます。名前は先頭から順に、インストール済みフォントのファミリー名（大文字小文字を区別せず、name テーブルのみ。ファイル名では照合しない）と照合され、最初に一致したものが使われます（太字なら その太字フェイス）。汎用名 `monospace` は、Webブラウザの等幅フォントのデフォルトと同じ考え方で、OSと言語環境によって解決されます。日本語の Windows では MS Gothic、英語の Windows では Courier New、日本語の macOS では Osaka-Mono、英語の macOS では Courier、Linux では fontconfig の一般的な選択（日本語なら Noto Sans Mono CJK JP、それ以外は DejaVu Sans Mono や Liberation Mono）です。言語環境は LC_ALL、LC_CTYPE、LANG の順に読み、判定できない場合はその OS の日本語候補と欧文候補の両方を試します。ブラウザのデフォルト候補がどれもインストールされていない場合は、ファミリー名に "Mono" を含むインストール済みフォント（日本語対応のものを優先）を使い、等幅フォントが全く無ければ基本フォントにフォールバックします。解決された等幅フォントに日本語グリフが無い場合、そのフォントで描く日本語は表示されません。それ以外の汎用名（`serif`、`sans-serif`、`cursive`、`fantasy`、`system-ui`、`ui-serif`、`ui-sans-serif`、`ui-monospace`、`ui-rounded`）は読み飛ばされます。一致がなければ基本フォントを使います。継承されます。 |
 | `color` | 色 | 継承されます。罫線色の既定値でもあります。 |
-| `background-color` | 色 | ブロック、表、行（`tr`）、セルに描かれます。インライン要素には描かれません。 |
+| `background-color` | 色 | ブロック、表、行（`tr`）、セルに描かれます。インライン要素にも、行ごとにテキストの背面へ描かれます。 |
 | `background` | ショートハンド | 最初に見つかった色のトークンだけを使い、他（画像・位置など）は無視します。値が `transparent` / `none` なら背景をクリアします。 |
 | `text-align` | `left`, `right`, `center` | `justify` と `start` は `left`、`end` は `right` になります。継承されます。親より狭い表の中央寄せにも使われます。 |
 | `text-decoration`, `text-decoration-line` | `underline` または `none` を含む値 | 下線のみ対応。`line-through` と `overline` は無視されます。継承されます。 |
@@ -223,6 +224,8 @@
 | `center` | `text-align: center` |
 | `th` | 太字、`text-align: center` |
 | `td`, `th` | `padding: 1px` |
+| `code`, `kbd`, `samp`, `tt` | `font-family: monospace`、`background-color: #f0f0f0` |
+| `pre` | `font-family: monospace` |
 
 初期フォントサイズは 16px（12pt）です。これらのルールにない要素（例: `nav`、`main`、`aside`、`figure`、`dl`、`dt`、`dd`、`form`、`hr`、`fieldset`）はインラインになり、前後の改行や余白は付きません。`hr` は何も描きません。
 
@@ -230,7 +233,7 @@
 
 **ブロック。** `width` は content 幅で、padding と罫線はその外側に加わります。縦方向の margin は隣り合うブロック同士で相殺されます（大きい方が採用）。親子間の margin 相殺はなく、負の margin は相殺されません。`height`、`min-*`、`max-*` は存在しないため、高さは常に内容で決まります。背景や罫線を持つブロックは、1 ページに収まるなら 1 ページにまとめられます。
 
-**インライン内容。** インライン要素が影響するのは、テキストの `color`、`font-size`、`font-weight`、下線、`line-height` だけです。インライン要素の margin、padding、罫線、背景は無視されます。空白（改行を含み、`pre` の中でも）は 1 個の空白に畳まれ、行頭の空白は捨てられます。`&nbsp;` は保持され、そこでは改行されません。インライン内容の中のブロック要素は新しい行を始めます。
+**インライン内容。** インライン要素が影響するのは、テキストの `color`、`font-size`、`font-weight`、下線、`line-height` だけです。インライン要素の margin、padding、罫線は無視されますが、`background-color` はテキストの背面に描かれます（折り返す場合は行ごとに分割されます）。空白（改行を含み、`pre` の中でも）は 1 個の空白に畳まれ、行頭の空白は捨てられます。`&nbsp;` は保持され、そこでは改行されません。インライン内容の中のブロック要素は新しい行を始めます。
 
 **改行と禁則処理。**
 - 空白の位置と、CJK 文字（CJK 漢字・かな、ハングル、CJK 互換文字・全角形、U+20000–3FFFF）の間で改行されます。
