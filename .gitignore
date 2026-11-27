@@ -36,5 +36,6 @@ go.work.sum
 # 生成物とフォント（フォントは `just fonts` で取得する）
 out/
 dist/
+bin/
 fonts/*
 !fonts/README.md
