@@ -12,6 +12,9 @@ import (
 	"github.com/kujirahand/html2pdf-go/internal/fontcfg"
 )
 
+// version is stamped at build time with -ldflags "-X main.version=...".
+var version = "dev"
+
 // fontUseLine formats a resolved font for -verbose output.
 func fontUseLine(u html2pdf.FontUse) string {
 	family := u.Family
@@ -63,11 +66,17 @@ func main() {
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	cssFile := flag.String("css", "", "CSS file appended after the default Markdown stylesheet")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: md2pdf [flags] input.md")
 		flag.PrintDefaults()
 	}
 	flag.CommandLine.Parse(reorderArgs(os.Args[1:]))
+
+	if *showVersion {
+		fmt.Println("md2pdf " + version)
+		return
+	}
 
 	if flag.NArg() < 1 {
 		flag.Usage()
