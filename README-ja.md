@@ -120,7 +120,10 @@ go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 html2pdf input.html                    # input.pdf を出力
 html2pdf -o out.pdf -page-size A4 input.html
 html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
+html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と output.pdf を出力
 ```
+
+`-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は入力ファイルと同時には指定できません。
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
