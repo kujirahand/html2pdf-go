@@ -389,21 +389,28 @@ func (l *layouter) block(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 	return bottom + bm.m[css.Bottom]
 }
 
+// iframeSize returns the content-box size of an <iframe>: the CSS (or
+// width/height attribute) size, or the HTML default of 300x150 px. cw is the
+// width a percentage width refers to.
+func iframeSize(st *css.Style, cw float64) (w, h float64) {
+	fs := st.FontSize.Value
+	w, h = 300*0.75, 150*0.75
+	if st.Width != nil {
+		w = st.Width.Resolve(fs, css.RootFontSize, cw)
+	}
+	if st.Height != nil {
+		h = st.Height.Resolve(fs, css.RootFontSize, 0)
+	}
+	return max(w, 0), max(h, 0)
+}
+
 // iframe lays out element n as a block-level embedded box. Its content box is
 // the CSS or attribute size, or the HTML default of 300x150 px, and the frame
 // document is placed in it. Margin, padding, border and background work as
 // for a block; the box is one unbreakable unit.
 func (l *layouter) iframe(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
-	fs := st.FontSize.Value
 	bm := l.boxMetrics(st, cw)
-	contentW, contentH := 300*0.75, 150*0.75
-	if st.Width != nil {
-		contentW = st.Width.Resolve(fs, css.RootFontSize, cw)
-	}
-	if st.Height != nil {
-		contentH = st.Height.Resolve(fs, css.RootFontSize, 0)
-	}
-	contentW, contentH = max(contentW, 0), max(contentH, 0)
+	contentW, contentH := iframeSize(st, cw)
 	boxX := x + bm.m[css.Left]
 	boxW := contentW + bm.hExtra()
 	boxH := contentH + bm.p[css.Top] + bm.p[css.Bottom] + bm.b[css.Top] + bm.b[css.Bottom]

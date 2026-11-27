@@ -19,6 +19,9 @@ const (
 	maxFrameDepth = 8
 	// maxTracks limits the number of rows or columns of a frameset.
 	maxTracks = 100
+	// maxFrames limits the frame documents (frames, iframes and srcdocs) laid
+	// out in one conversion.
+	maxFrames = 1000
 )
 
 // layoutFrameset lays out a frameset document as one page. opt is already
@@ -82,10 +85,10 @@ func layoutFramesetIn(page *Page, fs *dom.Node, fonts *text.FontSet, opt Options
 
 // layoutFrame lays out the document a frame refers to in a w x h cell (in
 // virtual units) and returns the items of its first page. It returns nil for
-// an empty cell: no src, or a remote src.
+// an empty cell: no src, or a src that is a URL rather than a file path.
 func layoutFrame(frame *dom.Node, fonts *text.FontSet, opt Options, scale, w, h float64) ([]Item, error) {
 	src := strings.TrimSpace(frame.Attr["src"])
-	if src == "" || strings.Contains(src, "://") {
+	if src == "" || css.IsURL(src) {
 		return nil, nil
 	}
 	p := src
@@ -103,6 +106,12 @@ func layoutFrame(frame *dom.Node, fonts *text.FontSet, opt Options, scale, w, h 
 // relative references resolve against dir, in a w x h box and returns the
 // items of its first page.
 func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w, h float64) ([]Item, error) {
+	if opt.frames == nil {
+		opt.frames = new(int)
+	}
+	if *opt.frames++; *opt.frames > maxFrames {
+		return nil, fmt.Errorf("layout: more than %d frame documents", maxFrames)
+	}
 	doc, err := dom.Parse(strings.NewReader(src))
 	if err != nil {
 		return nil, err
@@ -119,6 +128,7 @@ func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w,
 		BaseDir:    dir,
 		Scale:      scale,
 		depth:      opt.depth + 1,
+		frames:     opt.frames,
 	})
 	if err != nil {
 		return nil, err
@@ -132,7 +142,7 @@ func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w,
 // iframeItems lays out the document an <iframe> shows in a w x h content
 // box (in virtual units) and returns the items of its first page. srcdoc
 // takes precedence over src. It returns nil for an empty box: no src, or a
-// remote src. Frames share the nesting limit of framesets.
+// src that is a URL rather than a file path. Frames share the nesting limit of framesets.
 func (l *layouter) iframeItems(n *dom.Node, w, h float64) ([]Item, error) {
 	if l.opt.depth >= maxFrameDepth {
 		return nil, fmt.Errorf("layout: frames nested more than %d levels deep", maxFrameDepth)
@@ -162,7 +172,9 @@ func frameCells(fs *dom.Node) []*dom.Node {
 // frameTracks resolves a rows or cols attribute into track sizes that fill
 // total. Each comma-separated token is pixels (scaled by 0.75), a percentage
 // of total, or a relative length such as "*" or "2*" that shares what the
-// other tokens leave. A missing attribute means a single "100%" track.
+// other tokens leave. If the pixel and percentage tracks exceed total they
+// all shrink in proportion to fill it and relative tracks get 0. A missing
+// attribute means a single "100%" track.
 func frameTracks(attr string, total float64) []float64 {
 	if strings.TrimSpace(attr) == "" {
 		attr = "100%"
@@ -191,11 +203,17 @@ func frameTracks(attr string, total float64) []float64 {
 			v, _ := parseNumber(strings.TrimSuffix(t, "px"))
 			sizes[i] = v * 0.75
 		}
-		sizes[i] = min(max(sizes[i], 0), total)
+		sizes[i] = max(sizes[i], 0)
 		used += sizes[i]
 	}
+	if used > total {
+		for i := range sizes {
+			sizes[i] = sizes[i] * total / used
+		}
+		return sizes
+	}
 	if wsum > 0 {
-		rest := max(total-used, 0)
+		rest := total - used
 		for i, wt := range weights {
 			if wt > 0 {
 				sizes[i] = rest * wt / wsum

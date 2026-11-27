@@ -83,3 +83,28 @@ func TestResolveSheetsMissingFile(t *testing.T) {
 		t.Fatal("expected an error for a missing stylesheet")
 	}
 }
+
+// Links with a scheme, or protocol-relative ones, are URLs, not files: they
+// are ignored rather than read from disk.
+func TestResolveSheetsIgnoresURLs(t *testing.T) {
+	for _, href := range []string{
+		"//example.com/x.css",
+		"https://example.com/x.css",
+		"data:text/css,p{color:red}",
+		"about:blank",
+		"blob:abc",
+	} {
+		doc, err := dom.Parse(strings.NewReader(
+			`<html><head><link rel="stylesheet" href="` + href + `"></head><body><p>x</p></body></html>`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sheets, err := ResolveSheets(doc, t.TempDir())
+		if err != nil {
+			t.Errorf("%s: unexpected error %v", href, err)
+		}
+		if len(sheets) != 0 {
+			t.Errorf("%s: got %d sheets, want 0", href, len(sheets))
+		}
+	}
+}

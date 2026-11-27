@@ -277,3 +277,95 @@ func TestIframeSelfReference(t *testing.T) {
 		t.Fatal("expected error for a self-referencing iframe")
 	}
 }
+
+func TestFrameTracksOverflow(t *testing.T) {
+	// Fixed tracks that do not fit shrink in proportion to fill the area.
+	for _, tt := range []struct {
+		attr  string
+		total float64
+		want  []float64
+	}{
+		{"400,400", 500, []float64{250, 250}},
+		{"60%,60%", 400, []float64{200, 200}},
+		{"60%,60%,*", 400, []float64{200, 200, 0}},
+	} {
+		got := frameTracks(tt.attr, tt.total)
+		if len(got) != len(tt.want) {
+			t.Errorf("frameTracks(%q) = %v, want %v", tt.attr, got, tt.want)
+			continue
+		}
+		for i := range got {
+			if !near(got[i], tt.want[i]) {
+				t.Errorf("frameTracks(%q) = %v, want %v", tt.attr, got, tt.want)
+				break
+			}
+		}
+	}
+}
+
+func TestFrameURLsAreEmpty(t *testing.T) {
+	// A URL-like src is not a file: the box stays empty and nothing fails.
+	for _, h := range []string{
+		`<iframe src="about:blank"></iframe>`,
+		`<iframe src="data:text/html,<p>x</p>"></iframe>`,
+		`<iframe src="//example.com/"></iframe>`,
+		`<iframe src="https://example.com/"></iframe>`,
+	} {
+		pages := layoutFrameFiles(t, map[string]string{"index.html": `<body>` + h + `</body>`}, "index.html")
+		if n := len(iframeClips(pages[0])); n != 0 {
+			t.Errorf("%s: %d clips, want 0", h, n)
+		}
+	}
+	pages := layoutFrameFiles(t, map[string]string{
+		"index.html": `<frameset cols="50%,50%"><frame src="about:blank"><frame src="data:text/html,<p>x</p>"></frameset>`,
+	}, "index.html")
+	if n := len(iframeClips(pages[0])); n != 0 {
+		t.Errorf("frameset: %d clips, want 0", n)
+	}
+}
+
+func TestFrameCountLimit(t *testing.T) {
+	fonts, err := text.LoadFontSet(nil, "", "")
+	if err != nil {
+		t.Skipf("no system font available: %v", err)
+	}
+	run := func(n int) error {
+		doc, _ := dom.Parse(strings.NewReader(
+			`<body>` + strings.Repeat(`<iframe srcdoc="x" width="10" height="10"></iframe>`, n) + `</body>`))
+		_, err := Layout(doc, css.ComputeStyles(doc, nil), fonts, Options{PageWidth: 400, PageHeight: 300, BaseDir: t.TempDir()})
+		return err
+	}
+	if err := run(maxFrames); err != nil {
+		t.Fatalf("%d frames: %v", maxFrames, err)
+	}
+	if err := run(maxFrames + 1); err == nil {
+		t.Fatalf("expected error for %d frames", maxFrames+1)
+	}
+}
+
+func TestIframeInTableCellWidth(t *testing.T) {
+	pages := layoutFrameFiles(t, map[string]string{
+		"index.html": `<body><table><tr><td><iframe srcdoc="x"></iframe></td><td>TABLEB</td></tr></table></body>`,
+	}, "index.html")
+	b := findText(pages[0], "TABLEB")
+	if b == nil {
+		t.Fatal("cell text missing")
+	}
+	// The body margin is 6pt and the iframe's default width is 225pt, so the
+	// second column starts at least 231pt in.
+	if b.X < 6+225 {
+		t.Errorf("second column starts at %v, want >= %v", b.X, 6+225)
+	}
+}
+
+func TestIframeDirectChildOfParagraph(t *testing.T) {
+	pages := layoutFrameFiles(t, map[string]string{
+		"index.html": `<body><p><iframe srcdoc="<p>INPARAGRAPH</p>" width="200" height="50"></iframe></p></body>`,
+	}, "index.html")
+	if n := len(iframeClips(pages[0])); n != 1 {
+		t.Fatalf("%d clips, want 1", n)
+	}
+	if findText(pages[0], "INPARAGRAPH") == nil {
+		t.Error("frame text missing")
+	}
+}

@@ -24,6 +24,9 @@ type Options struct {
 
 	// depth is the frame nesting level; 0 for the outermost document.
 	depth int
+	// frames counts the frame documents laid out so far, shared by all
+	// nested layouts of one conversion. Layout creates it when nil.
+	frames *int
 }
 
 // Page is one laid-out page.
@@ -92,6 +95,9 @@ func Layout(doc *dom.Document, styles *css.Computed, fonts *text.FontSet, opt Op
 	scale := opt.Scale
 	if scale <= 0 {
 		scale = 1
+	}
+	if opt.frames == nil {
+		opt.frames = new(int)
 	}
 	if scale != 1 {
 		// Lay out on a virtual page so that scaling it back gives the real page.

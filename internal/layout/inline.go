@@ -368,7 +368,11 @@ func (l *layouter) contentWidths(n *dom.Node, st *css.Style, cw float64) (mn, mx
 		flush()
 		a, b := l.contentWidths(c, cs, cw)
 		bm := l.boxMetrics(cs, cw)
-		if cs.Width != nil && cs.Width.Unit != css.UnitPercent {
+		if c.Tag == "iframe" {
+			// The box is as wide as it is drawn (see iframe).
+			w, _ := iframeSize(cs, cw)
+			a, b = w, w
+		} else if cs.Width != nil && cs.Width.Unit != css.UnitPercent {
 			w := cs.Width.Resolve(cs.FontSize.Value, css.RootFontSize, cw)
 			a, b = w, w
 		}
