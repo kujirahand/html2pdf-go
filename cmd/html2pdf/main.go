@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -28,7 +29,7 @@ func fontUseLine(u html2pdf.FontUse) string {
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true}
+var valueFlags = map[string]bool{"e": true, "o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -55,8 +56,18 @@ func reorderArgs(args []string) []string {
 	return append(append(flags, "--"), pos...)
 }
 
+// convertString converts HTML source held in memory and writes the PDF to
+// path only on success, like ConvertFile.
+func convertString(src, path string, opts *html2pdf.Options) error {
+	var buf bytes.Buffer
+	if err := html2pdf.Convert([]byte(src), &buf, opts); err != nil {
+		return err
+	}
+	return os.WriteFile(path, buf.Bytes(), 0o644)
+}
+
 func main() {
-	out := flag.String("o", "", "output PDF path (default: input with .pdf extension)")
+	out := flag.String("o", "", "output PDF path (default: input with .pdf extension, or output.pdf with -e)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
 	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
@@ -66,8 +77,10 @@ func main() {
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	showVersion := flag.Bool("version", false, "print version and exit")
+	htmlSrc := flag.String("e", "", "HTML source given directly instead of an input file; it is also written to output.html")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: html2pdf [flags] input.html")
+		fmt.Fprintln(os.Stderr, "       html2pdf [flags] -e '<html>'")
 		flag.PrintDefaults()
 	}
 	flag.CommandLine.Parse(reorderArgs(os.Args[1:]))
@@ -77,14 +90,37 @@ func main() {
 		return
 	}
 
-	if flag.NArg() < 1 {
+	// -e counts as given even with an empty value, so presence is what
+	// selects inline mode, not the content.
+	inline := false
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		if f.Name == "e" {
+			inline = true
+		}
+	})
+	if inline && flag.NArg() > 0 || !inline && flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(2)
 	}
-	input := flag.Arg(0)
+	var input, baseDir string
 	output := *out
-	if output == "" {
-		output = strings.TrimSuffix(input, filepath.Ext(input)) + ".pdf"
+	if inline {
+		// Keep a copy of the source for debugging; conversion uses the string itself.
+		input = "output.html"
+		baseDir = "."
+		if err := os.WriteFile(input, []byte(*htmlSrc), 0o644); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if output == "" {
+			output = "output.pdf"
+		}
+	} else {
+		input = flag.Arg(0)
+		baseDir = filepath.Dir(input)
+		if output == "" {
+			output = strings.TrimSuffix(input, filepath.Ext(input)) + ".pdf"
+		}
 	}
 
 	dirs := fontcfg.Gather(*fontDirs)
@@ -98,7 +134,7 @@ func main() {
 	opts := &html2pdf.Options{
 		PageSize:  *pageSize,
 		Landscape: *landscape,
-		BaseDir:   filepath.Dir(input),
+		BaseDir:   baseDir,
 		Scale:     *scale,
 		Margin:    *margin,
 		FontFile:  *fontFile,
@@ -109,7 +145,12 @@ func main() {
 	if *verbose {
 		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
-	err := html2pdf.ConvertFile(input, output, opts)
+	var err error
+	if inline {
+		err = convertString(*htmlSrc, output, opts)
+	} else {
+		err = html2pdf.ConvertFile(input, output, opts)
+	}
 	if *verbose {
 		for _, u := range uses {
 			fmt.Fprintln(os.Stderr, fontUseLine(u))

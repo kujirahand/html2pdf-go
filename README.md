@@ -120,7 +120,10 @@ go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 html2pdf input.html                    # writes input.pdf
 html2pdf -o out.pdf -page-size A4 input.html
 html2pdf -scale 0.95 input.html        # shrinks the content to 95%
+html2pdf -e '<h1>Hello</h1>'           # HTML given directly; writes output.html and output.pdf
 ```
+
+`-e <HTML>` converts HTML given directly on the command line, which is handy for debugging. The source is also written to `output.html` in the current directory, and relative image and CSS paths resolve against the current directory. The PDF goes to the `-o` path, or to `output.pdf` if `-o` is omitted. `-e` cannot be combined with an input file.
 
 `-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 

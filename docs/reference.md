@@ -330,11 +330,13 @@ Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertF
 
 ```
 html2pdf [flags] input.html
+html2pdf [flags] -e '<html>'
 ```
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `-o` | input name with `.pdf` | Output PDF path. |
+| `-e` | none | HTML source given directly instead of an input file; it is also written to `output.html` in the current directory. Relative paths resolve against the current directory. Cannot be combined with an input file. |
+| `-o` | input name with `.pdf` (`output.pdf` with `-e`) | Output PDF path. |
 | `-page-size` | `A4` | `A4`, `A5` or `Letter`. |
 | `-landscape` | off | Landscape orientation. |
 | `-scale` | `1.0` | Content scale factor. |
