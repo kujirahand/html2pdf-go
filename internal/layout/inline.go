@@ -80,6 +80,10 @@ func (l *layouter) collect(n *dom.Node, out *[]seg) {
 	case "img":
 		*out = append(*out, seg{kind: segImg, text: n.Attr["src"], st: st})
 		return
+	case "iframe":
+		// Only a block-level iframe is drawn (see flow); its fallback
+		// content is never shown.
+		return
 	}
 	block := isBlockLevel(st.Display)
 	if block {

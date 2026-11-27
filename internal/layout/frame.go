@@ -74,11 +74,17 @@ func layoutFrame(frame *dom.Node, fonts *text.FontSet, opt Options, scale, w, h 
 	if err != nil {
 		return nil, fmt.Errorf("layout: read frame: %w", err)
 	}
-	doc, err := dom.Parse(strings.NewReader(string(data)))
+	return layoutFrameDoc(string(data), filepath.Dir(p), fonts, opt, scale, w, h)
+}
+
+// layoutFrameDoc lays out the HTML source of a frame document, whose
+// relative references resolve against dir, in a w x h box and returns the
+// items of its first page.
+func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w, h float64) ([]Item, error) {
+	doc, err := dom.Parse(strings.NewReader(src))
 	if err != nil {
 		return nil, err
 	}
-	dir := filepath.Dir(p)
 	sheets, err := css.ResolveSheets(doc, dir)
 	if err != nil {
 		return nil, err
@@ -99,6 +105,24 @@ func layoutFrame(frame *dom.Node, fonts *text.FontSet, opt Options, scale, w, h 
 		return []Item{}, nil
 	}
 	return pages[0].Items, nil
+}
+
+// iframeItems lays out the document an <iframe> shows in a w x h content
+// box (in virtual units) and returns the items of its first page. srcdoc
+// takes precedence over src. It returns nil for an empty box: no src, or a
+// remote src. Frames share the nesting limit of framesets.
+func (l *layouter) iframeItems(n *dom.Node, w, h float64) ([]Item, error) {
+	if l.opt.depth >= maxFrameDepth {
+		return nil, fmt.Errorf("layout: frames nested more than %d levels deep", maxFrameDepth)
+	}
+	scale := l.opt.Scale
+	if scale <= 0 {
+		scale = 1
+	}
+	if srcdoc, ok := n.Attr["srcdoc"]; ok {
+		return layoutFrameDoc(srcdoc, l.opt.BaseDir, l.fonts, l.opt, scale, w, h)
+	}
+	return layoutFrame(n, l.fonts, l.opt, scale, w, h)
 }
 
 // collectFrames appends the <frame> elements under n in document order,

@@ -31,7 +31,8 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | `center` | block, `text-align: center` | |
 | `frameset` | frame grid | See "Frames" below. |
 | `frame` | one grid cell | See "Frames" below. `noframes` content is not drawn. |
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | hidden (`display: none`) | Not drawn at all, including children. |
+| `iframe` | block-level embedded document | See "Inline frames" below. |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | hidden (`display: none`) | Not drawn at all, including children. |
 
 ### Frames
 
@@ -42,7 +43,15 @@ A document whose first frame container is a `<frameset>` is drawn as a single pa
 - `src` of a `frame` is read as a local file relative to the base directory; an unreadable file makes the conversion fail. A `src` containing `://`, or a missing `src`, gives an empty cell.
 - Each frame document is laid out on its own, with the cell size as the page size, no margin, and the same scale. Its own external CSS and images resolve relative to the directory of that file, and a frame document may itself be a frameset.
 - Only the first page of a frame document is shown, and its content is clipped to the cell.
-- `iframe` is not supported (it stays hidden).
+
+### Inline frames
+
+An `iframe` that appears as a block-level child is drawn as an embedded document box.
+
+- The box size comes from the CSS `width` / `height`, then from the `width` / `height` attributes (pixels, or a percentage of the containing block's width for `width`; a percentage `height` falls back to the default), and finally from the HTML default of 300x150 px. Margins, padding and borders behave as for other blocks, and the frame document fills the content box.
+- `srcdoc` is used as the document when present (it wins over `src`, as in HTML). A local `src` file is read relative to the base directory and an unreadable file makes the conversion fail; a remote `src` (`://`) or no source at all gives an empty box.
+- The frame document is laid out at the content-box size and only its first page is shown, clipped to the box. Frames and iframes share one nesting limit of 8 levels.
+- An `iframe` inside a paragraph (inline context) is not drawn.
 
 ### Block text
 
@@ -213,7 +222,8 @@ Any property not listed here is ignored.
 
 | Selector | Default |
 |---|---|
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `iframe` | `display: block` |
 | `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `ul`, `ol` | `display: block` |
 | `li` | `display: list-item` |
 | `table` | `display: table` |
@@ -281,7 +291,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
-- Other: remote CSS, `iframe`, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
+- Other: remote CSS, remote frames, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
 
 ## 11. Conversion options
 

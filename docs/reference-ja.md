@@ -31,7 +31,8 @@
 | `center` | ブロック、`text-align: center` | |
 | `frameset` | フレームのグリッド | 下の「フレーム」を参照。 |
 | `frame` | グリッドの 1 セル | 下の「フレーム」を参照。`noframes` の中身は描画されません。 |
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | 非表示（`display: none`） | 子要素を含めて一切描画されません。 |
+| `iframe` | ブロックレベルの埋め込み文書 | 下の「インラインフレーム」を参照。 |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | 非表示（`display: none`） | 子要素を含めて一切描画されません。 |
 
 ### フレーム
 
@@ -42,7 +43,15 @@
 - `frame` の `src` は、ベースディレクトリ基準のローカルファイルとして読み込まれます。読めない場合は変換がエラーになります。`://` を含む `src` と、`src` の無い frame は空のセルになります。
 - 各フレーム文書は、セルの大きさをページサイズ、余白 0、外側と同じ Scale で個別にレイアウトされます。その文書の外部 CSS や画像は、そのファイルのあるディレクトリが基準になり、フレーム文書自体が frameset でもかまいません。
 - フレーム文書の最初のページだけが表示され、内容はセルでクリップされます。
-- `iframe` は未対応です（非表示のままです）。
+
+### インラインフレーム
+
+ブロックレベルの子要素として現れた `iframe` は、文書を埋め込んだボックスとして描画されます。
+
+- ボックスの大きさは、CSS の `width` / `height`、次に `width` / `height` 属性（ピクセル。`width` の % は親のコンテンツ幅に対する割合で、`height` の % は既定値にフォールバック）、最後に HTML の既定値 300x150 px の順で決まります。マージン、パディング、罫線は他のブロックと同じ扱いで、フレーム文書はコンテンツ領域に収まります。
+- `srcdoc` があればその HTML を文書として使います（HTML の仕様どおり `src` より優先）。ローカルの `src` は基準ディレクトリから読み、読めない場合は変換エラーになります。リモート（`://`）の `src` や、ソースが無い場合は空のボックスになります。
+- フレーム文書はコンテンツ領域の大きさでレイアウトされ、最初のページだけがボックスでクリップされて表示されます。フレームと iframe の入れ子は合計 8 段までです。
+- 段落の中（インライン文脈）の `iframe` は描画されません。
 
 ### ブロックのテキスト
 
@@ -213,7 +222,8 @@
 
 | セレクタ | 既定値 |
 |---|---|
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `iframe` | `display: block` |
 | `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `ul`, `ol` | `display: block` |
 | `li` | `display: list-item` |
 | `table` | `display: table` |
@@ -281,7 +291,7 @@
 - リスト: `list-style`、`list-style-type`、`ol` の `start`、独自マーカー。
 - 背景: `background-image`、グラデーション、`background-position`、`background-repeat`。
 - セレクタとルール: 属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
-- その他: リモート CSS、`iframe`、リモート画像や `data:` 画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
+- その他: リモート CSS、リモートのフレーム、リモート画像や `data:` 画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
 
 ## 11. 変換オプション
 

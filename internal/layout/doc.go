@@ -74,7 +74,8 @@ type ImageItem struct {
 }
 
 // ClipItem starts a clip to the rectangle (X, Y, W, H), or with End set ends
-// the innermost one. Only frameset pages contain them, always in pairs.
+// the innermost one. Frameset pages and pages with an iframe contain them,
+// always in pairs.
 type ClipItem struct {
 	X, Y, W, H float64
 	End        bool
@@ -112,6 +113,9 @@ func Layout(doc *dom.Document, styles *css.Computed, fonts *text.FontSet, opt Op
 		l := &layouter{styles: styles, fonts: fonts, opt: opt, imgs: map[string]*imgInfo{}}
 		cw := opt.PageWidth - opt.MarginLeft - opt.MarginRight
 		l.block(doc.Body, styles.Style(doc.Body), opt.MarginLeft, 0, cw)
+		if l.err != nil {
+			return nil, l.err
+		}
 		pages = l.paginate()
 	}
 	for _, p := range pages {
