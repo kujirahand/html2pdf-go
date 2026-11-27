@@ -302,5 +302,6 @@ html2pdf [flags] input.html
 | `-margin` | `0` | Page margin in points, all sides. |
 | `-font` | auto-detect | Regular font file (`Options.FontFile`). |
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
+| `-font-dirs` | none | Comma-separated directories to search for fonts (`Options.FontDirs`). |
 
-The CLI sets `BaseDir` to the input file's directory. It has no flag for `FontDirs`, `PageWidth` or `PageHeight`. Flags may appear before or after the input file.
+The CLI sets `BaseDir` to the input file's directory. It has no flag for `PageWidth` or `PageHeight`. Flags may appear before or after the input file.

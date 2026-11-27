@@ -279,7 +279,7 @@
 | `PageWidth`, `PageHeight` | float64（pt） | 任意のサイズ。両方が 0 より大きいときはそのまま使われ、`PageSize` と `Landscape` は無視されます。片方だけ指定したときは、もう片方を `PageSize` から取ります。 |
 | `Landscape` | bool | `PageSize` のサイズの幅と高さを入れ替えます。 |
 | `BaseDir` | string | 画像の相対パスを解決する基準ディレクトリ。 |
-| `FontDirs` | []string | フォントを探すディレクトリ（深さ 4 階層まで、`.ttf`、`.ttc`、`.otf`）。空なら標準のシステムフォントディレクトリ。使えるフォントが見つからないとエラーを返します。`font-family` の名前検索の対象にもなります。 |
+| `FontDirs` | []string | フォントを探すディレクトリ（深さ 4 階層まで、`.ttf`、`.ttc`、`.otf`）。空なら標準のシステムフォントディレクトリ。指定した場合は標準の場所は探しません。使えるフォントが見つからないとエラーを返します。`font-family` の名前検索の対象にもなります。 |
 | `FontFile` | string | 自動選択の代わりに通常フェイスとして使うフォントファイルのパス。読み込めない・解析できない場合、`Convert` はエラーを返します。空なら自動選択。 |
 | `FontFileBold` | string | 太字フェイスのファイルパス。`FontFile` だけを指定した場合、太字は通常フェイスで代用されます。読み込めないファイルはエラーです。 |
 | `Scale` | float64 | 内容を縮小（1 未満）・拡大（1 超）します。0 以下は 1.0 として扱い、NaN と無限大はエラー。 |
@@ -302,5 +302,6 @@ html2pdf [flags] input.html
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
 | `-font` | 自動検出 | 通常フェイスのフォントファイル（`Options.FontFile`）。 |
 | `-font-bold` | 通常フォント | 太字フェイスのフォントファイル（`Options.FontFileBold`）。 |
+| `-font-dirs` | なし | フォントを探すディレクトリのカンマ区切り一覧（`Options.FontDirs`）。 |
 
-CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`FontDirs`、`PageWidth`、`PageHeight` に相当するフラグはありません。フラグは入力ファイルの前後どちらにも置けます。
+CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`PageWidth`、`PageHeight` に相当するフラグはありません。フラグは入力ファイルの前後どちらにも置けます。
