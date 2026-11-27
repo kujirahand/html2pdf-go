@@ -18,7 +18,7 @@ func run(t *testing.T, src string) []*Page {
 // runOpts lays out src on A4; only opt.Scale is taken from opt.
 func runOpts(t *testing.T, src string, opt Options) []*Page {
 	t.Helper()
-	fonts, err := text.LoadFonts(nil)
+	fonts, err := text.LoadFontSet(nil, "", "")
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}

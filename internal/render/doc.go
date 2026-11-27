@@ -28,25 +28,20 @@ var pngSignature = []byte("\x89PNG\r\n\x1a\n")
 
 type renderer struct {
 	w       *pdf.Writer
-	fonts   *text.Fonts
+	fonts   *text.FontSet
 	baseDir string
-	regular *pdf.Font
-	bold    *pdf.Font
+	pdfFont map[*text.Face]*pdf.Font
 	images  map[string]*pdf.Image
 }
 
 // Render writes pages to w as a PDF document.
-func Render(pages []*layout.Page, fonts *text.Fonts, baseDir string, w io.Writer) error {
+func Render(pages []*layout.Page, fonts *text.FontSet, baseDir string, w io.Writer) error {
 	r := &renderer{
 		w:       pdf.NewWriter(w),
 		fonts:   fonts,
 		baseDir: baseDir,
+		pdfFont: map[*text.Face]*pdf.Font{},
 		images:  map[string]*pdf.Image{},
-	}
-	r.regular = r.w.NewFont(fonts.Regular)
-	r.bold = r.regular
-	if fonts.Bold != fonts.Regular {
-		r.bold = r.w.NewFont(fonts.Bold)
 	}
 	for _, p := range pages {
 		pg := r.w.AddPage(p.Width, p.Height)
@@ -60,15 +55,28 @@ func Render(pages []*layout.Page, fonts *text.Fonts, baseDir string, w io.Writer
 	return r.w.Close()
 }
 
+// font returns the PDF font for face, creating it on first use.
+func (r *renderer) font(face *text.Face) *pdf.Font {
+	f, ok := r.pdfFont[face]
+	if !ok {
+		f = r.w.NewFont(face)
+		r.pdfFont[face] = f
+	}
+	return f
+}
+
 func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 	switch it := it.(type) {
 	case layout.TextItem:
-		font, face := r.regular, r.fonts.Regular
-		if it.Bold {
-			font, face = r.bold, r.fonts.Bold
+		face := it.Face
+		if face == nil {
+			face = r.fonts.Regular
+			if it.Bold {
+				face = r.fonts.Bold
+			}
 		}
 		pg.SetFillColor(it.Color.R, it.Color.G, it.Color.B)
-		pg.ShowText(font, it.Size, it.X, it.Y, it.Text)
+		pg.ShowText(r.font(face), it.Size, it.X, it.Y, it.Text)
 		if it.Underline {
 			width := face.Measure(it.Text, it.Size)
 			thickness := max(it.Size/18, 0.5)

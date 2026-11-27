@@ -29,6 +29,12 @@ type Options struct {
 	BaseDir string
 	// FontDirs lists extra directories to search for fonts.
 	FontDirs []string
+	// FontFile is the path of a font file used as the regular face instead
+	// of the automatically selected one. Convert fails if it cannot be read.
+	FontFile string
+	// FontFileBold is the path of the bold face. If FontFile is set without
+	// FontFileBold, bold text uses the regular face.
+	FontFileBold string
 	// Scale shrinks (<1) or enlarges (>1) the content, like wkhtmltopdf's
 	// zoom or Chrome's printToPDF scale. 0 or less means 1.0.
 	Scale float64
@@ -81,7 +87,7 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
-	fonts, err := text.LoadFonts(opts.FontDirs)
+	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold)
 	if err != nil {
 		return err
 	}

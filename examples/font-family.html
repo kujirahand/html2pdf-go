@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>font-family sample</title>
+<style>
+* { margin: 0; padding: 0; }
+body { font-size: 11pt; color: #222222; }
+h1 { font-family: "Noto Serif CJK JP", serif; font-size: 20pt; margin-bottom: 12px; }
+#lead { font-family: 'Noto Serif CJK JP'; margin-bottom: 12px; }
+p { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<h1>見出しは明朝体</h1>
+<p id="lead">この段落は ID セレクタで明朝体を指定しています。</p>
+<p>本文は既定のフォント（ゴシック体）のままです。明朝体とゴシック体の違いを見比べてください。</p>
+<p>Noto Serif CJK JP が見つからない環境では、見出しも既定のフォントで描かれます。</p>
+</body>
+</html>

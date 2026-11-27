@@ -44,6 +44,33 @@ func TestConvertFixtures(t *testing.T) {
 	}
 }
 
+func TestConvertFontFileMissing(t *testing.T) {
+	for _, o := range []*Options{
+		{FontFile: "/nonexistent/font.ttf"},
+		{FontFileBold: "/nonexistent/bold.ttf"},
+	} {
+		var buf bytes.Buffer
+		if err := Convert([]byte("<p>hello</p>"), &buf, o); err == nil {
+			t.Errorf("Convert(%+v) succeeded, want error for unreadable font file", o)
+		}
+	}
+}
+
+func TestConvertFontFile(t *testing.T) {
+	const font = "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"
+	if _, err := os.Stat(font); err != nil {
+		t.Skipf("Noto Serif CJK not available: %v", err)
+	}
+	src := `<style>h1 { font-family: "Noto Serif CJK JP", serif }</style><h1>見出し</h1><p><b>本文</b></p>`
+	var buf bytes.Buffer
+	if err := Convert([]byte(src), &buf, &Options{FontFile: font}); err != nil {
+		t.Fatalf("Convert with FontFile: %v", err)
+	}
+	if !bytes.HasPrefix(buf.Bytes(), []byte("%PDF-")) {
+		t.Errorf("output is not a PDF")
+	}
+}
+
 func TestPageSize(t *testing.T) {
 	w, h, err := (&Options{PageSize: "letter"}).pageSize()
 	if err != nil || w != 612 || h != 792 {

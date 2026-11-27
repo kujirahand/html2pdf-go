@@ -59,8 +59,8 @@ var uaRules = parseSheet(uaSheet)
 
 // matched is a declaration block from a matching selector.
 type matched struct {
-	a, b, order int
-	decls       []decl
+	a, b, c, order int
+	decls          []decl
 }
 
 // matchRules returns the declaration blocks of rules matching n, sorted by
@@ -70,8 +70,8 @@ func matchRules(rules []rule, n *dom.Node) []matched {
 	for i, r := range rules {
 		for _, sel := range r.sels {
 			if sel.matches(n) {
-				a, b := sel.specificity()
-				out = append(out, matched{a, b, i, r.decls})
+				a, b, c := sel.specificity()
+				out = append(out, matched{a, b, c, i, r.decls})
 			}
 		}
 	}
@@ -82,6 +82,9 @@ func matchRules(rules []rule, n *dom.Node) []matched {
 		}
 		if x.b != y.b {
 			return x.b < y.b
+		}
+		if x.c != y.c {
+			return x.c < y.c
 		}
 		return x.order < y.order
 	})

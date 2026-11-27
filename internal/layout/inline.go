@@ -245,7 +245,7 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 	if m := l.marker; m != nil {
 		l.marker = nil
 		l.emit(prim{kind: pText, x: m.x - m.w, y: baseline, text: m.text, size: m.st.FontSize.Value,
-			bold: m.st.Bold(), color: m.st.Color})
+			bold: m.st.Bold(), face: l.face(m.st), color: m.st.Color})
 	}
 
 	cx := x0
@@ -273,7 +273,7 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 		ul := c.st.TextDecoration == "underline"
 		if ul || strings.TrimSpace(s) != "" {
 			l.emit(prim{kind: pText, x: cx, y: baseline, text: s, size: c.st.FontSize.Value,
-				bold: c.st.Bold(), color: c.st.Color, underline: ul})
+				bold: c.st.Bold(), face: l.face(c.st), color: c.st.Color, underline: ul})
 		}
 		cx += w
 		i = j

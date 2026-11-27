@@ -40,6 +40,7 @@ type TextItem struct {
 	X, Y      float64
 	Size      float64
 	Bold      bool
+	Face      *text.Face // resolved font; nil means the base face chosen by Bold
 	Color     css.Color
 	Underline bool
 }
@@ -75,7 +76,7 @@ func (LineItem) isItem()  {}
 func (ImageItem) isItem() {}
 
 // Layout lays out doc using the computed styles and returns the pages.
-func Layout(doc *dom.Document, styles *css.Computed, fonts *text.Fonts, opt Options) ([]*Page, error) {
+func Layout(doc *dom.Document, styles *css.Computed, fonts *text.FontSet, opt Options) ([]*Page, error) {
 	scale := opt.Scale
 	if scale <= 0 {
 		scale = 1

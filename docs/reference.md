@@ -76,11 +76,12 @@ See the `display: none` list under "Document structure". Any element can also be
 
 ## 3. Supported attributes
 
-Only these attributes are read by the implementation. All other attributes (`id`, `href`, `alt`, `height`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
+Only these attributes are read by the implementation. All other attributes (`href`, `alt`, `height`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
 
 | Attribute | Applies to | Effect |
 |---|---|---|
 | `class` | any element | Matched by `.class` selectors (space-separated list). |
+| `id` | any element | Matched by `#id` selectors (case-sensitive). |
 | `style` | any element | Inline declarations; highest priority. |
 | `src` | `img` | Image file path. Relative paths resolve against `BaseDir`. `http(s)://` URLs (anything containing `://`) and `data:` URIs are not loaded. |
 | `width` | any element (meaningful for `img`, `table`, `td`, `th`, block elements) | Parsed as a CSS length; a bare number means px. Treated as the lowest-priority `width` (overridden by any CSS `width`). Negative or invalid values are ignored. |
@@ -95,17 +96,18 @@ Only these attributes are read by the implementation. All other attributes (`id`
 | Class (case-sensitive) | `.note` |
 | Element + class | `p.note` |
 | Multiple classes (compound) | `.a.b`, `td.a.b` |
+| ID (case-sensitive; at most one per compound) | `#main` |
+| Element + ID, class + ID | `div#main`, `.a#b`, `div.note#main` |
 | Descendant (whitespace) | `.total td`, `div p span` |
 | Selector list (comma) | `h1, h2, .title` |
 
 | Not supported | Example |
 |---|---|
-| ID selector | `#main` |
 | Attribute selector | `[type=text]` |
 | Pseudo-classes / pseudo-elements | `:first-child`, `::before` |
 | Child and sibling combinators | `>`, `+`, `~` |
 
-A compound selector that contains any of `# [ ] : > + ~ ( )` is **invalid** and never matches. Invalid selectors are not an error: in a comma list, the other selectors still work. Note that `div>p` and `div > p` are both invalid, because the `>` makes a part invalid.
+A compound selector that contains any of `[ ] : > + ~ ( )` is **invalid** and never matches. So is one with an empty fragment (`#`, `div#`, `a..b`) or more than one `#` (`#a#b`). Invalid selectors are not an error: in a comma list, the other selectors still work. Note that `div>p` and `div > p` are both invalid, because the `>` makes a part invalid.
 
 ## 5. Cascade
 
@@ -118,14 +120,15 @@ Declarations are applied in this order; later steps override earlier ones:
 
 Within one rule, later declarations win. `!important` is ignored.
 
-**Specificity** is a pair compared left to right:
+**Specificity** is a triple compared left to right:
 
-1. The number of class names in the selector (summed over all compounds).
-2. The number of element names (summed over all compounds). `*` counts as 0.
+1. The number of IDs in the selector (summed over all compounds).
+2. The number of class names (summed over all compounds).
+3. The number of element names (summed over all compounds). `*` counts as 0.
 
-There is no ID component. Example: `td.a.b` = (2, 1); `.total td` = (1, 1); `p` = (0, 1).
+Example: `#a` = (1, 0, 0); `div#a.b` = (1, 1, 1); `td.a.b` = (0, 2, 1); `.total td` = (0, 1, 1); `p` = (0, 0, 1). An ID always beats any number of classes.
 
-**Inheritance.** Only these properties are inherited: `font-size`, `font-weight`, `color`, `text-align`, `text-decoration`, `line-height`. All others start from their initial value on every element.
+**Inheritance.** Only these properties are inherited: `font-size`, `font-weight`, `font-family`, `color`, `text-align`, `text-decoration`, `line-height`. All others start from their initial value on every element.
 
 ## 6. Values
 
@@ -164,6 +167,7 @@ Any property not listed here is ignored.
 | `display` | any keyword | Layout recognizes `none`, `block`, `list-item`, `table`, `table-row-group`, `table-row`, `table-cell`, `table-caption`. Every other value (`inline`, `inline-block`, `flex`, `grid`, ...) is treated as inline. Not validated. |
 | `font-size` | length, or `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | Keywords: 9, 10, 13, 16, 18, 24, 32px; `smaller` = 0.8333em, `larger` = 1.2em. A unitless number or negative value is ignored. Inherited. |
 | `font-weight` | `bold`, `bolder`, `normal`, `lighter`, number | `bold`/`bolder` = 700, `normal`/`lighter` = 400. A number of 700 or more is drawn bold, otherwise regular (only two faces exist). Inherited. |
+| `font-family` | comma-separated family names | Quotes (`'` or `"`) and surrounding whitespace are stripped from each name. Names are tried in order against the family names of installed fonts (case-insensitive, name table only, not file names); the first match is used, in its bold face for bold text. Generic names (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`) are skipped. With no match, the base font is used. Inherited. |
 | `color` | color | Inherited. Also the default border color. |
 | `background-color` | color | Drawn on blocks, tables, rows (`tr`) and cells. Not drawn on inline elements. |
 | `background` | shorthand | Only the first color token is used; everything else (images, position, ...) is ignored. The values `transparent` and `none` clear the background. |
@@ -252,17 +256,17 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - `page-break-after` / `break-after` forces a new page after a block or a table. It is ignored inside table cells and on inline elements and table rows. `page-break-before`, `page-break-inside`, `break-before` and `break-inside` are not supported.
 - A page that would contain no text or images is dropped, so a blank page cannot be produced.
 
-**Text.** Two faces are used: regular and bold, from one Japanese-capable font found at conversion time (Noto Sans CJK / Noto Sans JP preferred). If no bold face exists, bold text is drawn with the regular face. There is no italic.
+**Text.** The base faces are regular and bold, from one Japanese-capable font found at conversion time (Noto Sans CJK / Noto Sans JP preferred), or from `FontFile` / `FontFileBold` if given. If no bold face exists, bold text is drawn with the regular face. `font-family` can pick other installed fonts by family name (section 7). Installed fonts are indexed on first use by scanning the font directories (`FontDirs`, or the standard ones). For a font collection (`.ttc`) only one face represents the file. There is no italic.
 
 ## 10. Not supported
 
-- Fonts and text: `font-family`, `font-style` (italic), `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
+- Fonts and text: `font-style` (italic), `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
 - Box: `height`, `min-width`, `max-width`, `min-height`, `max-height`, `box-sizing`, `overflow`, `outline`, `box-shadow`, `opacity`, `visibility`, `margin: auto` centering.
 - Layout: `float`, `clear`, `position` (`absolute`, `fixed`, `relative`, `sticky`), `z-index`, flex, grid, multi-column, `inline-block` behavior.
 - Tables: `rowspan`, `border-collapse`, `border-spacing`, `cellspacing`/`cellpadding`, table `caption`, `colgroup`/`col`, `vertical-align` in cells, `table-layout`, `border-radius` on cells.
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
-- Selectors and rules: `#id`, attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
+- Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
 - Other: external CSS files, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
 
 ## 11. Conversion options
@@ -275,7 +279,9 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `PageWidth`, `PageHeight` | float64 (points) | Custom size. If both are greater than 0 they are used as given and `PageSize` and `Landscape` are ignored. If only one is set, the other comes from `PageSize`. |
 | `Landscape` | bool | Swaps width and height of the `PageSize` size. |
 | `BaseDir` | string | Directory against which relative image paths resolve. |
-| `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Empty = standard system font directories. An error is returned if no usable font is found. |
+| `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Empty = standard system font directories. An error is returned if no usable font is found. Also searched by `font-family` names. |
+| `FontFile` | string | Path of a font file used as the regular face instead of the automatic choice. If it cannot be read or parsed, `Convert` returns an error. Empty = automatic selection. |
+| `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
 
@@ -294,5 +300,7 @@ html2pdf [flags] input.html
 | `-landscape` | off | Landscape orientation. |
 | `-scale` | `1.0` | Content scale factor. |
 | `-margin` | `0` | Page margin in points, all sides. |
+| `-font` | auto-detect | Regular font file (`Options.FontFile`). |
+| `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
 
 The CLI sets `BaseDir` to the input file's directory. It has no flag for `FontDirs`, `PageWidth` or `PageHeight`. Flags may appear before or after the input file.
