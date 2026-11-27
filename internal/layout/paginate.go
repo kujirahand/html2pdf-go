@@ -74,6 +74,15 @@ func (l *layouter) paginate() []*Page {
 		case pImage:
 			k := pageOf(p.y)
 			pages[k].Items = append(pages[k].Items, ImageItem{Src: p.src, X: p.x, Y: p.y + off(k), W: p.w, H: p.h})
+		case pFrame:
+			// The frame is never split: it goes whole on the page of its top.
+			k := pageOf(p.y)
+			y := p.y + off(k)
+			pages[k].Items = append(pages[k].Items, ClipItem{X: p.x, Y: y, W: p.w, H: p.h})
+			for _, it := range p.items {
+				pages[k].Items = append(pages[k].Items, translate(it, p.x, y))
+			}
+			pages[k].Items = append(pages[k].Items, ClipItem{End: true})
 		}
 	}
 	// Drop pages that carry no content of their own. An empty page-break
@@ -85,7 +94,7 @@ func (l *layouter) paginate() []*Page {
 	hasContent := func(pg *Page) bool {
 		for _, it := range pg.Items {
 			switch it.(type) {
-			case TextItem, ImageItem:
+			case TextItem, ImageItem, ClipItem:
 				return true
 			}
 		}

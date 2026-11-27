@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"bytes"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
+	"github.com/kujirahand/html2pdf-go/internal/datauri"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
@@ -40,6 +42,10 @@ type seg struct {
 	kind segKind
 	text string // character data, or the src of an image
 	st   *css.Style
+	// bg is the background color of the innermost inline ancestor that has
+	// one, or nil. background-color is not inherited by the cascade, so
+	// collect tracks it separately for the inline background painting.
+	bg *css.Color
 }
 
 type imgBox struct {
@@ -56,6 +62,7 @@ type cellr struct {
 	r   rune
 	st  *css.Style
 	img *imgBox
+	bg  *css.Color // inline background from seg, nil for none
 }
 
 type para struct {
@@ -64,9 +71,15 @@ type para struct {
 }
 
 // collect appends the inline content of n to out.
-func (l *layouter) collect(n *dom.Node, out *[]seg) {
+func (l *layouter) collect(n *dom.Node, out *[]seg) { l.collectBg(n, out, nil) }
+
+// collectBg is collect with the inline background in effect at n: the
+// background color of the nearest inline ancestor that sets one. A
+// block-level element's own background is painted by the block code, so it
+// does not become the inline background of its children.
+func (l *layouter) collectBg(n *dom.Node, out *[]seg, bg *css.Color) {
 	if n.IsText() {
-		*out = append(*out, seg{kind: segText, text: n.Text, st: l.styles.Style(n)})
+		*out = append(*out, seg{kind: segText, text: n.Text, st: l.styles.Style(n), bg: bg})
 		return
 	}
 	st := l.styles.Style(n)
@@ -78,15 +91,21 @@ func (l *layouter) collect(n *dom.Node, out *[]seg) {
 		*out = append(*out, seg{kind: segBr, st: st})
 		return
 	case "img":
-		*out = append(*out, seg{kind: segImg, text: n.Attr["src"], st: st})
+		*out = append(*out, seg{kind: segImg, text: n.Attr["src"], st: st, bg: bg})
+		return
+	case "iframe":
+		// Only a block-level iframe is drawn (see flow); its fallback
+		// content is never shown.
 		return
 	}
 	block := isBlockLevel(st.Display)
 	if block {
 		*out = append(*out, seg{kind: segSoft, st: st})
+	} else if st.BackgroundColor != nil {
+		bg = st.BackgroundColor
 	}
 	for _, c := range n.Children {
-		l.collect(c, out)
+		l.collectBg(c, out, bg)
 	}
 	if block {
 		*out = append(*out, seg{kind: segSoft, st: st})
@@ -95,7 +114,24 @@ func (l *layouter) collect(n *dom.Node, out *[]seg) {
 
 // loadImage reads (and caches) the dimensions of an image file.
 func (l *layouter) loadImage(src string) (string, *imgInfo) {
-	if src == "" || strings.Contains(src, "://") || strings.HasPrefix(src, "data:") {
+	if len(src) >= 5 && strings.EqualFold(src[:5], "data:") {
+		if info, ok := l.imgs[src]; ok {
+			return src, info
+		}
+	}
+	if data, isData, err := datauri.Decode(src); isData {
+		info := &imgInfo{}
+		if err == nil {
+			if cfg, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil && cfg.Width > 0 && cfg.Height > 0 &&
+				cfg.Width <= maxImageDim && cfg.Height <= maxImageDim &&
+				cfg.Width*cfg.Height <= maxImagePixels {
+				info = &imgInfo{w: cfg.Width, h: cfg.Height, ok: true}
+			}
+		}
+		l.imgs[src] = info
+		return src, info
+	}
+	if src == "" || strings.Contains(src, "://") {
 		return "", &imgInfo{}
 	}
 	p := src
@@ -159,11 +195,11 @@ func (l *layouter) paragraphs(segs []seg, cw float64) []para {
 			for _, r := range s.text {
 				if isSpace(r) {
 					if len(cur) > 0 && cur[len(cur)-1].r != ' ' {
-						cur = append(cur, cellr{r: ' ', st: s.st})
+						cur = append(cur, cellr{r: ' ', st: s.st, bg: s.bg})
 					}
 					continue
 				}
-				cur = append(cur, cellr{r: r, st: s.st})
+				cur = append(cur, cellr{r: r, st: s.st, bg: s.bg})
 			}
 		case segBr:
 			out = append(out, para{cells: cur, endSt: s.st})
@@ -175,7 +211,7 @@ func (l *layouter) paragraphs(segs []seg, cw float64) []para {
 			cur = nil
 		case segImg:
 			if box := l.imageBox(s.st, s.text, cw); box != nil {
-				cur = append(cur, cellr{r: objChar, st: s.st, img: box})
+				cur = append(cur, cellr{r: objChar, st: s.st, img: box, bg: s.bg})
 			}
 		}
 	}
@@ -241,6 +277,37 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 		x0 = x + (cw-width)/2
 	}
 	x0 = max(x0, x)
+
+	// Inline backgrounds go first so they sit behind the text. The color
+	// comes from the cell's inline ancestor (see seg.bg), not from the
+	// text node's own style: background-color is not inherited.
+	bx := x0
+	for i := 0; i < len(cells); {
+		bg := cells[i].bg
+		if bg == nil {
+			bx += adv[i]
+			i++
+			continue
+		}
+		// The rectangle hugs the run's own inline box (its font metrics
+		// and line height), not the whole line box: a small <code> run
+		// beside larger text keeps a small background.
+		var w, rAsc, rDesc float64
+		j := i
+		for j < len(cells) && cells[j].bg != nil && *cells[j].bg == *bg {
+			w += adv[j]
+			if cells[j].img != nil {
+				rAsc = max(rAsc, cells[j].img.h)
+			} else {
+				a, d := l.metrics(cells[j].st)
+				rAsc, rDesc = max(rAsc, a), max(rDesc, d)
+			}
+			j++
+		}
+		l.emit(prim{kind: pFill, x: bx, y: baseline - rAsc, w: w, h: rAsc + rDesc, color: *bg})
+		bx += w
+		i = j
+	}
 
 	if m := l.marker; m != nil {
 		l.marker = nil
@@ -345,7 +412,11 @@ func (l *layouter) contentWidths(n *dom.Node, st *css.Style, cw float64) (mn, mx
 		flush()
 		a, b := l.contentWidths(c, cs, cw)
 		bm := l.boxMetrics(cs, cw)
-		if cs.Width != nil && cs.Width.Unit != css.UnitPercent {
+		if c.Tag == "iframe" {
+			// The box is as wide as it is drawn (see iframe).
+			w, _ := iframeSize(cs, cw)
+			a, b = w, w
+		} else if cs.Width != nil && cs.Width.Unit != css.UnitPercent {
 			w := cs.Width.Resolve(cs.FontSize.Value, css.RootFontSize, cw)
 			a, b = w, w
 		}

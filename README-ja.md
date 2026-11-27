@@ -110,6 +110,43 @@ html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
+## Markdown から PDF へ（md2pdf）
+
+`md2pdf` は Markdown ファイルを PDF に変換します。[goldmark](https://github.com/yuin/goldmark) で Markdown を HTML にし、同じエンジンに渡します（Markdown → HTML → PDF）。
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
+
+md2pdf input.md                        # input.pdf を出力
+md2pdf -o out.pdf -margin 48 input.md
+md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
+```
+
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+
+Go のプログラムからは次のように使います。
+
+```go
+// Markdown のバイト列から PDF のバイト列へ
+err := html2pdf.ConvertMarkdown(src, &buf, &html2pdf.Options{PageSize: "A4", MarkdownCSS: "h1 { color: #205090; }"})
+
+// Markdown ファイルから PDF ファイルへ（BaseDir の既定値は Markdown ファイルのあるフォルダ）
+err = html2pdf.ConvertMarkdownFile("input.md", "out.pdf", nil)
+
+// 既定のスタイルシートを埋め込んだ HTML 文書だけを得る
+htmlDoc, err := html2pdf.MarkdownToHTML(src)
+```
+
+対応する Markdown: 見出し、段落、太字、リスト（入れ子を含む）、タスクリスト、引用、フェンス付き・インデント形式のコードブロック、GFM の表、水平線、リンク、画像、生の HTML。
+
+制限:
+
+- 斜体のフェースがないため、強調は通常の文字で描かれます。
+- コードブロックは（`<pre>` ブロックの変換により）改行とインデントを保ちますが、等幅フォントにはなりません。
+- Markdown 中の生の HTML はそのまま通るため、信頼できる入力だけを変換してください。
+
+詳しくは [docs/markdown-ja.md](docs/markdown-ja.md) を参照してください。
+
 ## 開発
 
 タスクランナー [just](https://github.com/casey/just) を使います。`just` だけでレシピ一覧を表示します。

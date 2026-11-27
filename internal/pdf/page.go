@@ -78,6 +78,16 @@ func (p *Page) FillStrokeRect(x, y, w, h, lineWidth float64) {
 	p.rect(x, y, w, h, "B")
 }
 
+// ClipRect saves the graphics state and restricts drawing to a rectangle whose
+// top-left corner is (x, y). Call Restore to end the clip.
+func (p *Page) ClipRect(x, y, w, h float64) {
+	x, y, w, h = p.sc(x), p.sc(y), p.sc(w), p.sc(h)
+	fmt.Fprintf(&p.buf, "q\n%s %s %s %s re W n\n", num(x), num(p.fy(y+h)), num(w), num(h))
+}
+
+// Restore restores the graphics state saved by ClipRect.
+func (p *Page) Restore() { p.buf.WriteString("Q\n") }
+
 // kappa is the cubic Bezier control-point factor that approximates a
 // quarter circle.
 const kappa = 0.5522847498

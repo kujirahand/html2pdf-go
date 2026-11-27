@@ -6,11 +6,12 @@ This manual lists what html2pdf-go supports. Everything here is taken from the s
 
 ## 1. Overview
 
-- Only the contents of `<body>` are rendered. Everything else (`<head>`, `<title>`, `<meta>`, ...) is hidden.
-- Styles come from exactly two places:
+- Only the contents of `<body>` are rendered (or the frames, for a `<frameset>` document; see "Frames"). Everything else (`<head>`, `<title>`, `<meta>`, ...) is hidden.
+- Styles come from three places:
   - `<style>` elements anywhere in the document (all of them, in document order).
+  - `<link rel="stylesheet" href="...">` elements, in document order together with the `<style>` elements. Only local files are loaded, with relative paths resolved against the base directory. A link whose `href` contains `://` or starts with `data:` is ignored (remote CSS is not fetched), as is a `rel` containing `alternate`. A local file that cannot be read makes the conversion fail with an error.
   - The `style` attribute of an element.
-- `<link rel="stylesheet">` is **not** loaded: external CSS files are ignored. `@import` is skipped too.
+- `@import` is skipped, in external CSS files too.
 - `<script>` is dropped, and no JavaScript runs.
 - CSS comments (`/* ... */`) are stripped. Unknown properties and invalid values are silently ignored.
 - At-rule blocks (`@media`, `@page`, `@font-face`, `@keyframes`, ...) are skipped entirely, including the rules nested inside them.
@@ -29,7 +30,32 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | `div`, `section`, `article`, `header`, `footer`, `address` | block | `address` is not italic. |
 | `center` | block, `text-align: center` | |
 | `page-break` | block, forces a page break after it | Put `<page-break></page-break>` (or just `<page-break>`) where the next page should start. Anything written after an unclosed `<page-break>` is moved out to follow it. See section 9. |
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | hidden (`display: none`) | Not drawn at all, including children. |
+| `frameset` | frame grid | See "Frames" below. |
+| `frame` | one grid cell | See "Frames" below. `noframes` content is not drawn. |
+| `iframe` | block-level embedded document | See "Inline frames" below. |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | hidden (`display: none`) | Not drawn at all, including children. |
+
+### Frames
+
+A document that contains a `<frameset>` (the first one is used) is drawn as a single page of frames instead of `<body>`.
+
+- `rows` and `cols` are comma-separated lists. Each token is a number of pixels (× 0.75 points), a percentage of the whole area (`30%`), or a relative length (`*` has weight 1, `2*` weight 2) that shares the space left by the other tokens. A missing attribute means `100%`. The area is the page inside the margins.
+- The cells are rows × columns; `frame` elements are assigned to them in document order. Extra cells stay empty and extra frames are ignored.
+- `src` of a `frame` is read as a local file relative to the base directory; an unreadable file makes the conversion fail. A `src` that is a URL (starts with `//` or a scheme such as `https:`, `data:`, `about:` or `blob:`), or a missing `src`, gives an empty cell.
+- Each frame document is laid out on its own, with the cell size as the page size, no margin, and the same scale. Its own external CSS and images resolve relative to the directory of that file, and a frame document may itself be a frameset.
+- Only the first page of a frame document is shown, and its content is clipped to the cell.
+- If the `px` and `%` tracks add up to more than the area, they all shrink in proportion to fit it and relative tracks get 0.
+- Exceeding the limits (8 nesting levels, 1000 frame documents in total, counting frames, iframes and `srcdoc`) makes the conversion fail.
+
+### Inline frames
+
+An `iframe` that appears as a block-level child is drawn as an embedded document box.
+
+- The box size comes from the CSS `width` / `height`, then from the `width` / `height` attributes (pixels, or a percentage of the containing block's width for `width`; a percentage `height` falls back to the default), and finally from the HTML default of 300x150 px. Margins, padding and borders behave as for other blocks, and the frame document fills the content box.
+- `srcdoc` is used as the document when present (it wins over `src`, as in HTML). A local `src` file is read relative to the base directory and an unreadable file makes the conversion fail; a `src` that is a URL (see "Frames") or no source at all gives an empty box.
+- The frame document is laid out at the content-box size and only its first page is shown, clipped to the box. Frames and iframes share the limits of 8 nesting levels and 1000 frame documents in total; exceeding either makes the conversion fail.
+- An `iframe` inside an inline element such as `span` or `a` is not drawn. An `iframe` that is a direct child of the block flow (including a direct child of `p`) is drawn as a block.
+- In a table cell, an `iframe` counts with its resolved width (see the size rules above) when the column widths are computed.
 
 ### Block text
 
@@ -38,7 +64,8 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | `p` | block, margin `1em 0` | |
 | `h1` – `h6` | block, bold, sized and spaced by the built-in defaults (section 8) | |
 | `blockquote` | block, margin `1em 0` | No indentation. |
-| `pre` | block | No monospace font; whitespace and newlines are still collapsed. |
+| `pre` | block, monospace | Uses a monospace font; whitespace and newlines are still collapsed. |
+| `code`, `kbd`, `samp`, `tt` | inline, monospace, background `#f0f0f0` | |
 | `br` | forced line break | |
 | `b`, `strong` | bold | |
 | `u`, `ins` | underline | |
@@ -77,15 +104,19 @@ See the `display: none` list under "Document structure". Any element can also be
 
 ## 3. Supported attributes
 
-Only these attributes are read by the implementation. All other attributes (`href`, `alt`, `height`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
+Only these attributes are read by the implementation. All other attributes (`href`, `alt`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
 
 | Attribute | Applies to | Effect |
 |---|---|---|
 | `class` | any element | Matched by `.class` selectors (space-separated list). |
 | `id` | any element | Matched by `#id` selectors (case-sensitive). |
 | `style` | any element | Inline declarations; highest priority. |
-| `src` | `img` | Image file path. Relative paths resolve against `BaseDir`. `http(s)://` URLs (anything containing `://`) and `data:` URIs are not loaded. |
-| `width` | any element (meaningful for `img`, `table`, `td`, `th`, block elements) | Parsed as a CSS length; a bare number means px. Treated as the lowest-priority `width` (overridden by any CSS `width`). Negative or invalid values are ignored. |
+| `src` | `iframe`, `frame` | Local HTML file path, relative to `BaseDir`. A URL (starts with `//` or a scheme such as `https:`, `data:`, `about:`) is not loaded and gives an empty box or cell. An unreadable file is an error. For `iframe`, `srcdoc` takes precedence. |
+| `srcdoc` | `iframe` | HTML source of the embedded document. Takes precedence over `src`. |
+| `rows`, `cols` | `frameset` | Comma-separated track sizes: pixels, a percentage, or a relative length (`*`, `2*`). Tracks of `px` and `%` that exceed the area shrink in proportion to fit it. |
+| `src` | `img` | Image file path, or a `data:` URI. Relative paths resolve against `BaseDir`. `data:` URIs may be base64 (`data:image/png;base64,...`) or percent-encoded (`data:image/gif,...`); the media type, if given, must be `image/*`; PNG, JPEG and GIF are decoded. `http(s)://` URLs (anything containing `://`) are not loaded. |
+| `width` | any element (meaningful for `img`, `iframe`, `table`, `td`, `th`, block elements) | Parsed as a CSS length; a bare number means px. Treated as the lowest-priority `width` (overridden by any CSS `width`). Negative or invalid values are ignored. |
+| `height` | `iframe` | Plain pixel number only (a percentage is ignored). Treated as the lowest-priority `height` (overridden by any CSS `height`). |
 | `colspan` | `td`, `th` | Number of columns spanned. Values of 1 or less, or non-numeric values, mean 1. Capped at 1000. |
 
 ## 4. CSS selectors
@@ -168,9 +199,9 @@ Any property not listed here is ignored.
 | `display` | any keyword | Layout recognizes `none`, `block`, `list-item`, `table`, `table-row-group`, `table-row`, `table-cell`, `table-caption`. Every other value (`inline`, `inline-block`, `flex`, `grid`, ...) is treated as inline. Not validated. |
 | `font-size` | length, or `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | Keywords: 9, 10, 13, 16, 18, 24, 32px; `smaller` = 0.8333em, `larger` = 1.2em. A unitless number or negative value is ignored. Inherited. |
 | `font-weight` | `bold`, `bolder`, `normal`, `lighter`, number | `bold`/`bolder` = 700, `normal`/`lighter` = 400. A number of 700 or more is drawn bold, otherwise regular (only two faces exist). Inherited. |
-| `font-family` | comma-separated family names | Quotes (`'` or `"`) and surrounding whitespace are stripped from each name. Names are tried in order against the family names of installed fonts (case-insensitive, name table only, not file names); the first match is used, in its bold face for bold text. Generic names (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`) are skipped. With no match, the base font is used. Inherited. |
+| `font-family` | comma-separated family names | Quotes (`'` or `"`) and surrounding whitespace are stripped from each name. Names are tried in order against the family names of installed fonts (case-insensitive, name table only, not file names); the first match is used, in its bold face for bold text. The generic name `monospace` resolves the way a web browser's fixed-font default does, by OS and UI locale: MS Gothic on Japanese Windows, Courier New on English Windows, Osaka-Mono on Japanese macOS, Courier on English macOS, and on Linux the usual fontconfig choices (Noto Sans Mono CJK JP for Japanese; DejaVu Sans Mono or Liberation Mono otherwise). The locale is read from LC_ALL, LC_CTYPE, then LANG; when it cannot be determined, the Japanese and Western candidates for the OS are both tried. If none of those browser defaults is installed, any installed family whose name contains "Mono" is used (Japanese-capable ones preferred), and with no monospace font at all, the base font is used. If the resolved monospace font has no Japanese glyphs, Japanese text set in it is not drawn. The other generic names (`serif`, `sans-serif`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`) are skipped. With no match, the base font is used. Inherited. |
 | `color` | color | Inherited. Also the default border color. |
-| `background-color` | color | Drawn on blocks, tables, rows (`tr`) and cells. Not drawn on inline elements. |
+| `background-color` | color | Drawn on blocks, tables, rows (`tr`) and cells. Also drawn behind inline elements, per line. |
 | `background` | shorthand | Only the first color token is used; everything else (images, position, ...) is ignored. The values `transparent` and `none` clear the background. |
 | `text-align` | `left`, `right`, `center` | `justify` and `start` become `left`; `end` becomes `right`. Inherited. Also centers a table narrower than its container. |
 | `text-decoration`, `text-decoration-line` | contains `underline` or `none` | Only underline is supported; `line-through` and `overline` are ignored. Inherited. |
@@ -200,7 +231,8 @@ Any property not listed here is ignored.
 
 | Selector | Default |
 |---|---|
-| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `iframe`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `head`, `style`, `script`, `title`, `meta`, `link`, `noscript`, `template`, `object`, `embed`, `svg` | `display: none` |
+| `iframe` | `display: block` |
 | `body`, `div`, `p`, `h1`–`h6`, `blockquote`, `pre`, `center`, `section`, `article`, `header`, `footer`, `address`, `page-break`, `ul`, `ol` | `display: block` |
 | `li` | `display: list-item` |
 | `table` | `display: table` |
@@ -225,14 +257,16 @@ Any property not listed here is ignored.
 | `th` | bold, `text-align: center` |
 | `td`, `th` | `padding: 1px` |
 | `page-break` | `page-break-after: always` |
+| `code`, `kbd`, `samp`, `tt` | `font-family: monospace`, `background-color: #f0f0f0` |
+| `pre` | `font-family: monospace` |
 
 The initial font size is 16px (12pt). Elements not covered by these rules (for example `nav`, `main`, `aside`, `figure`, `dl`, `dt`, `dd`, `form`, `hr`, `fieldset`) are inline: they get no line break or margin around them, and `hr` draws nothing.
 
 ## 9. Layout behavior notes
 
-**Blocks.** `width` sets the content width; padding and border are added outside it. Vertical margins collapse between adjacent block siblings (the larger one wins); there is no parent/child margin collapsing, and negative margins do not collapse. `height`, `min-*` and `max-*` do not exist, so heights always follow the content. A block with a background or border that fits on one page is kept on one page.
+**Blocks.** `width` sets the content width; padding and border are added outside it. Vertical margins collapse between adjacent block siblings (the larger one wins); there is no parent/child margin collapsing, and negative margins do not collapse. `height`, `min-*` and `max-*` do not exist (except that `height` works on an `iframe` box), so heights always follow the content. A block with a background or border that fits on one page is kept on one page.
 
-**Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, underline and `line-height`. Margin, padding, border and background on inline elements are ignored. Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
+**Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, underline and `line-height`. Margin, padding and border on inline elements are ignored, but `background-color` is drawn behind the text run (split per line when it wraps). Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
 
 **Line breaking and kinsoku (Japanese line-break rules).**
 - A line breaks at spaces, and between CJK characters (CJK ideographs and kana, Hangul, CJK compatibility and full-width forms, and U+20000–3FFFF).
@@ -243,7 +277,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 **Lists.** `ul` items get the marker `• ` regardless of nesting; `list-style` is not supported. `ol` items get `1. `, `2. `, ... numbered by counting the `display: list-item` children of the `ol` up to the item (`start` and `reversed` are not supported). A `li` whose parent is not an `ol` gets a bullet. The marker is drawn once, on the first line of the item, to the left of the item's content box (in the list's padding), using the item's font size, weight and color. An item with no inline content gets no marker.
 
-**Images.** `img` is inline, with its bottom on the text baseline. The default size is the file's pixel size × 0.75. A CSS or attribute `width` sets the width and the height follows the aspect ratio (`height` is ignored). Files over 8192 pixels on a side or 33 million pixels, and unreadable or unsupported files, are skipped silently (no placeholder, no `alt` text).
+**Images.** `img` is inline, with its bottom on the text baseline. The default size is the image's pixel size (the file's, or the decoded `data:` URI's) × 0.75. A CSS or attribute `width` sets the width and the height follows the aspect ratio (`height` is ignored). Images over 8192 pixels on a side or 33 million pixels, and unreadable, invalid or unsupported images (including SVG), are skipped silently (no placeholder, no `alt` text).
 
 **Tables.**
 - Cells are placed left to right; `colspan` makes a cell span columns. There is no `rowspan`.
@@ -264,13 +298,13 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 ## 10. Not supported
 
 - Fonts and text: `font-style` (italic), `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
-- Box: `height`, `min-width`, `max-width`, `min-height`, `max-height`, `box-sizing`, `overflow`, `outline`, `box-shadow`, `opacity`, `visibility`, `margin: auto` centering.
+- Box: `height` (except on `iframe`), `min-width`, `max-width`, `min-height`, `max-height`, `box-sizing`, `overflow`, `outline`, `box-shadow`, `opacity`, `visibility`, `margin: auto` centering.
 - Layout: `float`, `clear`, `position` (`absolute`, `fixed`, `relative`, `sticky`), `z-index`, flex, grid, multi-column, `inline-block` behavior.
 - Tables: `rowspan`, `border-collapse`, `border-spacing`, `cellspacing`/`cellpadding`, table `caption`, `colgroup`/`col`, `vertical-align` in cells, `table-layout`, `border-radius` on cells.
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
-- Other: external CSS files, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
+- Other: remote CSS, remote frames, remote images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
 
 ## 11. Conversion options
 
@@ -287,6 +321,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
+| `MarkdownCSS` | string | Extra CSS appended after `DefaultMarkdownCSS`. Used only by `ConvertMarkdown` and `ConvertMarkdownFile`; see [markdown.md](markdown.md). |
 
 Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertFile(htmlPath, pdfPath string, opts *Options) error` (nil `opts` is allowed; `ConvertFile` writes the file only on success).
 

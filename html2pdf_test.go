@@ -2,7 +2,13 @@ package html2pdf
 
 import (
 	"bytes"
+	"encoding/base64"
+	"image"
+	"image/gif"
+	"image/jpeg"
+	pngpkg "image/png"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -71,6 +77,46 @@ func TestConvertFontFile(t *testing.T) {
 	}
 }
 
+func TestConvertDataURIImage(t *testing.T) {
+	skipWithoutFonts(t)
+	var png bytes.Buffer
+	if err := pngpkg.Encode(&png, image.NewRGBA(image.Rect(0, 0, 8, 8))); err != nil {
+		t.Fatal(err)
+	}
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png.Bytes())
+	var buf bytes.Buffer
+	if err := Convert([]byte(`<p>hi <img src="`+uri+`"></p>`), &buf, nil); err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	if !bytes.Contains(buf.Bytes(), []byte("/Subtype /Image")) {
+		t.Error("PDF does not contain an image object")
+	}
+}
+
+func TestConvertDataURIImageFormats(t *testing.T) {
+	skipWithoutFonts(t)
+	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	var g, j bytes.Buffer
+	if err := gif.Encode(&g, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := jpeg.Encode(&j, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	for name, uri := range map[string]string{
+		"gif":  "data:image/gif;base64," + base64.StdEncoding.EncodeToString(g.Bytes()),
+		"jpeg": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(j.Bytes()),
+	} {
+		var buf bytes.Buffer
+		if err := Convert([]byte(`<p>hi <img src="`+uri+`"></p>`), &buf, nil); err != nil {
+			t.Fatalf("%s: Convert: %v", name, err)
+		}
+		if !bytes.Contains(buf.Bytes(), []byte("/Subtype /Image")) {
+			t.Errorf("%s: PDF does not contain an image object", name)
+		}
+	}
+}
+
 func TestPageSize(t *testing.T) {
 	w, h, err := (&Options{PageSize: "letter"}).pageSize()
 	if err != nil || w != 612 || h != 792 {
@@ -82,5 +128,57 @@ func TestPageSize(t *testing.T) {
 	}
 	if _, _, err := (&Options{PageSize: "B9"}).pageSize(); err == nil {
 		t.Error("unknown page size should fail")
+	}
+}
+
+func TestConvertFileExternalCSS(t *testing.T) {
+	skipWithoutFonts(t)
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	write("style.css", "p { color: red }")
+	in := write("in.html", `<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="http://example.com/x.css"><p>hello</p>`)
+	out := filepath.Join(dir, "out.pdf")
+	if err := ConvertFile(in, out, &Options{BaseDir: dir}); err != nil {
+		t.Fatalf("ConvertFile: %v", err)
+	}
+	pdf, err := os.ReadFile(out)
+	if err != nil || !bytes.HasPrefix(pdf, []byte("%PDF-")) {
+		t.Fatalf("bad output: %v", err)
+	}
+
+	bad := write("bad.html", `<link rel="stylesheet" href="missing.css"><p>hello</p>`)
+	badOut := filepath.Join(dir, "bad.pdf")
+	if err := ConvertFile(bad, badOut, &Options{BaseDir: dir}); err == nil {
+		t.Error("ConvertFile with a missing stylesheet succeeded, want error")
+	}
+	if _, err := os.Stat(badOut); err == nil {
+		t.Error("failed conversion left an output file")
+	}
+}
+
+func TestConvertFrameset(t *testing.T) {
+	skipWithoutFonts(t)
+	dir := t.TempDir()
+	for name, body := range map[string]string{
+		"a.html": "<p>left</p>",
+		"b.html": "<p>right</p>",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	src := `<frameset cols="50%,50%"><frame src="a.html"><frame src="b.html"></frameset>`
+	var buf bytes.Buffer
+	if err := Convert([]byte(src), &buf, &Options{BaseDir: dir}); err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	if !bytes.HasPrefix(buf.Bytes(), []byte("%PDF-")) {
+		t.Error("output is not a PDF")
 	}
 }

@@ -110,6 +110,43 @@ html2pdf -scale 0.95 input.html        # shrinks the content to 95%
 
 `-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 
+## Markdown to PDF (md2pdf)
+
+`md2pdf` converts a Markdown file into a PDF. It turns the Markdown into HTML with [goldmark](https://github.com/yuin/goldmark) and passes it through the same engine (Markdown → HTML → PDF).
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
+
+md2pdf input.md                        # writes input.pdf
+md2pdf -o out.pdf -margin 48 input.md
+md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
+```
+
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+
+From a Go program:
+
+```go
+// Markdown bytes to PDF bytes
+err := html2pdf.ConvertMarkdown(src, &buf, &html2pdf.Options{PageSize: "A4", MarkdownCSS: "h1 { color: #205090; }"})
+
+// Markdown file to PDF file (BaseDir defaults to the Markdown file's directory)
+err = html2pdf.ConvertMarkdownFile("input.md", "out.pdf", nil)
+
+// Just the HTML document, with the default stylesheet embedded
+htmlDoc, err := html2pdf.MarkdownToHTML(src)
+```
+
+Supported Markdown: headings, paragraphs, bold, lists (including nested ones), task lists, blockquotes, fenced and indented code blocks, GFM tables, horizontal rules, links, images, and raw HTML.
+
+Limitations:
+
+- There is no italic face, so emphasis is drawn as regular text.
+- Code blocks keep their line breaks and indentation (through a transform of `<pre>` blocks), but they are not set in a monospace font.
+- Raw HTML in the Markdown passes through unchanged, so only convert input you trust.
+
+See [docs/markdown.md](docs/markdown.md) for details.
+
 ## Development
 
 Development tasks use the [just](https://github.com/casey/just) task runner. Running `just` with no arguments lists the recipes.

@@ -47,10 +47,17 @@ invoice:
 
 # サンプル一式を out/ に生成
 samples: invoice fonts
+    mkdir -p out
     go run ./cmd/html2pdf examples/address-book.html -o out/address-book.pdf -landscape -margin 36
     go run ./cmd/html2pdf examples/border-styles.html -o out/border-styles.pdf -margin 48
     go run ./cmd/html2pdf examples/font-family.html -o out/font-family.pdf -margin 48
     go run ./cmd/html2pdf examples/receipt.html -o out/receipt.pdf -margin 48 -font-dirs fonts
+    go run ./cmd/md2pdf examples/sample.md -o out/sample-md.pdf -margin 48 -font-dirs fonts
+
+# Markdown サンプル PDF を out/sample-md.pdf に生成（fonts が必要）
+markdown: fonts
+    mkdir -p out
+    go run ./cmd/md2pdf examples/sample.md -o out/sample-md.pdf -margin 48 -font-dirs fonts
 
 # 領収書 PDF を out/receipt.pdf に生成（fonts が必要）
 receipt: fonts

@@ -38,6 +38,7 @@ The `text` package is used by `layout` and `render` for font measurement and lin
 | `internal/css` | CSS parsing, selector matching, the cascade, and computed-style generation |
 | `internal/text` | Font loading and measurement, and text shaping (line breaking and line-break rules / kinsoku) |
 | `internal/layout` | Box tree generation, block/table layout, and pagination |
+| `internal/datauri` | Decodes `data:` URIs (base64 / percent-encoded); used by `layout` and `render` as an image source |
 | `internal/render` | Renders laid-out pages via the `pdf` package |
 | `internal/pdf` | PDF file writing (objects, content streams, and font/image embedding) |
 
