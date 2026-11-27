@@ -1,8 +1,10 @@
 # html2pdf-go
 
-pure Go の HTML→PDF 変換エンジンです。HTML のパース、CSS の適用、レイアウト、PDF の書き出しまで実装済みです。対応する HTML/CSS の範囲は [docs/reference-ja.md](docs/reference-ja.md) を参照してください。
+[日本語版 README](README-ja.md)
 
-## ライブラリとしての使い方
+A pure-Go HTML-to-PDF conversion engine. HTML parsing, CSS application, layout, and PDF writing are all implemented. For the supported range of HTML/CSS, see [docs/reference.md](docs/reference.md).
+
+## Using it as a library
 
 ```sh
 go get github.com/kujirahand/html2pdf-go
@@ -31,54 +33,54 @@ func main() {
 }
 ```
 
-## CLI の使い方
+## Using the CLI
 
 ```sh
 go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 
-html2pdf input.html                    # input.pdf を出力
+html2pdf input.html                    # writes input.pdf
 html2pdf -o out.pdf -page-size A4 input.html
-html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
+html2pdf -scale 0.95 input.html        # shrinks the content to 95%
 ```
 
-`-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
+`-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 
-## 開発
+## Development
 
-タスクランナー [just](https://github.com/casey/just) を使います。`just` だけでレシピ一覧を表示します。
+Development tasks use the [just](https://github.com/casey/just) task runner. Running `just` with no arguments lists the recipes.
 
 ```sh
 just test      # go test ./...
-just fonts     # IPAex フォントを fonts/ に取得（取得済みなら何もしない）
-just samples   # サンプル PDF 一式を out/ に生成
+just fonts     # downloads the IPAex fonts into fonts/ (does nothing if already downloaded)
+just samples   # generates the sample PDFs into out/
 ```
 
-## フォルダ構成
+## Repository layout
 
-| パス | 内容 |
+| Path | Contents |
 |---|---|
-| `html2pdf.go` | 公開 API（`Convert`, `ConvertFile`, `Options`） |
-| `cmd/html2pdf/` | CLI ツール |
-| `internal/dom` | HTML パースと文書ツリー |
-| `internal/css` | CSS パース、カスケード、計算済みスタイル |
-| `internal/text` | フォント計測、折り返し・禁則処理 |
-| `internal/layout` | ボックス生成、レイアウト、ページネーション |
-| `internal/render` | レイアウト結果の描画 |
-| `internal/pdf` | PDF 書き出し |
-| `examples/basic/` | 最小の使用例 |
-| `examples/*.html` | サンプル文書（住所録、領収書など） |
-| `justfile` | 開発用タスク（test / fonts / samples） |
-| `fonts/` | `just fonts` で取得する IPAex フォントの置き場（バイナリは管理対象外） |
-| `out/` | 生成したサンプル PDF の出力先（管理対象外） |
-| `testdata/` | テスト用 HTML |
-| `docs/` | 設計ドキュメント |
+| `html2pdf.go` | Public API (`Convert`, `ConvertFile`, `Options`) |
+| `cmd/html2pdf/` | CLI tool |
+| `internal/dom` | HTML parsing and the document tree |
+| `internal/css` | CSS parsing, the cascade, and computed styles |
+| `internal/text` | Font measurement, line breaking and line-break rules (kinsoku) |
+| `internal/layout` | Box generation, layout, and pagination |
+| `internal/render` | Rendering of the layout result |
+| `internal/pdf` | PDF writing |
+| `examples/basic/` | Minimal usage example |
+| `examples/*.html` | Sample documents (address book, receipt, etc.) |
+| `justfile` | Development tasks (test / fonts / samples) |
+| `fonts/` | Where `just fonts` downloads the IPAex fonts (the binaries are not tracked) |
+| `out/` | Output directory for generated sample PDFs (not tracked) |
+| `testdata/` | HTML files for tests |
+| `docs/` | Design documents |
 
-## 対応範囲とロードマップ
+## Supported range and roadmap
 
-[docs/architecture.md](docs/architecture.md) を参照してください。
+See [docs/architecture.md](docs/architecture.md).
 
-対応する HTML 要素・CSS の一覧は [docs/reference-ja.md](docs/reference-ja.md)（English: [docs/reference.md](docs/reference.md)）を参照してください。
+For the list of supported HTML elements and CSS, see [docs/reference.md](docs/reference.md) (Japanese: [docs/reference-ja.md](docs/reference-ja.md)).
 
-## ライセンス
+## License
 
-MIT ライセンスです。詳細は `LICENSE` ファイルを参照してください。
+MIT License. See the `LICENSE` file for details.
