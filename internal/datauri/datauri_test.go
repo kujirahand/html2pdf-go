@@ -88,6 +88,12 @@ func TestDecodeParameterTokenSyntax(t *testing.T) {
 	if _, _, err := Decode("data:image/png;charset=\"utf-8\";base64," + enc); err != nil {
 		t.Errorf("quoted-string parameter rejected: %v", err)
 	}
+	// But a dangling escape or a control character inside it is not.
+	for _, bad := range []string{`"abc\`, "\"a\x00b\""} {
+		if _, _, err := Decode("data:image/png;charset=" + bad + ";base64," + enc); err == nil {
+			t.Errorf("parameter value %s accepted, want error", bad)
+		}
+	}
 }
 
 func TestDecodeTooLargeCheckedBeforeDecoding(t *testing.T) {

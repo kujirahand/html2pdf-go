@@ -73,9 +73,29 @@ func validParam(p string) bool {
 	}
 	v = strings.TrimSpace(v)
 	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
-		return !strings.ContainsAny(v[1:len(v)-1], "\"\r\n")
+		return validQuoted(v[1 : len(v)-1])
 	}
 	return isToken(v)
+}
+
+// validQuoted reports whether s (the inside of a quoted-string) is valid
+// qtext / quoted-pair content: printable ASCII and tab, excluding '"' and
+// '\', where a backslash must be followed by a printable character or tab.
+func validQuoted(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '\\' {
+			i++
+			if i >= len(s) || (s[i] != '\t' && (s[i] < ' ' || s[i] > '~')) {
+				return false
+			}
+			continue
+		}
+		if c != '\t' && (c < ' ' || c > '~' || c == '"') {
+			return false
+		}
+	}
+	return true
 }
 
 // isToken reports whether s is an RFC 2045 token: one or more ASCII
