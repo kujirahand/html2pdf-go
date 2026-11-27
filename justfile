@@ -12,6 +12,12 @@ test:
 build:
     go build ./...
 
+# ネイティブ CLI バイナリを bin/ に生成
+make:
+    mkdir -p bin
+    go build -o bin/html2pdf ./cmd/html2pdf
+    go build -o bin/md2pdf ./cmd/md2pdf
+
 # go vet
 vet:
     go vet ./...

@@ -155,6 +155,7 @@ htmlDoc, err := html2pdf.MarkdownToHTML(src)
 
 ```sh
 just test      # go test ./...
+just make      # ネイティブの CLI バイナリを bin/ に生成
 just fonts     # IPAex フォントを fonts/ に取得（取得済みなら何もしない）
 just samples   # サンプル PDF 一式を out/ に生成
 ```
