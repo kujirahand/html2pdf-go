@@ -67,7 +67,7 @@ func convertString(src, path string, opts *html2pdf.Options) error {
 }
 
 func main() {
-	out := flag.String("o", "", "output PDF path (default: input with .pdf extension)")
+	out := flag.String("o", "", "output PDF path (default: input with .pdf extension, or output.pdf with -e)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
 	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
@@ -90,7 +90,14 @@ func main() {
 		return
 	}
 
-	inline := *htmlSrc != ""
+	// -e counts as given even with an empty value, so presence is what
+	// selects inline mode, not the content.
+	inline := false
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		if f.Name == "e" {
+			inline = true
+		}
+	})
 	if inline && flag.NArg() > 0 || !inline && flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(2)
