@@ -43,6 +43,16 @@ html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
+## 開発
+
+タスクランナー [just](https://github.com/casey/just) を使います。`just` だけでレシピ一覧を表示します。
+
+```sh
+just test      # go test ./...
+just fonts     # IPAex フォントを fonts/ に取得（取得済みなら何もしない）
+just samples   # サンプル PDF 一式を out/ に生成
+```
+
 ## フォルダ構成
 
 | パス | 内容 |

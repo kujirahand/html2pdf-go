@@ -302,5 +302,6 @@ html2pdf [flags] input.html
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
 | `-font` | 自動検出 | 通常フェイスのフォントファイル（`Options.FontFile`）。 |
 | `-font-bold` | 通常フォント | 太字フェイスのフォントファイル（`Options.FontFileBold`）。 |
+| `-font-dirs` | なし | フォントを探すディレクトリのカンマ区切り一覧（`Options.FontDirs`）。 |
 
-CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`FontDirs`、`PageWidth`、`PageHeight` に相当するフラグはありません。フラグは入力ファイルの前後どちらにも置けます。
+CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`PageWidth`、`PageHeight` に相当するフラグはありません。フラグは入力ファイルの前後どちらにも置けます。

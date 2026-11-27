@@ -12,7 +12,7 @@ import (
 )
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true}
+var valueFlags = map[string]bool{"o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -47,6 +47,7 @@ func main() {
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
 	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
+	fontDirs := flag.String("font-dirs", "", "comma-separated directories to search for fonts (for font-family lookup)")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: html2pdf [flags] input.html")
 		flag.PrintDefaults()
@@ -63,6 +64,13 @@ func main() {
 		output = strings.TrimSuffix(input, filepath.Ext(input)) + ".pdf"
 	}
 
+	var dirs []string
+	for _, d := range strings.Split(*fontDirs, ",") {
+		if d = strings.TrimSpace(d); d != "" {
+			dirs = append(dirs, d)
+		}
+	}
+
 	opts := &html2pdf.Options{
 		PageSize:  *pageSize,
 		Landscape: *landscape,
@@ -70,6 +78,7 @@ func main() {
 		Scale:     *scale,
 		Margin:    *margin,
 		FontFile:  *fontFile,
+		FontDirs:  dirs,
 
 		FontFileBold: *fontBold,
 	}

@@ -32,3 +32,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# 生成物とフォント（フォントは `just fonts` で取得する）
+out/
+fonts/*
+!fonts/README.md
