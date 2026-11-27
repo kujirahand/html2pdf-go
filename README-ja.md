@@ -122,7 +122,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 

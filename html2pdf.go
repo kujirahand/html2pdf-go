@@ -16,6 +16,17 @@ import (
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
 
+// FontUse describes a font face resolved during conversion.
+type FontUse struct {
+	// Family is the font-family name that matched, or "" for the default
+	// face used when no listed family was found.
+	Family string
+	// Bold reports whether the bold face was requested.
+	Bold bool
+	// Path is the font file the face was loaded from.
+	Path string
+}
+
 // Options configures a conversion.
 type Options struct {
 	// PageSize is a named page size such as "A4", "A5", or "Letter".
@@ -27,8 +38,13 @@ type Options struct {
 	Landscape bool
 	// BaseDir is used to resolve relative paths such as images.
 	BaseDir string
-	// FontDirs lists extra directories to search for fonts.
+	// FontDirs lists the directories to search for fonts. Only these are
+	// searched; if empty, the operating system's standard font directories
+	// are used.
 	FontDirs []string
+	// OnFontUse, if non-nil, is called once for each distinct font face
+	// that is resolved during conversion.
+	OnFontUse func(FontUse)
 	// FontFile is the path of a font file used as the regular face instead
 	// of the automatically selected one. Convert fails if it cannot be read.
 	FontFile string
@@ -93,6 +109,11 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold)
 	if err != nil {
 		return err
+	}
+	if opts.OnFontUse != nil {
+		fonts.OnUse = func(family string, bold bool, path string) {
+			opts.OnFontUse(FontUse{Family: family, Bold: bold, Path: path})
+		}
 	}
 	doc, err := dom.Parse(bytes.NewReader(src))
 	if err != nil {

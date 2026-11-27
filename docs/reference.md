@@ -316,7 +316,8 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `PageWidth`, `PageHeight` | float64 (points) | Custom size. If both are greater than 0 they are used as given and `PageSize` and `Landscape` are ignored. If only one is set, the other comes from `PageSize`. |
 | `Landscape` | bool | Swaps width and height of the `PageSize` size. |
 | `BaseDir` | string | Directory against which relative image paths resolve. |
-| `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Empty = standard system font directories. An error is returned if no usable font is found. Also searched by `font-family` names. |
+| `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Only the given directories are searched; empty = standard system font directories. The library reads no environment variable or config file. An error is returned if no usable font is found. Also searched by `font-family` names. |
+| `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, empty for the default face), `Bold` and `Path` (the font file). nil = no callback. |
 | `FontFile` | string | Path of a font file used as the regular face instead of the automatic choice. If it cannot be read or parsed, `Convert` returns an error. Empty = automatic selection. |
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
@@ -340,6 +341,9 @@ html2pdf [flags] input.html
 | `-margin` | `0` | Page margin in points, all sides. |
 | `-font` | auto-detect | Regular font file (`Options.FontFile`). |
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
-| `-font-dirs` | none | Comma-separated directories to search for fonts (`Options.FontDirs`). |
+| `-font-dirs` | none | Comma-separated directories searched first for fonts. They are added in front of the other font directories (see below). |
+| `-verbose` | off | Print the font directories searched and the fonts used to standard error. |
+
+The CLI collects the font directories and passes them as `Options.FontDirs`, in this order: `-font-dirs`, then the environment variable `HTML2PDF_FONT_DIRS` (the OS path list format: `:` on Unix, `;` on Windows), then the operating system's font directories. Directories collected earlier take priority, and a repeated directory keeps its first position. `-font-dirs` no longer replaces the standard directories; it adds directories that are searched first. With `-verbose`, each directory is printed before conversion as `font dir [flag|env|os]: <path>`, and each resolved font after conversion as `font: <family or (default)> (bold) -> <path>`.
 
 The CLI sets `BaseDir` to the input file's directory. It has no flag for `PageWidth` or `PageHeight`. Flags may appear before or after the input file.

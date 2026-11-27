@@ -29,9 +29,43 @@ type FontSet struct {
 	mu    sync.Mutex
 	faces map[string]*Face // loaded faces by path
 
+	// OnUse, if set, is called once for each distinct (family, bold, path)
+	// that FaceFor returns. family is the matched index family name, or ""
+	// for the base faces. Calls are serialized.
+	OnUse func(family string, bold bool, path string)
+
+	useMu sync.Mutex
+	used  map[useKey]bool
+
 	monoMu   sync.Mutex
 	monoDone [2]bool // regular, bold: monospace already resolved
 	mono     [2]*Face
+}
+
+type useKey struct {
+	family string
+	bold   bool
+	path   string
+}
+
+// report records the face f returned for family (see OnUse), once per
+// distinct combination, and returns f.
+func (s *FontSet) report(family string, bold bool, f *Face) *Face {
+	if s.OnUse == nil || f == nil || f.path == "" {
+		return f
+	}
+	k := useKey{family, bold, f.path}
+	s.useMu.Lock()
+	defer s.useMu.Unlock()
+	if s.used[k] {
+		return f
+	}
+	if s.used == nil {
+		s.used = map[useKey]bool{}
+	}
+	s.used[k] = true
+	s.OnUse(family, bold, f.path)
+	return f
 }
 
 // family is the font files found for one family name.
@@ -80,7 +114,7 @@ func (s *FontSet) FaceFor(families []string, bold bool) *Face {
 		key := strings.ToLower(strings.TrimSpace(name))
 		if key == "monospace" {
 			if f := s.monospace(bold); f != nil {
-				return f
+				return s.report(key, bold, f)
 			}
 			continue
 		}
@@ -96,13 +130,13 @@ func (s *FontSet) FaceFor(families []string, bold bool) *Face {
 			path = fam.bold
 		}
 		if f := s.load(path); f != nil {
-			return f
+			return s.report(key, bold, f)
 		}
 	}
 	if bold {
-		return s.Bold
+		return s.report("", true, s.Bold)
 	}
-	return s.Regular
+	return s.report("", false, s.Regular)
 }
 
 type monoLocaleClass int
@@ -328,7 +362,7 @@ func (s *FontSet) buildIndex() {
 	s.index = map[string]*family{}
 	dirs := s.dirs
 	if len(dirs) == 0 {
-		dirs = defaultFontDirs()
+		dirs = DefaultFontDirs()
 	}
 	seen := map[string]bool{}
 	regScore := map[string]int{}

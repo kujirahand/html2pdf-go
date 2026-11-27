@@ -20,7 +20,9 @@ var (
 	boldNames    = []string{"NotoSansCJK-Bold.ttc", "NotoSansJP-Bold.ttf"}
 )
 
-func defaultFontDirs() []string {
+// DefaultFontDirs returns the operating system's standard font directories,
+// searched when no directories are given.
+func DefaultFontDirs() []string {
 	dirs := []string{
 		"/usr/share/fonts/opentype/noto",
 		"/usr/share/fonts/truetype/noto",
@@ -39,7 +41,7 @@ func defaultFontDirs() []string {
 func LoadFonts(dirs []string) (*Fonts, error) {
 	search := dirs
 	if len(search) == 0 {
-		search = defaultFontDirs()
+		search = DefaultFontDirs()
 	}
 	var files []string
 	for _, d := range search {
@@ -148,6 +150,7 @@ func loadFace(path string) (*Face, error) {
 	if err != nil {
 		return nil, fmt.Errorf("text: font %s: %w", path, err)
 	}
+	f.path = path
 	return f, nil
 }
 
