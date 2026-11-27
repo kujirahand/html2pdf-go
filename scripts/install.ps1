@@ -23,14 +23,28 @@ switch ($env:PROCESSOR_ARCHITECTURE) {
 }
 
 if ($Version -eq 'latest') {
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -UseBasicParsing
-    $tag = $release.tag_name
+    $tag = $null
+    try {
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -UseBasicParsing
+        $tag = $release.tag_name
+    } catch {
+        # The API is rate-limited for unauthenticated callers; fall back to
+        # the /releases/latest redirect, which has no such quota.
+        try {
+            $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -UseBasicParsing
+            $final = $resp.BaseResponse.ResponseUri.AbsoluteUri
+            if ($final -match '/tag/(.+)$') { $tag = $Matches[1] }
+        } catch { }
+    }
     if (-not $tag) { throw 'install.ps1: could not determine the latest release tag' }
 } else {
     $tag = $Version
 }
 
-$archive = "html2pdf-go_${tag}_windows_${arch}.zip"
+# A tag may contain '/' (e.g. release/v1.0.0); build-release.sh replaces
+# it with '-' in archive names, while the download URL keeps the raw tag.
+$fileTag = $tag -replace '/', '-'
+$archive = "html2pdf-go_${fileTag}_windows_${arch}.zip"
 $base = "https://github.com/$repo/releases/download/$tag"
 
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ("html2pdf-go-" + [Guid]::NewGuid().ToString('N'))

@@ -56,16 +56,33 @@ arm64 | aarch64) arch=arm64 ;;
 esac
 
 if [ "$version" = "latest" ]; then
-	tag=$(fetch "https://api.github.com/repos/$REPO/releases/latest" |
+	tag=$(fetch "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null |
 		grep '"tag_name"' | head -n 1 |
-		sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/') ||
-		err "failed to query the latest release"
+		sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/') || tag=""
+	if [ -z "$tag" ]; then
+		# The API is rate-limited for unauthenticated callers; fall back to
+		# the /releases/latest redirect, which has no such quota.
+		url=""
+		if have curl; then
+			url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null) || url=""
+		elif have wget; then
+			# wget shows the redirect target in its response headers when
+			# it is told not to follow redirects.
+			headers=$(wget -S --max-redirect=0 -O /dev/null "https://github.com/$REPO/releases/latest" 2>&1 || true)
+			url=$(printf '%s\n' "$headers" | grep -i '^[[:space:]]*Location:' | tail -n 1 | tr -d '\r' | awk '{ print $2 }')
+		fi
+		tag="${url##*/tag/}"
+		[ "$tag" = "$url" ] && tag=""
+	fi
 	[ -n "$tag" ] || err "could not determine the latest release tag"
 else
 	tag="$version"
 fi
 
-archive="html2pdf-go_${tag}_${os}_${arch}.tar.gz"
+# A tag may contain '/' (e.g. release/v1.0.0); build-release.sh replaces
+# it with '-' in archive names, while the download URL keeps the raw tag.
+filetag=$(printf '%s' "$tag" | tr '/' '-')
+archive="html2pdf-go_${filetag}_${os}_${arch}.tar.gz"
 base="https://github.com/$REPO/releases/download/$tag"
 
 tmp=$(mktemp -d) || err "failed to create a temporary directory"
