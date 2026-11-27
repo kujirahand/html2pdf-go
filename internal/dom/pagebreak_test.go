@@ -45,3 +45,18 @@ func TestPageBreakConsecutiveAndNested(t *testing.T) {
 		t.Fatalf("div children = %s, want %s", got, want)
 	}
 }
+
+func TestPageBreakHoistsText(t *testing.T) {
+	doc, err := Parse(strings.NewReader("<body>ONE<page-break>TWO</body>"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := childTags(doc.Body), "#ONE,page-break,#TWO"; got != want {
+		t.Fatalf("children = %s, want %s", got, want)
+	}
+	for _, c := range doc.Body.Children {
+		if c.Parent != doc.Body {
+			t.Errorf("child %q has wrong parent", c.Text+c.Tag)
+		}
+	}
+}

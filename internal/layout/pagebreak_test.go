@@ -49,3 +49,19 @@ func TestPageBreakTagNoBlankPages(t *testing.T) {
 		}
 	}
 }
+
+func TestPageBreakTagInDivAndAfterBreakBlock(t *testing.T) {
+	// A break inside a div still starts a new page.
+	pages := run(t, "<body><div><p>ONE</p><page-break><p>TWO</p></div></body>")
+	if len(pages) != 2 {
+		t.Fatalf("div case: got %d pages, want 2", len(pages))
+	}
+	// A block with page-break-after followed by <page-break> breaks once.
+	pages = run(t, `<body><p style="page-break-after: always">ONE</p><page-break><p>TWO</p></body>`)
+	if len(pages) != 2 {
+		t.Fatalf("double case: got %d pages, want 2", len(pages))
+	}
+	if got := pageTexts(pages[1]); !strings.Contains(got, "TWO") {
+		t.Errorf("double case: page 2 text = %q", got)
+	}
+}
