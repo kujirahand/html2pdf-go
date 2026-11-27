@@ -57,7 +57,7 @@
 | `fonts/` | `just fonts` で取得する IPAex フォントの置き場。`README.md` 以外は git 管理対象外 |
 | `out/` | 生成したサンプル PDF の出力先。git 管理対象外 |
 | `scripts/` | 開発・リリース用のシェルスクリプト。`build-release.sh` は両 CLI を 6 ターゲット（linux/darwin/windows × amd64/arm64）向けにクロスコンパイルし、アーカイブと `checksums.txt` を `dist/` に出力する |
-| `.github/workflows/` | CI／リリース自動化。`release.yml` は `v*` タグの push（または手動実行）で `scripts/build-release.sh` を実行し、成果物を GitHub Release に添付する |
+| `.github/workflows/` | CI／リリース自動化。`test.yml` は PR と main への push で `just test` を実行する（フォント依存テストが空回りしないよう、Noto CJK・DejaVu・Liberation を入れてから実行）。`release.yml` は `v*` タグの push（または手動実行）で `scripts/build-release.sh` を実行し、成果物を GitHub Release に添付する |
 | `dist/` | リリース用アーカイブの出力先。git 管理対象外 |
 | `justfile` | 開発用タスクランナーの定義（`test` / `check` / `fonts` / `samples` など） |
 | `README.md` / `README-ja.md` | 利用者向けの入口ドキュメント（英語／日本語）。必ず同時に更新する |
