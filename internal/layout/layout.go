@@ -30,6 +30,7 @@ type prim struct {
 	text       string
 	size       float64
 	bold       bool
+	face       *text.Face
 	underline  bool
 	src        string
 	// rx and ry are corner radii for pFill and pRoundStroke (top-left,
@@ -55,7 +56,7 @@ type marker struct {
 
 type layouter struct {
 	styles  *css.Computed
-	fonts   *text.Fonts
+	fonts   *text.FontSet
 	opt     Options
 	prims   []prim
 	units   []unit
@@ -186,11 +187,9 @@ func (l *layouter) scratch(f func()) {
 	l.prims, l.units, l.marker = l.prims[:np], l.units[:nu], mk
 }
 
+// face returns the face for st's font-family list and weight.
 func (l *layouter) face(st *css.Style) *text.Face {
-	if st.Bold() {
-		return l.fonts.Bold
-	}
-	return l.fonts.Regular
+	return l.fonts.FaceFor(st.FontFamily, st.Bold())
 }
 
 // metrics returns the line-box ascent and descent contributed by st,

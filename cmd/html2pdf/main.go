@@ -12,7 +12,7 @@ import (
 )
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"o": true, "page-size": true, "scale": true, "margin": true}
+var valueFlags = map[string]bool{"o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -45,6 +45,8 @@ func main() {
 	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
+	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
+	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: html2pdf [flags] input.html")
 		flag.PrintDefaults()
@@ -67,6 +69,9 @@ func main() {
 		BaseDir:   filepath.Dir(input),
 		Scale:     *scale,
 		Margin:    *margin,
+		FontFile:  *fontFile,
+
+		FontFileBold: *fontBold,
 	}
 	if err := html2pdf.ConvertFile(input, output, opts); err != nil {
 		fmt.Fprintln(os.Stderr, err)

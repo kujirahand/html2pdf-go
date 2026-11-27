@@ -54,8 +54,8 @@ PDF
 請求書 HTML の実測に基づきます。
 
 - **タグ**: `h1`, `p`, `div`, `br`, `table`, `tr`, `th`, `td`, `img`, `center`, `ul`, `li`, `ol`（`ul`, `li`, `ol` は請求書では未使用だが、一般的な文書で必須のため初期対応範囲に含める）
-- **セレクタ**: `*`、要素、`.class`、`要素.class`、子孫（`.total td` など）
-- **プロパティ**: `font-size`, `font-weight`, `color`, `background-color`, `text-align`, `text-decoration`, `line-height`, `margin`（および各辺）, `padding`（および各辺）, `border`（および各辺。スタイルは solid / dashed / dotted / double、角丸は `border-radius` と各隅のロングハンド）, `width`, `page-break-after`
+- **セレクタ**: `*`、要素、`.class`、`#id`、それらの複合（`要素.class`、`要素#id`、`.class#id` など）、子孫（`.total td` など）。specificity は（ID 数, クラス数, 要素数）の 3 つ組
+- **プロパティ**: `font-size`, `font-weight`, `font-family`（`FontFile` / `FontFileBold` や、インストール済みフォントのファミリー名で指定）, `color`, `background-color`, `text-align`, `text-decoration`, `line-height`, `margin`（および各辺）, `padding`（および各辺）, `border`（および各辺。スタイルは solid / dashed / dotted / double、角丸は `border-radius` と各隅のロングハンド）, `width`, `page-break-after`
 - **単位**: 長さ系プロパティ（`width`, `margin`, `padding`, `font-size` など）でサポートする単位は `px`, `em`, `rem`, `%`, `pt`, `mm`, `cm`, `in`、および単位なしの `0`
   - 換算基準: 1px = 0.75pt（96dpi → 72pt）、1in = 25.4mm = 72pt
   - `em` は当該要素の `font-size` 基準（ただし `font-size` 自身の指定では親要素の `font-size` 基準）、`rem` はルート要素の `font-size` 基準

@@ -8,11 +8,13 @@ import (
 
 type decl struct{ prop, val string }
 
-// compound is one simple-selector sequence: an optional tag plus classes.
+// compound is one simple-selector sequence: an optional tag, classes and
+// at most one id.
 type compound struct {
 	tag     string // "" or "*" matches any element
 	classes []string
-	invalid bool // uses unsupported syntax (id, attribute, pseudo, ...)
+	id      string
+	invalid bool // uses unsupported syntax (attribute, pseudo, ...)
 }
 
 // selector is a chain of compounds joined by descendant combinators.
@@ -135,18 +137,41 @@ func parseSelector(s string) selector {
 
 func parseCompound(s string) compound {
 	var c compound
-	if strings.ContainsAny(s, "#[]:>+~()") {
+	if strings.ContainsAny(s, "[]:>+~()") {
 		c.invalid = true
 		return c
 	}
-	segs := strings.Split(s, ".")
-	c.tag = strings.ToLower(segs[0])
-	for _, cl := range segs[1:] {
-		if cl == "" {
-			c.invalid = true
-			return c
+	// Split into the leading tag and ".class" / "#id" fragments.
+	start, kind := 0, byte(0)
+	flush := func(end int) bool {
+		frag := s[start:end]
+		switch kind {
+		case 0:
+			c.tag = strings.ToLower(frag)
+		case '.':
+			if frag == "" {
+				return false
+			}
+			c.classes = append(c.classes, frag)
+		case '#':
+			if frag == "" || c.id != "" {
+				return false
+			}
+			c.id = frag
 		}
-		c.classes = append(c.classes, cl)
+		return true
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] != '.' && s[i] != '#' {
+			continue
+		}
+		if !flush(i) {
+			return compound{invalid: true}
+		}
+		start, kind = i+1, s[i]
+	}
+	if !flush(len(s)) {
+		return compound{invalid: true}
 	}
 	return c
 }
@@ -156,6 +181,9 @@ func (c compound) matches(n *dom.Node) bool {
 		return false
 	}
 	if c.tag != "" && c.tag != "*" && c.tag != n.Tag {
+		return false
+	}
+	if c.id != "" && c.id != n.Attr["id"] {
 		return false
 	}
 	if len(c.classes) == 0 {
@@ -198,14 +226,17 @@ func (s selector) matches(n *dom.Node) bool {
 	return true
 }
 
-// specificity returns (class count, element count).
-func (s selector) specificity() (int, int) {
-	var a, b int
+// specificity returns (id count, class count, element count).
+func (s selector) specificity() (int, int, int) {
+	var a, b, e int
 	for _, c := range s.parts {
-		a += len(c.classes)
+		if c.id != "" {
+			a++
+		}
+		b += len(c.classes)
 		if c.tag != "" && c.tag != "*" {
-			b++
+			e++
 		}
 	}
-	return a, b
+	return a, b, e
 }

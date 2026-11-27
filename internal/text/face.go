@@ -1,6 +1,7 @@
 package text
 
 import (
+	"strings"
 	"sync"
 
 	"golang.org/x/image/font"
@@ -45,6 +46,8 @@ type Face struct {
 	lineAsc float64       // line-box ascent in font units (OS/2 typo when usable)
 	lineDsc float64       // line-box descent in font units, positive
 	adv     map[uint16]advEntry
+	family  string // typographic family name, "" if the font has none
+	bold    bool   // subfamily says Bold, or OS/2 fsSelection has the bold bit
 }
 
 // newFace wraps sf. data and off locate the face's table directory (off is
@@ -71,7 +74,63 @@ func newFace(sf *sfnt.Font, data []byte, off int) *Face {
 	if a, d, ok := typoMetrics(data, off); ok {
 		f.lineAsc, f.lineDsc = float64(a), float64(d)
 	}
+	f.family, f.bold = faceNames(sf, data, off)
 	return f
+}
+
+// Name IDs of the typographic family and subfamily (the "preferred" names
+// that group fonts into families wider than four styles).
+const (
+	nameIDTypographicFamily    sfnt.NameID = 16
+	nameIDTypographicSubfamily sfnt.NameID = 17
+)
+
+// faceNames returns the family name (NameID 16, else 1) and whether the face
+// is bold: the subfamily (NameID 17, else 2) contains "Bold", or OS/2
+// fsSelection has the bold bit (0x20).
+func faceNames(sf *sfnt.Font, data []byte, off int) (family string, bold bool) {
+	var b sfnt.Buffer
+	pick := func(ids ...sfnt.NameID) string {
+		for _, id := range ids {
+			if s, err := sf.Name(&b, id); err == nil && s != "" {
+				return s
+			}
+		}
+		return ""
+	}
+	family = pick(nameIDTypographicFamily, sfnt.NameIDFamily)
+	bold = strings.Contains(strings.ToLower(pick(nameIDTypographicSubfamily, sfnt.NameIDSubfamily)), "bold")
+	if o, l, ok := findTable(data, off, "OS/2"); ok && l >= 64 && o+64 <= len(data) {
+		bold = bold || data[o+63]&0x20 != 0 // low byte of fsSelection at offset 62
+	}
+	return family, bold
+}
+
+// FamilyName returns the font family name from the name table (the
+// typographic family if present), or "" if the font has none.
+func (f *Face) FamilyName() string { return f.family }
+
+// findTable locates the table with the given tag in the face whose table
+// directory starts at off.
+func findTable(data []byte, off int, tag string) (o, l int, ok bool) {
+	u16 := func(p int) int { return int(data[p])<<8 | int(data[p+1]) }
+	u32 := func(p int) int {
+		return int(uint32(data[p])<<24 | uint32(data[p+1])<<16 | uint32(data[p+2])<<8 | uint32(data[p+3]))
+	}
+	if off < 0 || off+12 > len(data) {
+		return 0, 0, false
+	}
+	n := u16(off + 4)
+	for i := 0; i < n; i++ {
+		rec := off + 12 + i*16
+		if rec+16 > len(data) {
+			break
+		}
+		if string(data[rec:rec+4]) == tag {
+			return u32(rec + 8), u32(rec + 12), true
+		}
+	}
+	return 0, 0, false
 }
 
 // typoMetrics reads sTypoAscender/sTypoDescender from the OS/2 table of the
@@ -87,33 +146,16 @@ func newFace(sf *sfnt.Font, data []byte, off int) *Face {
 // CSS recommendation that "normal" line height sit roughly between 1.0
 // and 1.2.
 func typoMetrics(data []byte, off int) (asc, desc int, ok bool) {
-	u16 := func(p int) int { return int(data[p])<<8 | int(data[p+1]) }
-	u32 := func(p int) int {
-		return int(uint32(data[p])<<24 | uint32(data[p+1])<<16 | uint32(data[p+2])<<8 | uint32(data[p+3]))
-	}
-	if off < 0 || off+12 > len(data) {
+	o, l, found := findTable(data, off, "OS/2")
+	if !found || l < 72 || o < 0 || o+72 > len(data) {
 		return 0, 0, false
 	}
-	n := u16(off + 4)
-	for i := 0; i < n; i++ {
-		rec := off + 12 + i*16
-		if rec+16 > len(data) {
-			break
-		}
-		if string(data[rec:rec+4]) != "OS/2" {
-			continue
-		}
-		o, l := u32(rec+8), u32(rec+12)
-		if l < 72 || o < 0 || o+72 > len(data) {
-			return 0, 0, false
-		}
-		asc, desc = int(int16(u16(o+68))), -int(int16(u16(o+70)))
-		if asc <= 0 {
-			return 0, 0, false
-		}
-		return asc, max(desc, 0), true
+	u16 := func(p int) int { return int(data[p])<<8 | int(data[p+1]) }
+	asc, desc = int(int16(u16(o+68))), -int(int16(u16(o+70)))
+	if asc <= 0 {
+		return 0, 0, false
 	}
-	return 0, 0, false
+	return asc, max(desc, 0), true
 }
 
 // UnitsPerEm returns the font design units per em.

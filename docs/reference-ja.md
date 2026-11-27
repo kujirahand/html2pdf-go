@@ -76,11 +76,12 @@
 
 ## 3. 対応属性
 
-実装が読む属性は次のものだけです。それ以外の属性（`id`、`href`、`alt`、`height`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
+実装が読む属性は次のものだけです。それ以外の属性（`href`、`alt`、`height`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
 
 | 属性 | 対象要素 | 効果 |
 |---|---|---|
 | `class` | すべての要素 | `.class` セレクタのマッチに使われます（空白区切りの複数指定可）。 |
+| `id` | すべての要素 | `#id` セレクタのマッチに使われます（大文字小文字を区別する）。 |
 | `style` | すべての要素 | インラインの宣言。優先順位は最高です。 |
 | `src` | `img` | 画像ファイルのパス。相対パスは `BaseDir` を基準に解決されます。`http(s)://` の URL（`://` を含むもの）と `data:` URI は読み込まれません。 |
 | `width` | すべての要素（意味があるのは `img`、`table`、`td`、`th`、ブロック要素） | CSS の長さとして解釈され、単位なしの数値は px。最も優先順位の低い `width` として扱われ、CSS の `width` があればそちらが優先されます。負の値や不正な値は無視されます。 |
@@ -95,17 +96,18 @@
 | クラス（大文字小文字を区別する） | `.note` |
 | 要素 + クラス | `p.note` |
 | 複合クラス | `.a.b`, `td.a.b` |
+| ID（大文字小文字を区別する。1 つの複合セレクタに最大 1 つ） | `#main` |
+| 要素 + ID、クラス + ID | `div#main`, `.a#b`, `div.note#main` |
 | 子孫（空白） | `.total td`, `div p span` |
 | セレクタリスト（カンマ） | `h1, h2, .title` |
 
 | 対応しないもの | 例 |
 |---|---|
-| ID セレクタ | `#main` |
 | 属性セレクタ | `[type=text]` |
 | 擬似クラス・擬似要素 | `:first-child`, `::before` |
 | 子・隣接・間接兄弟コンビネータ | `>`, `+`, `~` |
 
-`# [ ] : > + ~ ( )` のいずれかを含む複合セレクタは**無効**となり、どの要素にもマッチしません。無効なセレクタはエラーにならず、カンマ区切りの他のセレクタは有効なままです。`div>p` も `div > p` も、`>` の部分が無効になるため無効です。
+`[ ] : > + ~ ( )` のいずれかを含む複合セレクタは**無効**となり、どの要素にもマッチしません。空の断片（`#`、`div#`、`a..b`）や 2 つ以上の `#`（`#a#b`）を含むものも無効です。無効なセレクタはエラーにならず、カンマ区切りの他のセレクタは有効なままです。`div>p` も `div > p` も、`>` の部分が無効になるため無効です。
 
 ## 5. カスケード
 
@@ -118,14 +120,15 @@
 
 1 つのルール内では後の宣言が勝ちます。`!important` は無視されます。
 
-**specificity** は左から順に比較する 2 つの数の組です。
+**specificity** は左から順に比較する 3 つの数の組です。
 
-1. セレクタ内のクラス名の数（すべての複合セレクタの合計）
-2. 要素名の数（同じく合計）。`*` は 0 と数えます。
+1. セレクタ内の ID の数（すべての複合セレクタの合計）
+2. クラス名の数（同じく合計）
+3. 要素名の数（同じく合計）。`*` は 0 と数えます。
 
-ID の桁はありません。例: `td.a.b` = (2, 1)、`.total td` = (1, 1)、`p` = (0, 1)。
+例: `#a` = (1, 0, 0)、`div#a.b` = (1, 1, 1)、`td.a.b` = (0, 2, 1)、`.total td` = (0, 1, 1)、`p` = (0, 0, 1)。ID はクラスがいくつあっても常に優先されます。
 
-**継承。** 継承されるプロパティは `font-size`、`font-weight`、`color`、`text-align`、`text-decoration`、`line-height` だけです。それ以外は要素ごとに初期値から始まります。
+**継承。** 継承されるプロパティは `font-size`、`font-weight`、`font-family`、`color`、`text-align`、`text-decoration`、`line-height` だけです。それ以外は要素ごとに初期値から始まります。
 
 ## 6. 値の形式
 
@@ -164,6 +167,7 @@ ID の桁はありません。例: `td.a.b` = (2, 1)、`.total td` = (1, 1)、`p
 | `display` | 任意のキーワード | レイアウトが認識するのは `none`、`block`、`list-item`、`table`、`table-row-group`、`table-row`、`table-cell`、`table-caption`。それ以外の値（`inline`、`inline-block`、`flex`、`grid` など）はすべてインライン扱い。値の検証はありません。 |
 | `font-size` | 長さ、または `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | キーワードは 9, 10, 13, 16, 18, 24, 32px。`smaller` = 0.8333em、`larger` = 1.2em。単位なしの数値や負の値は無視。継承されます。 |
 | `font-weight` | `bold`, `bolder`, `normal`, `lighter`, 数値 | `bold`/`bolder` = 700、`normal`/`lighter` = 400。数値は 700 以上なら太字、未満なら通常（フェイスは 2 種類のみ）。継承されます。 |
+| `font-family` | カンマ区切りのファミリー名 | 各名前から前後の空白と引用符（`'` または `"`）を取り除きます。名前は先頭から順に、インストール済みフォントのファミリー名（大文字小文字を区別せず、name テーブルのみ。ファイル名では照合しない）と照合され、最初に一致したものが使われます（太字なら その太字フェイス）。汎用名（`serif`、`sans-serif`、`monospace`、`cursive`、`fantasy`、`system-ui`、`ui-serif`、`ui-sans-serif`、`ui-monospace`、`ui-rounded`）は読み飛ばされます。一致がなければ基本フォントを使います。継承されます。 |
 | `color` | 色 | 継承されます。罫線色の既定値でもあります。 |
 | `background-color` | 色 | ブロック、表、行（`tr`）、セルに描かれます。インライン要素には描かれません。 |
 | `background` | ショートハンド | 最初に見つかった色のトークンだけを使い、他（画像・位置など）は無視します。値が `transparent` / `none` なら背景をクリアします。 |
@@ -252,17 +256,17 @@ ID の桁はありません。例: `td.a.b` = (2, 1)、`.total td` = (1, 1)、`p
 - `page-break-after` / `break-after` は、ブロックまたは表の後ろで強制的に改ページします。表のセルの内側、インライン要素、表の行では無視されます。`page-break-before`、`page-break-inside`、`break-before`、`break-inside` は未対応です。
 - テキストも画像も含まないページは破棄されるため、空白ページは作れません。
 
-**テキスト。** フォントは通常と太字の 2 種類で、変換時に見つかった日本語対応フォント 1 つから選ばれます（Noto Sans CJK / Noto Sans JP を優先）。太字のフェイスがなければ、太字も通常のフェイスで描かれます。斜体はありません。
+**テキスト。** 基本のフェイスは通常と太字の 2 種類で、変換時に見つかった日本語対応フォント 1 つから選ばれます（Noto Sans CJK / Noto Sans JP を優先）。`FontFile` / `FontFileBold` を指定した場合はそのファイルが使われます。太字のフェイスがなければ、太字も通常のフェイスで描かれます。`font-family` では、ファミリー名でほかのインストール済みフォントも選べます（7 章）。インストール済みフォントは、初めて名前検索したときにフォントディレクトリ（`FontDirs`、なければ標準のディレクトリ）を走査して索引化されます。フォントコレクション（`.ttc`）は 1 つのフェイスがファイルを代表します。斜体はありません。
 
 ## 10. 未対応
 
-- フォントとテキスト: `font-family`、`font-style`（斜体）、`font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
+- フォントとテキスト: `font-style`（斜体）、`font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
 - ボックス: `height`、`min-width`、`max-width`、`min-height`、`max-height`、`box-sizing`、`overflow`、`outline`、`box-shadow`、`opacity`、`visibility`、`margin: auto` による中央寄せ。
 - レイアウト: `float`、`clear`、`position`（`absolute`、`fixed`、`relative`、`sticky`）、`z-index`、flex、grid、マルチカラム、`inline-block` の挙動。
 - 表: `rowspan`、`border-collapse`、`border-spacing`、`cellspacing` / `cellpadding`、表の `caption`、`colgroup` / `col`、セルの `vertical-align`、`table-layout`、セルの `border-radius`。
 - リスト: `list-style`、`list-style-type`、`ol` の `start`、独自マーカー。
 - 背景: `background-image`、グラデーション、`background-position`、`background-repeat`。
-- セレクタとルール: `#id`、属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
+- セレクタとルール: 属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
 - その他: 外部 CSS ファイル、リモート画像や `data:` 画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
 
 ## 11. 変換オプション
@@ -275,7 +279,9 @@ ID の桁はありません。例: `td.a.b` = (2, 1)、`.total td` = (1, 1)、`p
 | `PageWidth`, `PageHeight` | float64（pt） | 任意のサイズ。両方が 0 より大きいときはそのまま使われ、`PageSize` と `Landscape` は無視されます。片方だけ指定したときは、もう片方を `PageSize` から取ります。 |
 | `Landscape` | bool | `PageSize` のサイズの幅と高さを入れ替えます。 |
 | `BaseDir` | string | 画像の相対パスを解決する基準ディレクトリ。 |
-| `FontDirs` | []string | フォントを探すディレクトリ（深さ 4 階層まで、`.ttf`、`.ttc`、`.otf`）。空なら標準のシステムフォントディレクトリ。使えるフォントが見つからないとエラーを返します。 |
+| `FontDirs` | []string | フォントを探すディレクトリ（深さ 4 階層まで、`.ttf`、`.ttc`、`.otf`）。空なら標準のシステムフォントディレクトリ。使えるフォントが見つからないとエラーを返します。`font-family` の名前検索の対象にもなります。 |
+| `FontFile` | string | 自動選択の代わりに通常フェイスとして使うフォントファイルのパス。読み込めない・解析できない場合、`Convert` はエラーを返します。空なら自動選択。 |
+| `FontFileBold` | string | 太字フェイスのファイルパス。`FontFile` だけを指定した場合、太字は通常フェイスで代用されます。読み込めないファイルはエラーです。 |
 | `Scale` | float64 | 内容を縮小（1 未満）・拡大（1 超）します。0 以下は 1.0 として扱い、NaN と無限大はエラー。 |
 | `Margin` | float64（pt） | 4 辺共通のページ余白。0 は余白なし（`body` 自身の 8px の margin は残ります）。 |
 
@@ -294,5 +300,7 @@ html2pdf [flags] input.html
 | `-landscape` | オフ | 横向き。 |
 | `-scale` | `1.0` | 内容の拡大縮小率。 |
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
+| `-font` | 自動検出 | 通常フェイスのフォントファイル（`Options.FontFile`）。 |
+| `-font-bold` | 通常フォント | 太字フェイスのフォントファイル（`Options.FontFileBold`）。 |
 
 CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`FontDirs`、`PageWidth`、`PageHeight` に相当するフラグはありません。フラグは入力ファイルの前後どちらにも置けます。

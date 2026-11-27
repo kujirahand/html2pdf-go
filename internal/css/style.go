@@ -19,6 +19,7 @@ type Style struct {
 	Display         string
 	FontSize        Length
 	FontWeight      int
+	FontFamily      []string // family names in order, unquoted
 	Color           Color
 	BackgroundColor *Color
 	TextAlign       string // left, right, center
@@ -70,12 +71,29 @@ func inheritFrom(p *Style) *Style {
 	s := defaultStyle()
 	s.FontSize = p.FontSize
 	s.FontWeight = p.FontWeight
+	s.FontFamily = p.FontFamily
 	s.Color = p.Color
 	s.TextAlign = p.TextAlign
 	s.TextDecoration = p.TextDecoration
 	s.LineHeight = p.LineHeight
 	s.LineHeightPt = p.LineHeightPt
 	return s
+}
+
+// parseFontFamily splits a comma-separated family list, trimming whitespace
+// and surrounding quotes from each name.
+func parseFontFamily(v string) []string {
+	var out []string
+	for _, f := range strings.Split(v, ",") {
+		f = strings.TrimSpace(f)
+		if len(f) >= 2 && (f[0] == '"' || f[0] == '\'') && f[len(f)-1] == f[0] {
+			f = strings.TrimSpace(f[1 : len(f)-1])
+		}
+		if f != "" {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 // splitTokens splits on whitespace outside parentheses.
@@ -302,6 +320,8 @@ func (s *Style) apply(prop, val string, parentFontSize float64) {
 				s.FontWeight = int(l.Value)
 			}
 		}
+	case "font-family":
+		s.FontFamily = parseFontFamily(val)
 	case "color":
 		if c, ok := ParseColor(val); ok {
 			s.Color = c
