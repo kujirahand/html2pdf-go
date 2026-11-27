@@ -1,74 +1,76 @@
-# アーキテクチャ
+# Architecture
 
-html2pdf-go は、HTML+CSS を純粋な Go だけで PDF に変換するエンジンです。以下のパイプラインは実装済みで、対応範囲と制限事項は後述のとおりです。
+[日本語版](architecture-ja.md)
 
-## パイプライン
+html2pdf-go is an engine that converts HTML+CSS into PDF using pure Go only. The pipeline below is implemented; the supported range and limitations are described later in this document.
+
+## Pipeline
 
 ```
 HTML
   │
   ▼
-dom      HTML をパースして文書ツリーを構築
+dom      Parse HTML and build the document tree
   │
   ▼
-css      スタイルシートを適用（セレクタマッチ → カスケード → 計算済みスタイル）
+css      Apply stylesheets (selector matching → cascade → computed styles)
   │
   ▼
-layout   ボックスツリー生成 → ブロック/テーブルレイアウト → ページ分割
+layout   Box tree generation → block/table layout → pagination
   │
   ▼
-render   レイアウト済みページを描画命令に変換
+render   Convert the laid-out pages into drawing operations
   │
   ▼
-pdf      PDF オブジェクト・コンテンツストリームを書き出し
+pdf      Write PDF objects and content streams
   │
   ▼
 PDF
 ```
 
-`text` パッケージは、フォントの計測と折り返しのために `layout` と `render` から利用されます。
+The `text` package is used by `layout` and `render` for font measurement and line breaking.
 
-## パッケージの責務
+## Package responsibilities
 
-| パッケージ | 責務 |
+| Package | Responsibility |
 |---|---|
-| `internal/dom` | HTML をパースし、スタイル適用済みの文書ツリーを構築する（将来 `x/net/html` を利用） |
-| `internal/css` | CSS のパース、セレクタマッチング、カスケード、計算済みスタイルの生成 |
-| `internal/text` | フォントの読み込み・計測、文字列の整形（折り返し・禁則処理） |
-| `internal/layout` | ボックスツリーの生成、ブロック/テーブルレイアウト、ページネーション |
-| `internal/render` | レイアウト済みページを `pdf` パッケージ経由で描画する |
-| `internal/pdf` | PDF ファイルの書き出し（オブジェクト、コンテンツストリーム、フォント・画像の埋め込み） |
+| `internal/dom` | Parses HTML and builds the styled document tree (will use `x/net/html` in the future) |
+| `internal/css` | CSS parsing, selector matching, the cascade, and computed-style generation |
+| `internal/text` | Font loading and measurement, and text shaping (line breaking and line-break rules / kinsoku) |
+| `internal/layout` | Box tree generation, block/table layout, and pagination |
+| `internal/render` | Renders laid-out pages via the `pdf` package |
+| `internal/pdf` | PDF file writing (objects, content streams, and font/image embedding) |
 
-## Scale（縮小・拡大率）
+## Scale (shrink / enlarge factor)
 
-`Options.Scale`（CLI では `-scale`）で内容全体を縮小・拡大できます。wkhtmltopdf の zoom / smart shrinking や、Chrome の printToPDF の `scale` に相当する調整機能です。0 以下は 1.0 として扱います。
+With `Options.Scale` (`-scale` in the CLI) you can shrink or enlarge the whole content. It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`. Values of 0 or less are treated as 1.0.
 
-- `layout` は「実ページ寸法 / Scale」の仮想ページでレイアウトし、返す `Page` の `Width`/`Height` は実寸に戻して `Scale` を持たせる
-- `render` は `Page.Scale` を `pdf.Page.SetScale` に渡し、`pdf` が描画時に座標・サイズ・線幅・フォントサイズへ Scale を掛ける（Y 軸の反転は実寸のページ高さで行う）
-- Scale が 1 のときは従来と同じ結果になる
+- `layout` lays out on a virtual page of "real page size / Scale", and the returned `Page` has its `Width`/`Height` restored to the real size and carries the `Scale`
+- `render` passes `Page.Scale` to `pdf.Page.SetScale`, and `pdf` multiplies coordinates, sizes, line widths, and font sizes by the Scale when drawing (the Y-axis flip uses the real page height)
+- When Scale is 1, the result is the same as before
 
-## 当面の対応範囲
+## Supported range for now
 
-実装済みの対応範囲の詳細は [reference-ja.md](reference-ja.md)（English: [reference.md](reference.md)）を参照してください。
+For details of the implemented supported range, see [reference.md](reference.md) (Japanese: [reference-ja.md](reference-ja.md)).
 
-請求書 HTML の実測に基づきます。
+It is based on measurements of invoice HTML.
 
-- **タグ**: `h1`, `p`, `div`, `br`, `table`, `tr`, `th`, `td`, `img`, `center`, `ul`, `li`, `ol`（`ul`, `li`, `ol` は請求書では未使用だが、一般的な文書で必須のため初期対応範囲に含める）
-- **セレクタ**: `*`、要素、`.class`、`#id`、それらの複合（`要素.class`、`要素#id`、`.class#id` など）、子孫（`.total td` など）。specificity は（ID 数, クラス数, 要素数）の 3 つ組
-- **プロパティ**: `font-size`, `font-weight`, `font-family`（`FontFile` / `FontFileBold` や、インストール済みフォントのファミリー名で指定）, `color`, `background-color`, `text-align`, `text-decoration`, `line-height`, `margin`（および各辺）, `padding`（および各辺）, `border`（および各辺。スタイルは solid / dashed / dotted / double、角丸は `border-radius` と各隅のロングハンド）, `width`, `page-break-after`
-- **単位**: 長さ系プロパティ（`width`, `margin`, `padding`, `font-size` など）でサポートする単位は `px`, `em`, `rem`, `%`, `pt`, `mm`, `cm`, `in`、および単位なしの `0`
-  - 換算基準: 1px = 0.75pt（96dpi → 72pt）、1in = 25.4mm = 72pt
-  - `em` は当該要素の `font-size` 基準（ただし `font-size` 自身の指定では親要素の `font-size` 基準）、`rem` はルート要素の `font-size` 基準
-  - `%` はプロパティごとに基準が異なる（`width` 系は包含ブロックの幅）
+- **Tags**: `h1`, `p`, `div`, `br`, `table`, `tr`, `th`, `td`, `img`, `center`, `ul`, `li`, `ol` (`ul`, `li`, `ol` are not used in invoices, but are included in the initial supported range because they are essential for general documents)
+- **Selectors**: `*`, element, `.class`, `#id`, and compounds of them (such as `element.class`, `element#id`, `.class#id`), and descendants (such as `.total td`). Specificity is a triple of (number of IDs, number of classes, number of elements)
+- **Properties**: `font-size`, `font-weight`, `font-family` (specified via `FontFile` / `FontFileBold`, or by the family name of an installed font), `color`, `background-color`, `text-align`, `text-decoration`, `line-height`, `margin` (and each side), `padding` (and each side), `border` (and each side; styles are solid / dashed / dotted / double, and corner rounding uses `border-radius` and the longhands for each corner), `width`, `page-break-after`
+- **Units**: The units supported for length-like properties (such as `width`, `margin`, `padding`, `font-size`) are `px`, `em`, `rem`, `%`, `pt`, `mm`, `cm`, `in`, and a unit-less `0`
+  - Conversion basis: 1px = 0.75pt (96dpi → 72pt), 1in = 25.4mm = 72pt
+  - `em` is relative to the element's own `font-size` (except that a `font-size` specification itself is relative to the parent element's `font-size`), and `rem` is relative to the root element's `font-size`
+  - The basis of `%` differs per property (for `width`-like properties it is the width of the containing block)
 
-## 制限事項
+## Limitations
 
-- 1ページより高いテーブル行や画像は分割されず、はみ出した部分は描画されない
-- 入れ子のテーブルは深さに対して処理時間が指数的に増えるため、深い入れ子には向かない
-- テーブルの列幅は自動レイアウト方式で、`width` 未指定の表ではセルの `%` 指定は、列幅の合計が収まる場合は使われず、縮小が必要な場合にのみ使われる
-- `text-align: center` のブロック内では表が中央寄せされる（ブラウザとの相違点）
+- A table row or image taller than one page is not split; the overflowing part is not drawn
+- Processing time for nested tables grows exponentially with depth, so deeply nested tables are not a good fit
+- Table column widths use automatic layout; in a table with no `width` specified, a cell's `%` specification is not used when the column widths fit in total, and is used only when shrinking is required
+- Inside a block with `text-align: center`, a table is centered (a difference from browsers)
 
-## 非目標（初期）
+## Non-goals (initial)
 
 - JavaScript
 - flex
@@ -76,11 +78,11 @@ PDF
 - float
 - position
 
-## ロードマップ
+## Roadmap
 
-| バージョン | 内容 |
+| Version | Contents |
 |---|---|
-| v0 | テキストのみ描画 |
-| v1 | ブロックと罫線（リスト `ul`/`ol`/`li` のマーカー・番号・インデントを含む） |
-| v2 | テーブル |
-| v3 | 画像と改ページ |
+| v0 | Text-only rendering |
+| v1 | Blocks and borders (including list `ul`/`ol`/`li` markers, numbers, and indentation) |
+| v2 | Tables |
+| v3 | Images and page breaks |
