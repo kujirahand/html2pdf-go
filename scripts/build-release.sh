@@ -4,6 +4,10 @@
 set -eu
 
 version="${1:-dev}"
+# A tag may contain '/' (e.g. release/v1.0.0) and still match the
+# workflow's v* trigger. Keep the original string for the embedded
+# version, but never let it become a path separator in archive names.
+filever=$(printf '%s' "$version" | tr '/' '-')
 root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
@@ -17,7 +21,7 @@ dist="$root/dist"
 for target in $targets; do
 	os=${target%/*}
 	arch=${target#*/}
-	name="html2pdf-go_${version}_${os}_${arch}"
+	name="html2pdf-go_${filever}_${os}_${arch}"
 	ext=""
 	[ "$os" = windows ] && ext=".exe"
 
