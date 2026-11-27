@@ -106,7 +106,7 @@ Only these attributes are read by the implementation. All other attributes (`hre
 | `class` | any element | Matched by `.class` selectors (space-separated list). |
 | `id` | any element | Matched by `#id` selectors (case-sensitive). |
 | `style` | any element | Inline declarations; highest priority. |
-| `src` | `img` | Image file path. Relative paths resolve against `BaseDir`. `http(s)://` URLs (anything containing `://`) and `data:` URIs are not loaded. |
+| `src` | `img` | Image file path, or a `data:` URI. Relative paths resolve against `BaseDir`. `data:` URIs may be base64 (`data:image/png;base64,...`) or percent-encoded (`data:image/gif,...`); the media type, if given, must be `image/*`; PNG, JPEG and GIF are decoded. `http(s)://` URLs (anything containing `://`) are not loaded. |
 | `width` | any element (meaningful for `img`, `table`, `td`, `th`, block elements) | Parsed as a CSS length; a bare number means px. Treated as the lowest-priority `width` (overridden by any CSS `width`). Negative or invalid values are ignored. |
 | `colspan` | `td`, `th` | Number of columns spanned. Values of 1 or less, or non-numeric values, mean 1. Capped at 1000. |
 
@@ -265,7 +265,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 **Lists.** `ul` items get the marker `• ` regardless of nesting; `list-style` is not supported. `ol` items get `1. `, `2. `, ... numbered by counting the `display: list-item` children of the `ol` up to the item (`start` and `reversed` are not supported). A `li` whose parent is not an `ol` gets a bullet. The marker is drawn once, on the first line of the item, to the left of the item's content box (in the list's padding), using the item's font size, weight and color. An item with no inline content gets no marker.
 
-**Images.** `img` is inline, with its bottom on the text baseline. The default size is the file's pixel size × 0.75. A CSS or attribute `width` sets the width and the height follows the aspect ratio (`height` is ignored). Files over 8192 pixels on a side or 33 million pixels, and unreadable or unsupported files, are skipped silently (no placeholder, no `alt` text).
+**Images.** `img` is inline, with its bottom on the text baseline. The default size is the image's pixel size (the file's, or the decoded `data:` URI's) × 0.75. A CSS or attribute `width` sets the width and the height follows the aspect ratio (`height` is ignored). Images over 8192 pixels on a side or 33 million pixels, and unreadable, invalid or unsupported images (including SVG), are skipped silently (no placeholder, no `alt` text).
 
 **Tables.**
 - Cells are placed left to right; `colspan` makes a cell span columns. There is no `rowspan`.
@@ -291,7 +291,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
-- Other: remote CSS, remote frames, remote or `data:` images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
+- Other: remote CSS, remote frames, remote images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
 
 ## 11. Conversion options
 
@@ -308,6 +308,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
+| `MarkdownCSS` | string | Extra CSS appended after `DefaultMarkdownCSS`. Used only by `ConvertMarkdown` and `ConvertMarkdownFile`; see [markdown.md](markdown.md). |
 
 Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertFile(htmlPath, pdfPath string, opts *Options) error` (nil `opts` is allowed; `ConvertFile` writes the file only on success).
 

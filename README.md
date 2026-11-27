@@ -1,8 +1,74 @@
 # html2pdf-go
 
-pure Go の HTML→PDF 変換エンジンです。HTML のパース、CSS の適用、レイアウト、PDF の書き出しまで実装済みです。対応する HTML/CSS の範囲は [docs/reference-ja.md](docs/reference-ja.md) を参照してください。
+[日本語版 README](README-ja.md)
 
-## ライブラリとしての使い方
+A pure-Go HTML-to-PDF conversion engine. HTML parsing, CSS application, layout, and PDF writing are all implemented. For the supported range of HTML/CSS, see [docs/reference.md](docs/reference.md).
+
+## Tutorial
+
+First, let's convert one HTML file into a PDF with the CLI. It takes just a few minutes.
+
+### 1. Install it
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
+```
+
+### 2. Create an HTML file
+
+Create a file named `hello.html` with the following content. It is a minimal example with a heading, a paragraph, a list, a table, and styling in a `<style>` element.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-size: 12pt; margin: 48px; }
+  h1 { font-size: 20pt; color: #205090; }
+  table { border: 1px solid #333; }
+  th, td { border: 1px solid #333; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<h1>My first PDF</h1>
+<p>This PDF was made with html2pdf-go. Japanese text such as こんにちは works as-is, too.</p>
+<ul>
+  <li>Headings and paragraphs</li>
+  <li>Lists</li>
+  <li>Tables</li>
+</ul>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Page size</td><td>A4</td></tr>
+  <tr><td>Font</td><td>Chosen automatically</td></tr>
+</table>
+</body>
+</html>
+```
+
+### 3. Convert it to PDF
+
+```sh
+html2pdf hello.html
+```
+
+This creates `hello.pdf` in the same folder. Open it and you should see a PDF with a large blue heading and a table with borders.
+
+To change the output file or the page settings, pass options:
+
+```sh
+html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # output file and margins
+html2pdf -scale 0.95 hello.html                            # shrink everything to 95%
+```
+
+### 4. Next steps
+
+- Change the appearance: edit the contents of the `<style>` element. The available HTML elements and CSS are listed in [docs/reference.md](docs/reference.md)
+- Use it from a Go program: see "Using it as a library" below
+- See real examples: [examples/](examples/) contains sample HTML such as an address book and a receipt
+
+## Using it as a library
 
 ```sh
 go get github.com/kujirahand/html2pdf-go
@@ -31,54 +97,71 @@ func main() {
 }
 ```
 
-## CLI の使い方
+## Using the CLI
 
 ```sh
 go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 
-html2pdf input.html                    # input.pdf を出力
+html2pdf input.html                    # writes input.pdf
 html2pdf -o out.pdf -page-size A4 input.html
-html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
+html2pdf -scale 0.95 input.html        # shrinks the content to 95%
 ```
 
-`-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
+`-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 
-## 開発
+## Markdown to PDF (md2pdf)
 
-タスクランナー [just](https://github.com/casey/just) を使います。`just` だけでレシピ一覧を表示します。
+`md2pdf` converts a Markdown file into a PDF. It turns the Markdown into HTML with [goldmark](https://github.com/yuin/goldmark) and passes it through the same engine (Markdown → HTML → PDF).
+
+```sh
+go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
+
+md2pdf input.md                        # writes input.pdf
+md2pdf -o out.pdf -margin 48 input.md
+md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
+```
+
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+
+From a Go program:
+
+```go
+// Markdown bytes to PDF bytes
+err := html2pdf.ConvertMarkdown(src, &buf, &html2pdf.Options{PageSize: "A4", MarkdownCSS: "h1 { color: #205090; }"})
+
+// Markdown file to PDF file (BaseDir defaults to the Markdown file's directory)
+err = html2pdf.ConvertMarkdownFile("input.md", "out.pdf", nil)
+
+// Just the HTML document, with the default stylesheet embedded
+htmlDoc, err := html2pdf.MarkdownToHTML(src)
+```
+
+Supported Markdown: headings, paragraphs, bold, lists (including nested ones), task lists, blockquotes, fenced and indented code blocks, GFM tables, horizontal rules, links, images, and raw HTML.
+
+Limitations:
+
+- There is no italic face, so emphasis is drawn as regular text.
+- Code blocks keep their line breaks and indentation (through a transform of `<pre>` blocks), but they are not set in a monospace font.
+- Raw HTML in the Markdown passes through unchanged, so only convert input you trust.
+
+See [docs/markdown.md](docs/markdown.md) for details.
+
+## Development
+
+Development tasks use the [just](https://github.com/casey/just) task runner. Running `just` with no arguments lists the recipes.
 
 ```sh
 just test      # go test ./...
-just fonts     # IPAex フォントを fonts/ に取得（取得済みなら何もしない）
-just samples   # サンプル PDF 一式を out/ に生成
+just fonts     # downloads the IPAex fonts into fonts/ (does nothing if already downloaded)
+just samples   # generates the sample PDFs into out/
 ```
 
-## フォルダ構成
+## Supported range and roadmap
 
-| パス | 内容 |
-|---|---|
-| `html2pdf.go` | 公開 API（`Convert`, `ConvertFile`, `Options`） |
-| `cmd/html2pdf/` | CLI ツール |
-| `internal/dom` | HTML パースと文書ツリー |
-| `internal/css` | CSS パース、カスケード、計算済みスタイル |
-| `internal/text` | フォント計測、折り返し・禁則処理 |
-| `internal/layout` | ボックス生成、レイアウト、ページネーション |
-| `internal/render` | レイアウト結果の描画 |
-| `internal/pdf` | PDF 書き出し |
-| `examples/basic/` | 最小の使用例 |
-| `examples/*.html` | サンプル文書（住所録、領収書など） |
-| `justfile` | 開発用タスク（test / fonts / samples） |
-| `fonts/` | `just fonts` で取得する IPAex フォントの置き場（バイナリは管理対象外） |
-| `out/` | 生成したサンプル PDF の出力先（管理対象外） |
-| `testdata/` | テスト用 HTML |
-| `docs/` | 設計ドキュメント |
+See [docs/architecture.md](docs/architecture.md).
 
-## 対応範囲とロードマップ
+For the list of supported HTML elements and CSS, see [docs/reference.md](docs/reference.md) (Japanese: [docs/reference-ja.md](docs/reference-ja.md)).
 
-[docs/architecture.md](docs/architecture.md) を参照してください。
+## License
 
-対応する HTML 要素・CSS の一覧は [docs/reference-ja.md](docs/reference-ja.md)（English: [docs/reference.md](docs/reference.md)）を参照してください。
-
-## ライセンス
-
-MIT ライセンスです。詳細は `LICENSE` ファイルを参照してください。
+MIT License. See the `LICENSE` file for details.
