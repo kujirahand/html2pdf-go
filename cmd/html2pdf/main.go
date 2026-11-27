@@ -11,6 +11,9 @@ import (
 	html2pdf "github.com/kujirahand/html2pdf-go"
 )
 
+// version is stamped at build time with -ldflags "-X main.version=...".
+var version = "dev"
+
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
 var valueFlags = map[string]bool{"o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true}
 
@@ -48,11 +51,17 @@ func main() {
 	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories to search for fonts (replaces the default font locations)")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: html2pdf [flags] input.html")
 		flag.PrintDefaults()
 	}
 	flag.CommandLine.Parse(reorderArgs(os.Args[1:]))
+
+	if *showVersion {
+		fmt.Println("html2pdf " + version)
+		return
+	}
 
 	if flag.NArg() < 1 {
 		flag.Usage()

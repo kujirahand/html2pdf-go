@@ -10,6 +10,8 @@ pure Go の HTML→PDF 変換エンジンです。HTML のパース、CSS の適
 
 ### 1. インストールする
 
+Linux・macOS・Windows 向けのビルド済みバイナリは [GitHub Releases ページ](https://github.com/kujirahand/html2pdf-go/releases)にあります。Go を使う場合は次のとおりです。
+
 ```sh
 go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 ```

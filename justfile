@@ -64,6 +64,10 @@ receipt: fonts
     mkdir -p out
     go run ./cmd/html2pdf examples/receipt.html -o out/receipt.pdf -margin 48 -font-dirs fonts
 
-# 生成物 out/ を削除
+# 各 OS 向けのリリース用バイナリを dist/ に生成（例: just release-binaries v0.1.0）
+release-binaries version='dev':
+    sh scripts/build-release.sh {{version}}
+
+# 生成物 out/ と dist/ を削除
 clean:
-    rm -rf out
+    rm -rf out dist
