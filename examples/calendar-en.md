@@ -12,8 +12,10 @@ Sunday-start. December 1 is a Tuesday.
 
 ## Events This Month
 
+- **Tuesday, December 8:** Meeting
+- **Tuesday, December 15:** Onsen Trip
 - **Saturday, December 19:** Sakuramml Live (doors 17:30 / start 18:00)
-- **Friday, December 25:** Christmas
+- **Tuesday, December 22:** Meeting
 - **Thursday, December 31:** New Year's Eve
 
 *All events are fictional.*
