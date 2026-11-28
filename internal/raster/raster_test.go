@@ -188,3 +188,21 @@ func TestRenderRejectsHugeScale(t *testing.T) {
 		t.Error("expected an error for an oversized bitmap")
 	}
 }
+
+// Clip layers are full-page bitmaps; their total size is budgeted so
+// deeply nested frames on a huge page cannot multiply memory without
+// limit.
+func TestRenderClipBudget(t *testing.T) {
+	saved := maxClipPixels
+	defer func() { maxClipPixels = saved }()
+	maxClipPixels = 10 // smaller than one page layer
+	fonts := testFonts(t)
+	page := &layout.Page{Width: pageW, Height: pageH, Items: []layout.Item{
+		layout.ClipItem{X: 0, Y: 0, W: 50, H: 100},
+		layout.RectItem{X: 0, Y: 0, W: 200, H: 100, Fill: &css.Color{G: 1}},
+		layout.ClipItem{End: true},
+	}}
+	if _, err := Render([]*layout.Page{page}, fonts, "", false, 1); err == nil {
+		t.Fatal("clip over the layer budget was accepted")
+	}
+}

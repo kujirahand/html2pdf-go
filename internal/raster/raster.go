@@ -50,6 +50,12 @@ const (
 	maxTotalPixels = 200_000_000
 )
 
+// maxClipPixels bounds the total pixels of the clip layers alive at one
+// time. Each layer is a full-page bitmap, so nested frames on a huge page
+// could otherwise multiply the page's own memory many times over. It is a
+// variable so tests can shrink it.
+var maxClipPixels = 100_000_000
+
 // maxDashes bounds the dashes or dots of one line; a longer pattern is
 // drawn solid.
 const maxDashes = 50000
@@ -89,6 +95,10 @@ type renderer struct {
 	// clip layer.
 	dst   *image.NRGBA
 	stack []clipLayer
+	// clipPixels is the total size of the live clip layers, charged
+	// against maxClipPixels; err records the first fatal draw error.
+	clipPixels int
+	err        error
 
 	ras   vector.Rasterizer
 	faces map[faceKey]font.Face
@@ -104,11 +114,26 @@ type renderer struct {
 // resolved against the directory each ImageItem names and confined to
 // rootDir unless allowExternal is set, like package render.
 func Render(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExternal bool, scale float64) ([]*image.NRGBA, error) {
+	var out []*image.NRGBA
+	err := RenderEach(pages, fonts, rootDir, allowExternal, scale, func(img *image.NRGBA) error {
+		out = append(out, img)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RenderEach is Render delivering each page's bitmap to fn before the
+// next page is drawn, so a caller that encodes or writes pages as they
+// arrive does not hold every raw bitmap at once.
+func RenderEach(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExternal bool, scale float64, fn func(*image.NRGBA) error) error {
 	if scale <= 0 {
 		scale = defaultScale
 	}
 	if math.IsNaN(scale) || math.IsInf(scale, 0) {
-		return nil, fmt.Errorf("raster: invalid scale %v", scale)
+		return fmt.Errorf("raster: invalid scale %v", scale)
 	}
 	r := &renderer{
 		fonts:         fonts,
@@ -126,16 +151,15 @@ func Render(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExte
 			}
 		}
 	}()
-	out := make([]*image.NRGBA, 0, len(pages))
 	total := 0
 	for _, p := range pages {
 		w, h := math.Round(p.Width*scale), math.Round(p.Height*scale)
 		if !(w >= 1 && h >= 1) || w > maxPageSide || h > maxPageSide || w*h > maxPagePixels {
-			return nil, fmt.Errorf("raster: page of %vx%v points at scale %v is out of range", p.Width, p.Height, scale)
+			return fmt.Errorf("raster: page of %vx%v points at scale %v is out of range", p.Width, p.Height, scale)
 		}
 		total += int(w) * int(h)
 		if total > maxTotalPixels {
-			return nil, errors.New("raster: the pages exceed the total bitmap budget")
+			return errors.New("raster: the pages exceed the total bitmap budget")
 		}
 		page := image.NewNRGBA(image.Rect(0, 0, int(w), int(h)))
 		draw.Draw(page, page.Bounds(), image.White, image.Point{}, draw.Src)
@@ -147,16 +171,26 @@ func Render(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExte
 		r.k = scale * r.pageScale
 		r.dst = page
 		r.stack = r.stack[:0]
+		r.clipPixels = 0
+		r.err = nil
 		for _, it := range p.Items {
+			if r.err != nil {
+				break
+			}
 			r.item(it)
 		}
 		// Close clips the page left open.
 		for len(r.stack) > 0 {
 			r.popClip()
 		}
-		out = append(out, page)
+		if r.err != nil {
+			return r.err
+		}
+		if err := fn(page); err != nil {
+			return err
+		}
 	}
-	return out, nil
+	return nil
 }
 
 func (r *renderer) item(it layout.Item) {
@@ -194,6 +228,12 @@ func (r *renderer) pushClip(it layout.ClipItem) {
 	x1, y1 := sane((it.X+it.W)*r.k), sane((it.Y+it.H)*r.k)
 	rect := image.Rect(int(math.Floor(x0)), int(math.Floor(y0)), int(math.Ceil(x1)), int(math.Ceil(y1))).
 		Intersect(r.dst.Bounds())
+	layer := r.dst.Bounds().Dx() * r.dst.Bounds().Dy()
+	if r.clipPixels+layer > maxClipPixels {
+		r.err = errors.New("raster: nested clips exceed the layer pixel budget")
+		return
+	}
+	r.clipPixels += layer
 	r.stack = append(r.stack, clipLayer{below: r.dst, rect: rect})
 	r.dst = image.NewNRGBA(r.dst.Bounds())
 }
@@ -204,6 +244,7 @@ func (r *renderer) popClip() {
 	}
 	top := r.stack[len(r.stack)-1]
 	r.stack = r.stack[:len(r.stack)-1]
+	r.clipPixels -= top.below.Bounds().Dx() * top.below.Bounds().Dy()
 	if !top.rect.Empty() {
 		draw.Draw(top.below, top.rect, r.dst, top.rect.Min, draw.Over)
 	}

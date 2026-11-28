@@ -4,6 +4,7 @@ package html2pdf
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/png"
 	"io"
 	"math"
@@ -234,17 +235,17 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	images, err := raster.Render(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, scale)
-	if err != nil {
-		return nil, err
-	}
-	out := make([][]byte, len(images))
-	for i, img := range images {
+	var out [][]byte
+	err = raster.RenderEach(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, scale, func(img *image.NRGBA) error {
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, img); err != nil {
-			return nil, err
+			return err
 		}
-		out[i] = buf.Bytes()
+		out = append(out, buf.Bytes())
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
 }
