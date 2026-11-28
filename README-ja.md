@@ -70,7 +70,7 @@ html2pdf -format png input.html        # input.png を出力（PNG 画像出力�
 
 既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。フォルダの外を指す絶対パスや `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
 
-`-format png` を指定すると、PDF の代わりにページごとの PNG 画像を出力します（複数ページの場合は `.png` の前に `-1`、`-2`、... が付きます）。解像度は `-png-scale` で、72dpi のポイントに対する倍率を指定します（既定 2、つまり 144dpi）。Go のプログラムからは `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG` が使え、ページごとの PNG を返します。
+`-format png` を指定すると、PDF の代わりにページごとの PNG 画像を出力します（複数ページの場合は `.png` の前に `-1`、`-2`、... が付きます）。解像度は `-png-scale` で、72dpi のポイントに対する倍率を指定します（既定 2、つまり 144dpi）。`-format` を省略して `-o` に `.png` の名前を付けても PNG 出力になります。Go のプログラムからは `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG` が使え、ページごとの PNG を返します。
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 

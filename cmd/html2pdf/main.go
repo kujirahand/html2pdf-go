@@ -91,12 +91,28 @@ func writePNGs(output string, pages [][]byte) error {
 	return nil
 }
 
+// resolveFormat decides the output format: an explicit -format wins;
+// without one, a .png output name selects PNG and anything else PDF.
+func resolveFormat(format, output string) (string, error) {
+	switch format {
+	case "pdf", "png":
+		return format, nil
+	case "":
+		if strings.EqualFold(filepath.Ext(output), ".png") {
+			return "png", nil
+		}
+		return "pdf", nil
+	default:
+		return "", fmt.Errorf("unknown -format %q (want pdf or png)", format)
+	}
+}
+
 // mmToPt converts millimetres to PDF points.
 func mmToPt(mm float64) float64 { return mm * 72 / 25.4 }
 
 func main() {
-	out := flag.String("o", "", "output path (default: input with .pdf extension, or output.pdf with -e; .png with -format png)")
-	format := flag.String("format", "pdf", "output format: pdf or png (png writes one file per page, name-1.png, name-2.png, ...)")
+	out := flag.String("o", "", "output path (default: input with .pdf extension, or output.pdf with -e; a .png extension selects PNG output unless -format is given)")
+	format := flag.String("format", "", "output format: pdf or png (default: png when the -o name ends in .png, otherwise pdf; png writes one file per page, name-1.png, name-2.png, ...)")
 	pngScale := flag.Float64("png-scale", 2, "rasterization scale for -format png (2 = 144 dpi)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
 	pageWidth := flag.Float64("page-width", 0, "page width in millimetres (overrides -page-size width; 0 keeps the named size)")
@@ -121,11 +137,6 @@ func main() {
 	if *showVersion {
 		fmt.Println("html2pdf " + version)
 		return
-	}
-
-	if *format != "pdf" && *format != "png" {
-		fmt.Fprintf(os.Stderr, "html2pdf: unknown -format %q (want pdf or png)\n", *format)
-		os.Exit(2)
 	}
 
 	// -e counts as given even with an empty value, so presence is what
@@ -196,8 +207,13 @@ func main() {
 	if *verbose {
 		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
+	outFormat, ferr := resolveFormat(*format, output)
+	if ferr != nil {
+		fmt.Fprintf(os.Stderr, "html2pdf: %v\n", ferr)
+		os.Exit(2)
+	}
 	var err error
-	if *format == "png" {
+	if outFormat == "png" {
 		src := []byte(*htmlSrc)
 		if !inline {
 			src, err = os.ReadFile(input)
