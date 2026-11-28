@@ -243,15 +243,20 @@ func (l *layouter) paragraphs(segs []seg, cw float64) []para {
 	return out
 }
 
+// runeOf maps a non-breaking space to a plain space for measuring and drawing.
+func runeOf(r rune) rune {
+	if r == nbsp {
+		return ' '
+	}
+	return r
+}
+
 func (l *layouter) advance(c cellr) float64 {
 	if c.img != nil {
 		return c.img.w
 	}
-	r := c.r
-	if r == nbsp {
-		r = ' '
-	}
-	return l.face(c.st).Advance(r, c.st.FontSize.Value)
+	r := runeOf(c.r)
+	return l.faceForRune(c.st, r).Advance(r, c.st.FontSize.Value)
 }
 
 // inline lays out an inline run as line boxes inside the block style bst.
@@ -349,10 +354,11 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 		var sb strings.Builder
 		var w float64
 		j := i
+		face := l.faceForRune(c.st, runeOf(c.r))
 		for j < len(cells) && cells[j].img == nil && cells[j].st == c.st {
-			r := cells[j].r
-			if r == nbsp {
-				r = ' '
+			r := runeOf(cells[j].r)
+			if j > i && l.faceForRune(c.st, r) != face {
+				break
 			}
 			sb.WriteRune(r)
 			w += adv[j]
@@ -362,7 +368,7 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 		ul := c.st.TextDecoration == "underline"
 		if ul || strings.TrimSpace(s) != "" {
 			l.emit(prim{kind: pText, x: cx, y: baseline, text: s, size: c.st.FontSize.Value,
-				bold: c.st.Bold(), face: l.face(c.st), color: c.st.Color, underline: ul})
+				bold: c.st.Bold(), face: face, color: c.st.Color, underline: ul})
 		}
 		cx += w
 		i = j

@@ -2,7 +2,7 @@
 
 [日本語版 / Japanese](markdown-ja.md)
 
-`md2pdf` converts a Markdown file into a PDF with the same engine as `html2pdf`. For the HTML and CSS the engine supports, see [reference.md](reference.md).
+`md2pdf` converts a Markdown file into a PDF with the same engine as `html2pdf`. It accepts the same flags as `html2pdf` plus `-css` for an extra stylesheet. For the HTML and CSS the engine supports, see [reference.md](reference.md).
 
 ## 1. Pipeline
 
@@ -68,8 +68,6 @@ The layout engine collapses all whitespace (including newlines) and has no white
 ## 5. Limitations
 
 - No italic: emphasis is drawn as regular text.
-- Code blocks and inline code are not set in a monospace font; the engine skips generic font families such as `monospace`. Indentation and line breaks are preserved, but characters are not aligned in columns.
-- Background color is not drawn on inline elements, so inline `code` has no background. Code blocks (blocks) do.
 - Links are drawn but are not clickable.
 - Long code lines wrap like normal text.
 - Raw HTML in the source is passed through (goldmark runs with unsafe rendering enabled). Only convert Markdown you trust.

@@ -20,7 +20,8 @@ type tcell struct {
 	bm         boxm
 	col, span  int
 	rowspan    int
-	height     float64
+	height     float64 // natural border-box height of the content
+	need       float64 // height the rows must provide (height, or a CSS height minimum)
 	minW, maxW float64 // outer (border-box) widths
 	fixed      float64 // outer width, or -1
 	pct        float64 // percentage of the table width, or -1
@@ -346,8 +347,17 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 				return 0
 			}
 			c.height = c.bm.b[css.Top] + c.bm.p[css.Top] + ch + c.bm.p[css.Bottom] + c.bm.b[css.Bottom]
+			// A specified height is a border-box minimum for the cell (as in
+			// browsers, where table-cell height acts as a minimum). Percentages
+			// are ignored: a cell has no definite base for them. It raises the
+			// rows only, so the content stays vertically centred as before;
+			// taller content still wins.
+			c.need = c.height
+			if h := c.st.Height; h != nil && h.Unit != css.UnitPercent {
+				c.need = max(c.need, h.Resolve(c.st.FontSize.Value, css.RootFontSize, 0))
+			}
 			if c.rowspan == 1 {
-				heights[i] = max(heights[i], c.height)
+				heights[i] = max(heights[i], c.need)
 			} else {
 				spans = append(spans, spanning{i, c})
 			}
@@ -360,8 +370,8 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 		for _, v := range heights[sp.row:end] {
 			h += v
 		}
-		if h < sp.cell.height {
-			heights[end-1] += sp.cell.height - h
+		if h < sp.cell.need {
+			heights[end-1] += sp.cell.need - h
 		}
 	}
 	type block struct {

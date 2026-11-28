@@ -104,6 +104,19 @@ func LoadFontSet(dirs []string, regularFile, boldFile string) (*FontSet, error) 
 	return fs, nil
 }
 
+// FallbackFor returns the set's default face (same weight) when it has a
+// glyph for r and face does not; otherwise nil.
+func (s *FontSet) FallbackFor(face *Face, r rune, bold bool) *Face {
+	fb := s.Regular
+	if bold {
+		fb = s.Bold
+	}
+	if fb == nil || fb == face || (face != nil && face.GlyphID(r) != 0) || fb.GlyphID(r) == 0 {
+		return nil
+	}
+	return fb
+}
+
 // FaceFor returns the face for the first family in families that names an
 // installed font (case-insensitively), choosing its bold or regular face.
 // The generic name monospace resolves through monospace; other generic names

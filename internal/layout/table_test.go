@@ -173,3 +173,13 @@ func TestRowspanEmptyRowAndNoThead(t *testing.T) {
 		}
 	}
 }
+
+// A CSS height on a spanning cell is a minimum for the rows it spans, and the
+// content stays centred on its own height.
+func TestRowspanCellHeightMinimum(t *testing.T) {
+	p := layoutTable(t, `<table><tr><td rowspan="2" style="height: 100pt">A</td><td>X</td></tr><tr><td>Y</td></tr><tr><td>Z</td></tr></table>`, Options{})[0]
+	x := tableTexts(p)
+	if d := x["Z"].Y - x["X"].Y; d < 90 {
+		t.Fatalf("height minimum ignored on a spanning cell: Z-X = %.1f", d)
+	}
+}

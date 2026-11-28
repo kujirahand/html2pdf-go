@@ -1,6 +1,71 @@
 package layout
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/kujirahand/html2pdf-go/internal/text"
+)
+
+// textItems returns every TextItem on the pages.
+func textItems(pages []*Page) []TextItem {
+	var out []TextItem
+	for _, p := range pages {
+		for _, it := range p.Items {
+			if t, ok := it.(TextItem); ok {
+				out = append(out, t)
+			}
+		}
+	}
+	return out
+}
+
+// Runes the monospace face lacks are drawn with the default face instead of
+// tofu, and ASCII keeps the monospace face.
+func TestCodeCJKFallback(t *testing.T) {
+	fonts, err := text.LoadFontSet(nil, "", "")
+	if err != nil {
+		t.Skipf("no system font available: %v", err)
+	}
+	mono := fonts.FaceFor([]string{"monospace"}, false)
+	const jp = "こんにちは"
+	if fonts.Regular.GlyphID('こ') == 0 || mono.GlyphID('こ') != 0 {
+		t.Skip("needs a default face with Japanese glyphs and a monospace face without")
+	}
+	items := textItems(layoutWithFonts(t, `<body><pre>x := "`+jp+`"</pre></body>`, Options{}, fonts))
+	var sawJP, sawASCII bool
+	for _, it := range items {
+		for _, r := range it.Text {
+			switch {
+			case r >= 0x3000:
+				sawJP = true
+				if it.Face == nil || it.Face.GlyphID(r) == 0 {
+					t.Errorf("rune %q drawn with a face lacking its glyph (item %q)", r, it.Text)
+				}
+			case r == 'x':
+				sawASCII = true
+				if it.Face != mono {
+					t.Errorf("ASCII item %q does not use the monospace face", it.Text)
+				}
+			}
+		}
+	}
+	if !sawJP || !sawASCII {
+		t.Errorf("items %v: sawJP=%v sawASCII=%v", items, sawJP, sawASCII)
+	}
+}
+
+// Code the monospace face fully covers stays a single item with that face.
+func TestCodeASCIISingleFace(t *testing.T) {
+	fonts, err := text.LoadFontSet(nil, "", "")
+	if err != nil {
+		t.Skipf("no system font available: %v", err)
+	}
+	mono := fonts.FaceFor([]string{"monospace"}, false)
+	items := textItems(layoutWithFonts(t, `<body><pre>x := 1</pre></body>`, Options{}, fonts))
+	if len(items) != 1 || items[0].Face != mono {
+		t.Errorf("got %d items %v, want one item with the monospace face", len(items), items)
+	}
+}
 
 // codeFills returns the RectItems filled with the UA <code> background.
 func codeFills(pages []*Page) []RectItem {
