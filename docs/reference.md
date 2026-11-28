@@ -338,6 +338,8 @@ html2pdf [flags] -e '<html>'
 | `-e` | none | HTML source given directly instead of an input file; it is also written to `output.html` in the current directory. Relative paths resolve against the current directory. Cannot be combined with an input file. |
 | `-o` | input name with `.pdf` (`output.pdf` with `-e`) | Output PDF path. |
 | `-page-size` | `A4` | `A4`, `A5` or `Letter`. |
+| `-page-width` | `0` | Page width in millimetres (`Options.PageWidth`). Overrides the width of `-page-size`; `0` keeps the named size. Must be positive. |
+| `-page-height` | `0` | Page height in millimetres (`Options.PageHeight`). Overrides the height of `-page-size`; `0` keeps the named size. Must be positive. |
 | `-landscape` | off | Landscape orientation. |
 | `-scale` | `1.0` | Content scale factor. |
 | `-margin` | `0` | Page margin in points, all sides. |
@@ -348,4 +350,4 @@ html2pdf [flags] -e '<html>'
 
 The CLI collects the font directories and passes them as `Options.FontDirs`, in this order: `-font-dirs`, then the environment variable `HTML2PDF_FONT_DIRS` (the OS path list format: `:` on Unix, `;` on Windows), then the operating system's font directories. Directories collected earlier take priority, and a repeated directory keeps its first position. `-font-dirs` no longer replaces the standard directories; it adds directories that are searched first. With `-verbose`, each directory is printed before conversion as `font dir [flag|env|os]: <path>`, and each resolved font after conversion as `font: <family or (default)> (bold) -> <path>`.
 
-The CLI sets `BaseDir` to the input file's directory. It has no flag for `PageWidth` or `PageHeight`. Flags may appear before or after the input file.
+The CLI sets `BaseDir` to the input file's directory. `PageWidth` and `PageHeight` are set from `-page-width` and `-page-height`, converted from millimetres to points. Flags may appear before or after the input file.

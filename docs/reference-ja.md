@@ -338,6 +338,8 @@ html2pdf [flags] -e '<html>'
 | `-e` | なし | 入力ファイルの代わりに直接指定する HTML ソース。カレントディレクトリの `output.html` にも書き出されます。相対パスはカレントディレクトリを基準に解決されます。入力ファイルとは同時に指定できません。 |
 | `-o` | 入力ファイル名の拡張子を `.pdf` にしたもの（`-e` のときは `output.pdf`） | 出力 PDF のパス。 |
 | `-page-size` | `A4` | `A4`、`A5`、`Letter`。 |
+| `-page-width` | `0` | ページ幅（mm、`Options.PageWidth`）。`-page-size` の幅を上書きします。`0` なら名前付きサイズのままです。正の値のみ指定できます。 |
+| `-page-height` | `0` | ページ高さ（mm、`Options.PageHeight`）。`-page-size` の高さを上書きします。`0` なら名前付きサイズのままです。正の値のみ指定できます。 |
 | `-landscape` | オフ | 横向き。 |
 | `-scale` | `1.0` | 内容の拡大縮小率。 |
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
@@ -348,4 +350,4 @@ html2pdf [flags] -e '<html>'
 
 CLI はフォントディレクトリを集め、次の順で `Options.FontDirs` に渡します。`-font-dirs`、環境変数 `HTML2PDF_FONT_DIRS`（OS のパスリスト形式。Unix は `:`、Windows は `;` 区切り）、OS のフォントディレクトリの順です。先に集めたものが優先され、重複したディレクトリは最初の位置だけが残ります。`-font-dirs` は標準のディレクトリを置き換えるのではなく、先に探すディレクトリを追加します。`-verbose` を付けると、変換前に各ディレクトリを `font dir [flag|env|os]: <path>` の形で、変換後に解決された各フォントを `font: <family or (default)> (bold) -> <path>` の形で表示します。
 
-CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`PageWidth`、`PageHeight` に相当するフラグはありません。フラグは入力ファイルの前後どちらにも置けます。
+CLI は `BaseDir` に入力ファイルのあるディレクトリを設定します。`PageWidth`、`PageHeight` には `-page-width`、`-page-height` の値をミリメートルからポイントに換算して設定します。フラグは入力ファイルの前後どちらにも置けます。
