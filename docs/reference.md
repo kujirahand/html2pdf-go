@@ -348,7 +348,7 @@ html2pdf [flags] -e '<html>'
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
 | `-font-dirs` | none | Comma-separated directories searched first for fonts. They are added in front of the other font directories (see below). |
 | `-allow-external-files` | off | Let the document read files outside its own directory (`Options.AllowExternalFiles`). For trusted documents only. |
-| `-format` | `pdf` | Output format: `pdf` or `png`. With `png`, each page is written as a PNG image; a multi-page document gets `-1`, `-2`, ... inserted before the `.png` extension. |
+| `-format` | auto | Output format: `pdf` or `png`. Without this flag, a `-o` name ending in `.png` selects PNG and anything else selects PDF. With `png`, each page is written as a PNG image; a multi-page document gets `-1`, `-2`, ... inserted before the `.png` extension. |
 | `-png-scale` | 2 | Rasterization scale for `-format png`, relative to 72-dpi points (2 = 144 dpi). |
 | `-verbose` | off | Print the font directories searched and the fonts used to standard error. |
 

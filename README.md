@@ -70,7 +70,7 @@ html2pdf -format png input.html        # writes input.png (PNG image output)
 
 By default a document can only read files (images, stylesheets, frame documents) from inside its own directory (`BaseDir`): absolute paths or `..` pointing outside it, and network paths such as `//host/share`, are refused. `-allow-external-files` (`Options.AllowExternalFiles` in the library) lifts this for documents you trust.
 
-With `-format png`, each page is written as a PNG image instead of a PDF (a multi-page document gets `-1`, `-2`, ... before the `.png` extension), rasterized at `-png-scale` times the 72-dpi point size (default 2, i.e. 144 dpi). From Go, use `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG`, which return one PNG per page.
+With `-format png`, each page is written as a PNG image instead of a PDF (a multi-page document gets `-1`, `-2`, ... before the `.png` extension), rasterized at `-png-scale` times the 72-dpi point size (default 2, i.e. 144 dpi). The format can also be selected by giving `-o` a `.png` name and omitting `-format`. From Go, use `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG`, which return one PNG per page.
 
 `-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 
