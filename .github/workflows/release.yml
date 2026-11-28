@@ -25,6 +25,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Install fonts
+        # Same as the test workflow: several tests exercise real system
+        # fonts and fail (rather than skip) when none are usable, e.g.
+        # the cmd tests that convert a document end to end.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk fonts-dejavu-core fonts-liberation
       - name: Test
         run: go test ./...
       - name: Build
