@@ -4,7 +4,7 @@
 
 [日本語版 README](README-ja.md)
 
-A library and CLI for converting HTML/CSS/Markdown to PDF. By supporting the major HTML/CSS tags, it makes it easy to create reasonably good-looking PDFs.
+A library and CLI for converting HTML/CSS/Markdown to PDF. By supporting the major HTML/CSS tags, it makes it easy to create reasonably good-looking PDFs. Implemented in pure Go, it is a small, handy tool that runs as a single executable with no browser dependency.
 
 ## Install
 
