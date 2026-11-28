@@ -139,6 +139,11 @@ func main() {
 		return
 	}
 
+	if *format != "" && *format != "pdf" && *format != "png" {
+		fmt.Fprintf(os.Stderr, "html2pdf: unknown -format %q (want pdf or png)\n", *format)
+		os.Exit(2)
+	}
+
 	// -e counts as given even with an empty value, so presence is what
 	// selects inline mode, not the content.
 	inline := false

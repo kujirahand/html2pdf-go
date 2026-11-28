@@ -127,6 +127,11 @@ func main() {
 		return
 	}
 
+	if *format != "" && *format != "pdf" && *format != "png" {
+		fmt.Fprintf(os.Stderr, "md2pdf: unknown -format %q (want pdf or png)\n", *format)
+		os.Exit(2)
+	}
+
 	if flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(2)
