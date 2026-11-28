@@ -130,11 +130,33 @@ func (l *layouter) loadImage(src string) (string, *imgInfo) {
 				info = &imgInfo{w: cfg.Width, h: cfg.Height, ok: true}
 			}
 		}
+		decodeFailed := !info.ok
+		if info.ok && l.opt.Warn != nil {
+			_, _, err := image.Decode(bytes.NewReader(data))
+			decodeFailed = err != nil
+		}
 		l.imgs[src] = info
+		if decodeFailed && l.opt.Warn != nil {
+			key := src
+			if i := strings.IndexByte(key, ','); i >= 0 {
+				key = key[:i+1] + "..."
+			}
+			if len(key) > 80 {
+				key = key[:80] + "..."
+			}
+			l.opt.Warn.Add("image-decode", key, "unusable image: "+key)
+		}
 		return src, info
 	}
-	if src == "" || strings.Contains(src, "://") || filex.IsNetworkPath(src) {
+	if src == "" {
 		return "", &imgInfo{}
+	}
+	if strings.Contains(src, "://") || filex.IsNetworkPath(src) {
+		if _, ok := l.imgs[src]; !ok {
+			l.imgs[src] = &imgInfo{}
+			l.opt.Warn.Add("remote-resource", src, "ignored remote image: "+src)
+		}
+		return "", l.imgs[src]
 	}
 	// src stays as written: the renderer resolves it against the same
 	// directory (ImageItem.Dir) with the same rules.
@@ -157,9 +179,19 @@ func (l *layouter) loadImage(src string) (string, *imgInfo) {
 			cfg.Width*cfg.Height <= maxImagePixels {
 			info = &imgInfo{w: cfg.Width, h: cfg.Height, ok: true}
 		}
+		if info.ok && l.opt.Warn != nil {
+			if _, err := f.Seek(0, 0); err != nil {
+				l.opt.Warn.Add("image-decode", src, "unusable image: "+src)
+			} else if _, _, err := image.Decode(f); err != nil {
+				l.opt.Warn.Add("image-decode", src, "unusable image: "+src)
+			}
+		}
 		f.Close()
 	}
 	l.imgs[p] = info
+	if !info.ok {
+		l.opt.Warn.Add("image-decode", src, "unusable image: "+src)
+	}
 	return p, info
 }
 

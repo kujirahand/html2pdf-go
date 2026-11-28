@@ -122,13 +122,15 @@ func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w,
 	if err != nil {
 		return nil, err
 	}
+	css.WarnRemoteSheets(doc, opt.Warn)
 	sheets, err := css.ResolveSheets(doc, dir, opt.RootDir, opt.AllowExternalFiles)
 	if err != nil {
 		return nil, err
 	}
-	pages, err := Layout(doc, css.ComputeStyles(doc, sheets), fonts, Options{
+	pages, err := Layout(doc, css.ComputeStylesW(doc, sheets, opt.Warn), fonts, Options{
 		// Layout divides the page size by scale again, giving a virtual
 		// page of exactly the cell size.
+		Warn:       opt.Warn,
 		PageWidth:  w * scale,
 		PageHeight: h * scale,
 		BaseDir:    dir,

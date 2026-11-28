@@ -308,6 +308,12 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 ## 11. Conversion options
 
+### Warnings
+
+`-warn` reports unsupported CSS properties (`css-property`), values (`css-value`) and at-rules (`css-at-rule`), ineffective HTML attributes (`html-attribute`), ignored remote resources (`remote-resource`), unusable images (`image-decode`) and missing glyphs (`missing-glyph`). The supported CSS list is maintained in `internal/css/supported.go`. Built-in stylesheets do not produce warnings by themselves.
+
+Warnings are aggregated by kind and key, sorted by kind and key, and printed to standard error as `html2pdf: warning: unsupported CSS property: font-style (3 times)` (with `md2pdf:` for that CLI); the count is omitted for one occurrence. Warnings do not prevent conversion or change a successful exit code of 0. `-warn` is independent of `-verbose` and can be combined with it. A `-warn-error` option is a possible follow-up.
+
 ### Library (`html2pdf.Options`)
 
 | Field | Type | Meaning |
@@ -324,6 +330,8 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
 | `MarkdownCSS` | string | Extra CSS appended after `DefaultMarkdownCSS`. Used only by `ConvertMarkdown` and `ConvertMarkdownFile`; see [markdown.md](markdown.md). |
+
+Set `Options.OnWarning` to receive each aggregated `Warning` (`Kind`, `Key`, `Message`, `Count`) on the caller’s goroutine after conversion, including on errors. `Warning.String()` formats it; a nil callback disables collection. This also applies to PNG and Markdown conversions.
 
 Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertFile(htmlPath, pdfPath string, opts *Options) error` (nil `opts` is allowed; `ConvertFile` writes the file only on success).
 
@@ -350,6 +358,7 @@ html2pdf [flags] -e '<html>'
 | `-allow-external-files` | off | Let the document read files outside its own directory (`Options.AllowExternalFiles`). For trusted documents only. |
 | `-format` | auto | Output format: `pdf` or `png`. Without this flag, a `-o` name ending in `.png` selects PNG and anything else selects PDF. With `png`, each page is written as a PNG image; a multi-page document gets `-1`, `-2`, ... inserted before the `.png` extension. |
 | `-png-scale` | 2 | Rasterization scale for `-format png`, relative to 72-dpi points (2 = 144 dpi). |
+| `-warn` | off | Report unsupported or ignored items to standard error. |
 | `-verbose` | off | Print the font directories searched and the fonts used to standard error. |
 
 The CLI collects the font directories and passes them as `Options.FontDirs`, in this order: `-font-dirs`, then the environment variable `HTML2PDF_FONT_DIRS` (the OS path list format: `:` on Unix, `;` on Windows), then the operating system's font directories. Directories collected earlier take priority, and a repeated directory keeps its first position. `-font-dirs` no longer replaces the standard directories; it adds directories that are searched first. With `-verbose`, each directory is printed before conversion as `font dir [flag|env|os]: <path>`, and each resolved font after conversion as `font: <family or (default)> (bold) -> <path>`.

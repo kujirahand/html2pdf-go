@@ -37,6 +37,7 @@ The `text` package is used by `layout` and `render` for font measurement and lin
 | `internal/dom` | Parses HTML and builds the styled document tree (will use `x/net/html` in the future) |
 | `internal/css` | CSS parsing, selector matching, the cascade, and computed-style generation |
 | `internal/text` | Font loading and measurement, and text shaping (line breaking and line-break rules / kinsoku) |
+| `internal/warn` | Optional warning aggregation; `internal/css/supported.go` lists supported CSS and ineffective attributes |
 | `internal/layout` | Box tree generation, block/table layout, and pagination |
 | `internal/datauri` | Decodes `data:` URIs (base64 / percent-encoded); used by `layout` and `render` as an image source |
 | `internal/render` | Renders laid-out pages via the `pdf` package |

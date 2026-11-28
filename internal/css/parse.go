@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/dom"
+	"github.com/kujirahand/html2pdf-go/internal/warn"
 )
 
 type decl struct{ prop, val string }
@@ -65,7 +66,9 @@ func parseDecls(s string) []decl {
 	return out
 }
 
-func parseSheet(src string) []rule {
+func parseSheet(src string) []rule { return parseSheetW(src, nil) }
+
+func parseSheetW(src string, w *warn.Collector) []rule {
 	s := stripComments(src)
 	var rules []rule
 	for {
@@ -75,6 +78,18 @@ func parseSheet(src string) []rule {
 		}
 		open := strings.IndexByte(s, '{')
 		if s[0] == '@' {
+			if w != nil {
+				end := strings.IndexFunc(s, func(r rune) bool {
+					return !(r == '@' || r == '-' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9')
+				})
+				if end < 0 {
+					end = len(s)
+				}
+				key := strings.ToLower(s[:end])
+				if key != "@charset" && key != "@namespace" {
+					w.Add("css-at-rule", key, "unsupported CSS at-rule: "+key)
+				}
+			}
 			semi := strings.IndexByte(s, ';')
 			if semi >= 0 && (open < 0 || semi < open) {
 				s = s[semi+1:]
@@ -113,6 +128,11 @@ func parseSheet(src string) []rule {
 			continue
 		}
 		r := rule{decls: parseDecls(body)}
+		if w != nil {
+			for _, d := range r.decls {
+				checkDecl(d, w)
+			}
+		}
 		for _, sel := range strings.Split(prelude, ",") {
 			r.sels = append(r.sels, parseSelector(sel))
 		}

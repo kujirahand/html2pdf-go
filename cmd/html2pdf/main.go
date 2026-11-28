@@ -123,6 +123,7 @@ func main() {
 	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
+	warnFlag := flag.Bool("warn", false, "report unsupported or ignored CSS/HTML on standard error")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -184,6 +185,7 @@ func main() {
 
 	dirs := fontcfg.Gather(*fontDirs)
 	var uses []html2pdf.FontUse
+	var warnings []html2pdf.Warning
 	if *verbose {
 		for _, d := range dirs {
 			fmt.Fprintf(os.Stderr, "font dir [%s]: %s\n", d.Origin, d.Path)
@@ -209,6 +211,9 @@ func main() {
 	if *pageHeight > 0 {
 		opts.PageHeight = mmToPt(*pageHeight)
 	}
+	if *warnFlag {
+		opts.OnWarning = func(w html2pdf.Warning) { warnings = append(warnings, w) }
+	}
 	if *verbose {
 		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
@@ -233,6 +238,9 @@ func main() {
 		err = convertString(*htmlSrc, output, opts)
 	} else {
 		err = html2pdf.ConvertFile(input, output, opts)
+	}
+	for _, w := range warnings {
+		fmt.Fprintln(os.Stderr, "html2pdf: "+w.String())
 	}
 	if *verbose {
 		for _, u := range uses {

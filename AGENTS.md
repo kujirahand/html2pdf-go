@@ -45,7 +45,10 @@
 | `cmd/html2pdf/` | CLI ツール本体（`main.go`）。フラグはライブラリの `Options` に対応させる |
 | `cmd/md2pdf/` | Markdown 用 CLI（`main.go`）。`html2pdf` と同じフラグに `-css` を加えたもの |
 | `internal/dom/` | HTML のパースと文書ツリーの構築 |
-| `internal/css/` | CSS のパース、セレクタ照合、カスケード、計算済みスタイルの生成 |
+| `internal/css/` | CSS のパース、セレクタ照合、カスケード、計算済みスタイルの生成。`supported.go` は警告用の対応一覧 |
+| `internal/warn/` | 警告の集計とソート |
+| `warn.go` | 警告の公開 API と収集処理 |
+| `internal/layout/warn.go` | 最終レイアウトのグリフ欠落検査 |
 | `internal/text/` | フォントの読み込み・選択・計測、文字列の折り返しと禁則処理 |
 | `internal/layout/` | ボックス生成、ブロック／テーブルレイアウト、ページ分割（ページネーション） |
 | `internal/fontcfg/` | CLI 用のフォントフォルダ収集（`-font-dirs` → 環境変数 `HTML2PDF_FONT_DIRS` → OS 既定）。ライブラリは使わない |

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/dom"
+	"github.com/kujirahand/html2pdf-go/internal/warn"
 )
 
 // Computed maps document nodes to their computed styles.
@@ -100,10 +101,14 @@ func matchRules(rules []rule, n *dom.Node) []matched {
 // stylesheet, author stylesheets (by specificity, then source order), and the
 // inline style attribute.
 func ComputeStyles(doc *dom.Document, stylesheetText []string) *Computed {
+	return ComputeStylesW(doc, stylesheetText, nil)
+}
+
+func ComputeStylesW(doc *dom.Document, stylesheetText []string, w *warn.Collector) *Computed {
 	c := &Computed{styles: map[*dom.Node]*Style{}}
 	var author []rule
 	for _, t := range stylesheetText {
-		author = append(author, parseSheet(t)...)
+		author = append(author, parseSheetW(t, w)...)
 	}
 	root := defaultStyle()
 	root.finish()
@@ -115,6 +120,7 @@ func ComputeStyles(doc *dom.Document, stylesheetText []string) *Computed {
 			c.styles[n] = s
 			return
 		}
+		checkAttrs(n, w)
 		pfs := parent.FontSize.Value
 		if v, ok := n.Attr["width"]; ok {
 			if l, ok := ParseLength(v); ok && l.Value >= 0 {
@@ -141,6 +147,7 @@ func ComputeStyles(doc *dom.Document, stylesheetText []string) *Computed {
 		}
 		if inline, ok := n.Attr["style"]; ok {
 			for _, d := range parseDecls(strings.TrimSpace(inline)) {
+				checkDecl(d, w)
 				s.apply(d.prop, d.val, pfs)
 			}
 		}

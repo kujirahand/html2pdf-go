@@ -10,10 +10,12 @@ import (
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/kujirahand/html2pdf-go/internal/text"
+	"github.com/kujirahand/html2pdf-go/internal/warn"
 )
 
 // Options configures page geometry. All values are in points.
 type Options struct {
+	Warn                                             *warn.Collector
 	PageWidth, PageHeight                            float64
 	MarginTop, MarginRight, MarginBottom, MarginLeft float64
 	// BaseDir resolves relative image paths.

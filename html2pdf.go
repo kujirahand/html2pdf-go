@@ -35,6 +35,8 @@ type FontUse struct {
 
 // Options configures a conversion.
 type Options struct {
+	// OnWarning receives aggregated warnings after conversion, including on errors.
+	OnWarning func(Warning)
 	// PageSize is a named page size such as "A4", "A5", or "Letter".
 	PageSize string
 	// PageWidth and PageHeight are in points; 0 means derive from PageSize.
@@ -114,6 +116,8 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if opts == nil {
 		opts = &Options{}
 	}
+	wc, flushWarnings := warningCollector(opts)
+	defer flushWarnings()
 	if math.IsNaN(opts.Scale) || math.IsInf(opts.Scale, 0) {
 		return fmt.Errorf("html2pdf: invalid scale %v", opts.Scale)
 	}
@@ -134,12 +138,14 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
+	css.WarnRemoteSheets(doc, wc)
 	sheets, err := css.ResolveSheets(doc, opts.BaseDir, opts.BaseDir, opts.AllowExternalFiles)
 	if err != nil {
 		return err
 	}
-	styles := css.ComputeStyles(doc, sheets)
+	styles := css.ComputeStylesW(doc, sheets, wc)
 	pages, err := layout.Layout(doc, styles, fonts, layout.Options{
+		Warn:       wc,
 		PageWidth:  pageW,
 		PageHeight: pageH,
 		BaseDir:    opts.BaseDir,
@@ -156,6 +162,7 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
+	layout.WarnMissingGlyphs(pages, fonts, wc)
 	return render.Render(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, w)
 }
 
@@ -190,6 +197,8 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 	if opts == nil {
 		opts = &Options{}
 	}
+	wc, flushWarnings := warningCollector(opts)
+	defer flushWarnings()
 	if math.IsNaN(opts.Scale) || math.IsInf(opts.Scale, 0) {
 		return nil, fmt.Errorf("html2pdf: invalid scale %v", opts.Scale)
 	}
@@ -213,12 +222,14 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	css.WarnRemoteSheets(doc, wc)
 	sheets, err := css.ResolveSheets(doc, opts.BaseDir, opts.BaseDir, opts.AllowExternalFiles)
 	if err != nil {
 		return nil, err
 	}
-	styles := css.ComputeStyles(doc, sheets)
+	styles := css.ComputeStylesW(doc, sheets, wc)
 	pages, err := layout.Layout(doc, styles, fonts, layout.Options{
+		Warn:       wc,
 		PageWidth:  pageW,
 		PageHeight: pageH,
 		BaseDir:    opts.BaseDir,
@@ -235,6 +246,7 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	layout.WarnMissingGlyphs(pages, fonts, wc)
 	var out [][]byte
 	err = raster.RenderEach(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, scale, func(img *image.NRGBA) error {
 		var buf bytes.Buffer

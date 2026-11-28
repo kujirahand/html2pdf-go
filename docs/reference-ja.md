@@ -308,6 +308,12 @@
 
 ## 11. 変換オプション
 
+### 警告
+
+`-warn` は未対応の CSS プロパティ（`css-property`）、値（`css-value`）、at-rule（`css-at-rule`）、効果のない HTML 属性（`html-attribute`）、無視されたリモートリソース（`remote-resource`）、使用できない画像（`image-decode`）、不足するグリフ（`missing-glyph`）を報告します。対応 CSS の一覧は `internal/css/supported.go` で管理します。組み込みスタイルシート自体は警告を出しません。
+
+警告は種類とキーで集計し、その順にソートして `html2pdf: warning: unsupported CSS property: font-style (3 times)` の形式で標準エラーに表示します（`md2pdf` では `md2pdf:`）。1 回の場合は回数を省略します。警告があっても変換は続き、成功時の終了コードは 0 です。`-warn` は `-verbose` と独立しており併用できます。`-warn-error` は今後の検討事項です。
+
 ### ライブラリ（`html2pdf.Options`）
 
 | フィールド | 型 | 意味 |
@@ -324,6 +330,8 @@
 | `Scale` | float64 | 内容を縮小（1 未満）・拡大（1 超）します。0 以下は 1.0 として扱い、NaN と無限大はエラー。 |
 | `Margin` | float64（pt） | 4 辺共通のページ余白。0 は余白なし（`body` 自身の 8px の margin は残ります）。 |
 | `MarkdownCSS` | string | `DefaultMarkdownCSS` の後ろに追加される CSS。`ConvertMarkdown` と `ConvertMarkdownFile` だけが使います。[markdown-ja.md](markdown-ja.md) を参照。 |
+
+`Options.OnWarning` を設定すると、変換後（エラー時も）呼び出し元の goroutine で集計済み `Warning`（`Kind`、`Key`、`Message`、`Count`）を受け取れます。`Warning.String()` で整形でき、コールバックが nil なら収集しません。PNG と Markdown の変換にも適用されます。
 
 関数: `Convert(src []byte, w io.Writer, opts *Options) error` と `ConvertFile(htmlPath, pdfPath string, opts *Options) error`（`opts` は nil 可。`ConvertFile` は変換が成功したときだけファイルを書き出します）。
 
@@ -350,6 +358,7 @@ html2pdf [flags] -e '<html>'
 | `-allow-external-files` | オフ | 文書が自身のフォルダの外のファイルを読むことを許可します（`Options.AllowExternalFiles`）。信頼できる文書専用です。 |
 | `-format` | 自動 | 出力形式: `pdf` または `png`。このフラグを省略すると、`-o` の名前が `.png` で終わる場合は PNG、それ以外は PDF になります。`png` ではページごとに PNG 画像を書き出し、複数ページの場合は `.png` の前に `-1`、`-2`、... が付きます。 |
 | `-png-scale` | 2 | `-format png` のラスタライズ倍率。72dpi のポイントに対する倍率です（2 = 144dpi）。 |
+| `-warn` | オフ | 未対応または無視された項目を標準エラーに表示します。 |
 | `-verbose` | オフ | 検索したフォントディレクトリと使われたフォントを標準エラーに表示します。 |
 
 CLI はフォントディレクトリを集め、次の順で `Options.FontDirs` に渡します。`-font-dirs`、環境変数 `HTML2PDF_FONT_DIRS`（OS のパスリスト形式。Unix は `:`、Windows は `;` 区切り）、OS のフォントディレクトリの順です。先に集めたものが優先され、重複したディレクトリは最初の位置だけが残ります。`-font-dirs` は標準のディレクトリを置き換えるのではなく、先に探すディレクトリを追加します。`-verbose` を付けると、変換前に各ディレクトリを `font dir [flag|env|os]: <path>` の形で、変換後に解決された各フォントを `font: <family or (default)> (bold) -> <path>` の形で表示します。
