@@ -1,11 +1,16 @@
 package layout
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
 )
+
+// maxTableCols limits the columns of one table (colspans included), which
+// size several per-column arrays.
+const maxTableCols = 10000
 
 type tcell struct {
 	n          *dom.Node
@@ -70,6 +75,9 @@ func (l *layouter) collectRows(n *dom.Node, out *[]*trow, cw float64) {
 // cell widths first, then the remaining columns get their max-content width
 // (surplus shared equally), shrinking towards min-content when space is short.
 func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
+	if l.err != nil {
+		return 0
+	}
 	fs := st.FontSize.Value
 	bm := l.boxMetrics(st, cw)
 	var rows []*trow
@@ -81,6 +89,10 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 			last := r.cells[len(r.cells)-1]
 			ncols = max(ncols, last.col+last.span)
 		}
+	}
+	if ncols > maxTableCols {
+		l.err = fmt.Errorf("layout: table has too many columns (%d)", ncols)
+		return 0
 	}
 	// Sibling margin collapsing, as in block().
 	overlap := 0.0

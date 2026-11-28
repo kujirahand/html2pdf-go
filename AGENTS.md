@@ -21,7 +21,7 @@
 | `docs/<名前>.md` | `docs/<名前>-ja.md` |
 
 - 無印が英語版、`-ja` が付いたものが日本語版です。
-- 現在のペア: `README.md` / `README-ja.md`、`docs/architecture.md` / `docs/architecture-ja.md`、`docs/reference.md` / `docs/reference-ja.md`
+- 現在のペア: `README.md` / `README-ja.md`、`docs/architecture.md` / `docs/architecture-ja.md`、`docs/reference.md` / `docs/reference-ja.md`、`docs/tutorial.md` / `docs/tutorial-ja.md`、`docs/markdown.md` / `docs/markdown-ja.md`
 
 ### 同時更新のルール
 
@@ -49,6 +49,7 @@
 | `internal/text/` | フォントの読み込み・選択・計測、文字列の折り返しと禁則処理 |
 | `internal/layout/` | ボックス生成、ブロック／テーブルレイアウト、ページ分割（ページネーション） |
 | `internal/fontcfg/` | CLI 用のフォントフォルダ収集（`-font-dirs` → 環境変数 `HTML2PDF_FONT_DIRS` → OS 既定）。ライブラリは使わない |
+| `internal/filex/` | 文書が参照するローカルファイル（画像・スタイルシート・フレーム文書）を読む唯一の入口。既定では `BaseDir` の内側に閉じ込め（`os.OpenRoot`）、通常ファイルのみ・サイズ上限つきで読む。`AllowExternalFiles` で外部参照を許可する |
 | `internal/datauri/` | `data:` URI のデコード（base64／パーセントエンコード）。`layout` と `render` が画像ソースとして使う |
 | `internal/render/` | レイアウト結果を `internal/pdf` 経由で描画する |
 | `internal/pdf/` | PDF の書き出し。オブジェクト、コンテンツストリーム、フォント（Type3 サブセット埋め込み）・画像の埋め込み |

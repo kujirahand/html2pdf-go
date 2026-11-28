@@ -18,6 +18,14 @@ type Options struct {
 	MarginTop, MarginRight, MarginBottom, MarginLeft float64
 	// BaseDir resolves relative image paths.
 	BaseDir string
+	// RootDir confines every file a document reads during one conversion.
+	// It stays the outermost document's BaseDir while nested frame
+	// documents resolve their references against their own directory.
+	// Empty means BaseDir; Layout fills it in.
+	RootDir string
+	// AllowExternalFiles lets images and frame documents lie outside
+	// RootDir; see filex.ReadUnder.
+	AllowExternalFiles bool
 	// Scale shrinks (<1) or enlarges (>1) the content; 0 or less means 1.
 	// Layout runs on a virtual page of the real size divided by Scale.
 	Scale float64
@@ -27,6 +35,10 @@ type Options struct {
 	// frames counts the frame documents laid out so far, shared by all
 	// nested layouts of one conversion. Layout creates it when nil.
 	frames *int
+	// work counts layout work units, shared by all nested layouts of one
+	// conversion like frames, so frame documents cannot each spend a full
+	// budget. Layout creates it when nil.
+	work *int
 }
 
 // Page is one laid-out page.
@@ -70,9 +82,10 @@ type LineItem struct {
 	Style                     string
 }
 
-// ImageItem draws the image at Src (path resolved against BaseDir).
+// ImageItem draws the image at Src, a file path resolved against Dir or a
+// data: URI.
 type ImageItem struct {
-	Src        string
+	Src, Dir   string
 	X, Y, W, H float64
 }
 
@@ -98,6 +111,12 @@ func Layout(doc *dom.Document, styles *css.Computed, fonts *text.FontSet, opt Op
 	}
 	if opt.frames == nil {
 		opt.frames = new(int)
+	}
+	if opt.work == nil {
+		opt.work = new(int)
+	}
+	if opt.RootDir == "" {
+		opt.RootDir = opt.BaseDir
 	}
 	if scale != 1 {
 		// Lay out on a virtual page so that scaling it back gives the real page.

@@ -73,7 +73,7 @@ func (l *layouter) paginate() []*Page {
 				Bold: p.bold, Face: p.face, Color: p.color, Underline: p.underline})
 		case pImage:
 			k := pageOf(p.y)
-			pages[k].Items = append(pages[k].Items, ImageItem{Src: p.src, X: p.x, Y: p.y + off(k), W: p.w, H: p.h})
+			pages[k].Items = append(pages[k].Items, ImageItem{Src: p.src, Dir: p.dir, X: p.x, Y: p.y + off(k), W: p.w, H: p.h})
 		case pFrame:
 			// The frame is never split: it goes whole on the page of its top.
 			k := pageOf(p.y)

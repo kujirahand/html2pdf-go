@@ -1,16 +1,12 @@
-# html2pdf-go
+![html2pdf-go — HTML/CSS/Markdown から PDF へ](docs/html2pdf-go-logo800.png)
+
+# html2pdf-go - HTML/CSS/Markdown→PDF
 
 [English README](README.md)
 
-pure Go の HTML→PDF 変換エンジンです。HTML のパース、CSS の適用、レイアウト、PDF の書き出しまで実装済みです。対応する HTML/CSS の範囲は [docs/reference-ja.md](docs/reference-ja.md) を参照してください。
+HTML/CSS/Markdown→PDFの変換ライブラリとCLIです。HTML/CSSの主要タグをサポートすることで、それなりに見栄えの良いPDFを手軽に作成できます。
 
-## チュートリアル
-
-まずは CLI で、HTML ファイルを 1 つ PDF に変換してみます。所要時間は数分です。
-
-### 1. インストールする
-
-Linux・macOS・Windows 向けのビルド済みバイナリは [GitHub Releases ページ](https://github.com/kujirahand/html2pdf-go/releases)にあります。コマンドラインから最新リリースをインストールするには、次のとおりです。
+## インストール
 
 ```sh
 # Linux / macOS
@@ -22,66 +18,11 @@ curl -fsSL https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts
 irm https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.ps1 | iex
 ```
 
-バイナリは署名されていないため、ブラウザでダウンロードすると OS にブロックされます（Gatekeeper / SmartScreen）。これらのスクリプトでインストールすればブロックを避けられ、インストール前に SHA-256 チェックサムも検証します。Go を使う場合は次のとおりです。
+バイナリは署名されていないため、ブラウザでダウンロードすると OS にブロックされます（Gatekeeper / SmartScreen）。これらのスクリプトでインストールすればブロックを避けられ、インストール前に SHA-256 チェックサムも検証します。
 
-```sh
-go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
-```
+## チュートリアル
 
-### 2. HTML ファイルを作る
-
-`hello.html` という名前で、次の内容のファイルを作ります。見出し・段落・箇条書き・表と、`<style>` での見た目の指定を含む、最小の例です。
-
-```html
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<style>
-  body { font-size: 12pt; margin: 48px; }
-  h1 { font-size: 20pt; color: #205090; }
-  table { border: 1px solid #333; }
-  th, td { border: 1px solid #333; padding: 4px 8px; }
-</style>
-</head>
-<body>
-<h1>はじめての PDF</h1>
-<p>これは html2pdf-go で作った PDF です。日本語もそのまま表示できます。</p>
-<ul>
-  <li>見出しと段落</li>
-  <li>箇条書き</li>
-  <li>表</li>
-</ul>
-<table>
-  <tr><th>項目</th><th>内容</th></tr>
-  <tr><td>ページサイズ</td><td>A4</td></tr>
-  <tr><td>フォント</td><td>自動で選ばれます</td></tr>
-</table>
-</body>
-</html>
-```
-
-### 3. PDF に変換する
-
-```sh
-html2pdf hello.html
-```
-
-同じフォルダに `hello.pdf` ができます。開いてみると、見出しが青く大きくなり、表に罫線が引かれた PDF になっているはずです。
-
-出力先やページ設定を変えたいときは、オプションを指定します。
-
-```sh
-html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # 出力先と余白を指定
-html2pdf -scale 0.95 hello.html                            # 全体を 95% に縮小
-```
-
-### 4. 次のステップ
-
-- 見た目を変える: `<style>` の中身を変えます。使える HTML 要素と CSS は [docs/reference-ja.md](docs/reference-ja.md) に一覧があります
-- 改ページする: 次のページを始めたい位置に `<page-break></page-break>` を置きます（例: `<p>Page 1</p><page-break></page-break><p>Page 2</p>`）。先頭・末尾・連続した `<page-break>` で空白ページはできません
-- Go のプログラムから使う: 次の「ライブラリとしての使い方」を見てください
-- 実例を見る: [examples/](examples/) に住所録、領収書、イベント案内状、コンサートチケット、カフェメニュー、名刺、カレンダー、搭乗券、議事録、レシピなどのサンプル文書（HTML と Markdown、日英両版）があります。`just examples` で全てを `out/` に PDF 化できます
+CLI で HTML ファイルを 1 つ PDF に変換する手順を [docs/tutorial-ja.md](docs/tutorial-ja.md) にまとめました。どんな PDF が作れるかは、サンプル文書のカタログ [examples/README.md](examples/README.md) もご覧ください。
 
 ## ライブラリとしての使い方
 
@@ -126,6 +67,8 @@ html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と 
 
 `-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は入力ファイルと同時には指定できません。
 
+既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。フォルダの外を指す絶対パスや `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
+
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
 ## Markdown から PDF へ（md2pdf）
@@ -140,7 +83,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 

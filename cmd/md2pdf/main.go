@@ -71,6 +71,7 @@ func main() {
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	cssFile := flag.String("css", "", "CSS file appended after the default Markdown stylesheet")
+	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: md2pdf [flags] input.md")
@@ -121,9 +122,11 @@ func main() {
 		Landscape: *landscape,
 		BaseDir:   filepath.Dir(input),
 		Scale:     *scale,
-		Margin:    *margin,
-		FontFile:  *fontFile,
-		FontDirs:  fontcfg.Paths(dirs),
+
+		AllowExternalFiles: *allowExternal,
+		Margin:             *margin,
+		FontFile:           *fontFile,
+		FontDirs:           fontcfg.Paths(dirs),
 
 		FontFileBold: *fontBold,
 		MarkdownCSS:  extraCSS,

@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,7 @@ type prim struct {
 	face       *text.Face
 	underline  bool
 	src        string
+	dir        string // directory a pImage src resolves against
 	// rx and ry are corner radii for pFill and pRoundStroke (top-left,
 	// top-right, bottom-right, bottom-left); all zero means square.
 	rx, ry [4]float64
@@ -70,8 +72,38 @@ type layouter struct {
 	// the current flow, for sibling margin collapsing. flow() saves and
 	// restores it so nested flows start with a clean state.
 	lastMB float64
-	// err is the first error from an iframe's document.
+	// err is the first error from an iframe's document or a tripped limit.
 	err error
+}
+
+// maxLayoutWork bounds the work one document may cause. Nested tables lay
+// out their cells repeatedly at every level, so cost grows exponentially
+// with depth; this turns a hostile document into an error instead of a
+// hang. A variable so tests can lower it.
+var maxLayoutWork = 30_000_000
+
+// step counts one unit of layout work and records an error once the budget
+// is spent. The counter is shared by every nested layout of one conversion
+// (Options.work). Callers check l.err to unwind.
+func (l *layouter) step() {
+	l.charge(1)
+}
+
+// charge adds n units of layout work to the shared budget. Text layout is
+// charged per rune (see paragraphs), so a document cannot hide expensive
+// content inside a moderate number of calls: re-laying out a large text
+// costs in proportion to its length every time.
+func (l *layouter) charge(n int) {
+	if l.err != nil {
+		return
+	}
+	if l.opt.work == nil {
+		l.opt.work = new(int)
+	}
+	*l.opt.work += n
+	if *l.opt.work > maxLayoutWork {
+		l.err = fmt.Errorf("layout: document is too complex (work limit %d exceeded)", maxLayoutWork)
+	}
 }
 
 // boxm holds resolved margin, padding, and border widths (top, right, bottom, left).
@@ -473,6 +505,10 @@ func (l *layouter) newMarker(n *dom.Node, st *css.Style, x float64) *marker {
 // flow lays out the children of n inside a content box and returns the end y.
 // Consecutive inline-level children form anonymous inline runs.
 func (l *layouter) flow(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
+	l.step()
+	if l.err != nil {
+		return 0
+	}
 	savedMB := l.lastMB
 	l.lastMB = 0
 	defer func() { l.lastMB = savedMB }()
