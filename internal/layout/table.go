@@ -23,6 +23,7 @@ type tcell struct {
 }
 
 type trow struct {
+	n     *dom.Node
 	st    *css.Style
 	cells []*tcell
 }
@@ -37,7 +38,7 @@ func (l *layouter) collectRows(n *dom.Node, out *[]*trow, cw float64) {
 		case "table-row-group":
 			l.collectRows(c, out, cw)
 		case "table-row":
-			r := &trow{st: cs}
+			r := &trow{n: c, st: cs}
 			col := 0
 			for _, cc := range c.Children {
 				if cc.IsText() {
@@ -249,9 +250,15 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 
 	slot := l.reserve()
 	before := len(l.units)
+	if id := n.Attr["id"]; id != "" {
+		l.emit(prim{kind: pTarget, x: left, y: top, w: top, id: id})
+	}
 	yy := top + bm.b[css.Top] + bm.p[css.Top]
 	for _, r := range rows {
 		rowTop := yy
+		if id := r.n.Attr["id"]; id != "" {
+			l.emit(prim{kind: pTarget, x: tx, y: rowTop, w: rowTop, id: id})
+		}
 		heights := make([]float64, len(r.cells))
 		var rowH float64
 		for i, c := range r.cells {
@@ -267,6 +274,9 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 			cx := tx + colX[c.col]
 			cellW := colX[c.col+c.span] - colX[c.col]
 			innerW := max(cellW-c.bm.hExtra(), 0)
+			if id := c.n.Attr["id"]; id != "" {
+				l.emit(prim{kind: pTarget, x: cx, y: rowTop, w: rowTop, id: id})
+			}
 			if c.st.BackgroundColor != nil {
 				l.emit(prim{kind: pFill, x: cx, y: rowTop, w: cellW, h: rowH, color: *c.st.BackgroundColor})
 			}

@@ -42,6 +42,8 @@ The `text` package is used by `layout` and `render` for font measurement and lin
 | `internal/render` | Renders laid-out pages via the `pdf` package |
 | `internal/pdf` | PDF file writing (objects, content streams, and font/image embedding) |
 
+Layout maps link rectangles and ID and heading positions to pages. Rendering resolves internal links, and the PDF writer emits annotations, bookmarks, and document information. These use the same scale and Y-axis inversion as drawing.
+
 ## Scale (shrink / enlarge factor)
 
 With `Options.Scale` (`-scale` in the CLI) you can shrink or enlarge the whole content. It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`. Values of 0 or less are treated as 1.0.

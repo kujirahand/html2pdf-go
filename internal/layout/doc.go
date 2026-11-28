@@ -45,8 +45,10 @@ type Options struct {
 type Page struct {
 	Width, Height float64
 	// Scale is the factor the renderer applies to all Items coordinates.
-	Scale float64
-	Items []Item
+	Scale   float64
+	Items   []Item
+	Links   []Link
+	Targets []Target
 }
 
 // Item is a drawing command.
@@ -149,4 +151,17 @@ func Layout(doc *dom.Document, styles *css.Computed, fonts *text.FontSet, opt Op
 		p.Scale = scale
 	}
 	return pages, nil
+}
+
+// Link is a clickable line fragment in page coordinates.
+type Link struct {
+	Href       string
+	X, Y, W, H float64
+}
+
+// Target identifies an element or heading in page coordinates.
+type Target struct {
+	ID, Title string
+	Level     int
+	X, Y      float64
 }

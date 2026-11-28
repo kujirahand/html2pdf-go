@@ -29,7 +29,7 @@ func fontUseLine(u html2pdf.FontUse) string {
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"e": true, "o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "format": true, "png-scale": true}
+var valueFlags = map[string]bool{"title": true, "author": true, "subject": true, "e": true, "o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "format": true, "png-scale": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -125,6 +125,10 @@ func main() {
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
+	bookmarks := flag.Bool("bookmarks", true, "include heading bookmarks")
+	title := flag.String("title", "", "document title")
+	author := flag.String("author", "", "document author")
+	subject := flag.String("subject", "", "document subject")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	htmlSrc := flag.String("e", "", "HTML source given directly instead of an input file; it is also written to output.html")
 	flag.Usage = func() {
@@ -191,6 +195,7 @@ func main() {
 	}
 
 	opts := &html2pdf.Options{
+		NoBookmarks: !*bookmarks, Title: *title, Author: *author, Subject: *subject,
 		PageSize:  *pageSize,
 		Landscape: *landscape,
 		BaseDir:   baseDir,

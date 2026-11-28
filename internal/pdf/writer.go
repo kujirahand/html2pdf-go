@@ -12,13 +12,16 @@ import (
 // Writer assembles a PDF document in memory and writes it on Close.
 // All coordinates in the API are in points with the origin at the top left.
 type Writer struct {
-	cw      *countWriter
-	offsets []int64 // byte offset per object number; index 0 is the free entry
-	pagesID int
-	fonts   []*Font
-	pages   []*Page
-	images  []*Image
-	closed  bool
+	cw           *countWriter
+	offsets      []int64 // byte offset per object number; index 0 is the free entry
+	pagesID      int
+	fonts        []*Font
+	pages        []*Page
+	images       []*Image
+	info         Info
+	outlines     []*outline
+	outlineStack []*outline
+	closed       bool
 }
 
 type countWriter struct {
@@ -78,6 +81,7 @@ func (w *Writer) Close() error {
 		return fmt.Errorf("pdf: document has no pages")
 	}
 
+	infoID := w.alloc()
 	catalogID := w.alloc()
 	w.pagesID = w.alloc()
 	for _, f := range w.fonts {
@@ -96,8 +100,14 @@ func (w *Writer) Close() error {
 		p.contentID = w.alloc()
 	}
 
+	outlineID := w.allocNavigation()
 	io.WriteString(w.cw, "%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
-	w.obj(catalogID, fmt.Sprintf("<< /Type /Catalog /Pages %d 0 R >>", w.pagesID))
+	w.writeInfo(infoID)
+	catalog := fmt.Sprintf("<< /Type /Catalog /Pages %d 0 R", w.pagesID)
+	if outlineID != 0 {
+		catalog += fmt.Sprintf(" /Outlines %d 0 R", outlineID)
+	}
+	w.obj(catalogID, catalog+" >>")
 	var kids strings.Builder
 	for _, p := range w.pages {
 		fmt.Fprintf(&kids, " %d 0 R", p.objID)
@@ -115,13 +125,14 @@ func (w *Writer) Close() error {
 		w.writePage(p)
 	}
 
+	w.writeNavigation(outlineID)
 	xrefPos := w.cw.n
 	fmt.Fprintf(w.cw, "xref\n0 %d\n", len(w.offsets))
 	io.WriteString(w.cw, "0000000000 65535 f \n")
 	for _, off := range w.offsets[1:] {
 		fmt.Fprintf(w.cw, "%010d 00000 n \n", off)
 	}
-	fmt.Fprintf(w.cw, "trailer\n<< /Size %d /Root %d 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(w.offsets), catalogID, xrefPos)
+	fmt.Fprintf(w.cw, "trailer\n<< /Size %d /Root %d 0 R /Info %d 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(w.offsets), catalogID, infoID, xrefPos)
 	if w.cw.err != nil {
 		return fmt.Errorf("pdf: write document: %w", w.cw.err)
 	}

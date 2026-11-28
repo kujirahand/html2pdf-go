@@ -69,7 +69,7 @@ An `iframe` that appears as a block-level child is drawn as an embedded document
 | `br` | forced line break | |
 | `b`, `strong` | bold | |
 | `u`, `ins` | underline | |
-| `a` | blue, underlined | `href` is not used (no link). |
+| `a` | blue, underlined | Clickable `http`, `https`, `mailto`, and same-document fragment links in PDF. Other schemes are ignored; URLs are never fetched. |
 
 ### Lists
 
@@ -104,12 +104,13 @@ See the `display: none` list under "Document structure". Any element can also be
 
 ## 3. Supported attributes
 
-Only these attributes are read by the implementation. All other attributes (`href`, `alt`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
+Only these attributes are read by the implementation. All other attributes (`alt`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
 
 | Attribute | Applies to | Effect |
 |---|---|---|
 | `class` | any element | Matched by `.class` selectors (space-separated list). |
-| `id` | any element | Matched by `#id` selectors (case-sensitive). |
+| `id` | any element | Matched by `#id` selectors (case-sensitive) and used as a PDF link destination where laid out. |
+| `href` | `a` | PDF link target for supported URLs and fragments. |
 | `style` | any element | Inline declarations; highest priority. |
 | `src` | `iframe`, `frame` | Local HTML file path, relative to `BaseDir` and confined to it unless `AllowExternalFiles` is set (at most 32 MiB). A URL (starts with `//` or a scheme such as `https:`, `data:`, `about:`) is not loaded and gives an empty box or cell. An unreadable file is an error. For `iframe`, `srcdoc` takes precedence. |
 | `srcdoc` | `iframe` | HTML source of the embedded document. Takes precedence over `src`. |
@@ -304,9 +305,11 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
-- Other: remote CSS, remote frames, remote images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
+- Other: remote CSS, remote frames, remote images, SVG, forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
 
 ## 11. Conversion options
+
+PDF links use one rectangle per line. Block IDs target the top of the box; inline IDs (and `<a name>`) target their first visible content; an empty inline element such as `<a id="x"></a>` targets the next text. When inline elements with IDs are nested, only the innermost ID is a destination, and IDs in frame documents are not available as destinations. Headings `h1`–`h6` generate hierarchical bookmarks by default. The PDF information dictionary uses `<title>` and the `author`, `description`, and `keywords` meta elements; Creator and Producer are `html2pdf-go`. No creation date is written. PDF navigation and metadata do not apply to PNG.
 
 ### Library (`html2pdf.Options`)
 
@@ -316,6 +319,8 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `PageWidth`, `PageHeight` | float64 (points) | Custom size. If both are greater than 0 they are used as given and `PageSize` and `Landscape` are ignored. If only one is set, the other comes from `PageSize`. |
 | `Landscape` | bool | Swaps width and height of the `PageSize` size. |
 | `BaseDir` | string | Directory against which relative paths (images, stylesheets, frame documents) resolve. Unless `AllowExternalFiles` is set, these files must lie inside it. |
+| `Title`, `Author`, `Subject` | string | Nonempty values override the corresponding HTML metadata. |
+| `NoBookmarks` | bool | Disable heading bookmarks; default false. |
 | `AllowExternalFiles` | bool | Permits documents to reference files outside `BaseDir`, by absolute path or with `..`. Default false: images, stylesheets and frame documents can only be read from inside `BaseDir` (`..` and symbolic links cannot leave it; absolute paths are accepted only when they point inside `BaseDir`). Paths starting with `//` or `\\` (network paths) are refused in both modes. Only enable it for documents you trust. |
 | `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Only the given directories are searched; empty = standard system font directories. The library reads no environment variable or config file. An error is returned if no usable font is found. Also searched by `font-family` names. |
 | `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, normalized for matching, i.e. lower-cased; empty for the default face), `Bold` (bold was requested; if there is no bold face, `Path` is the regular file and `Bold` is still true) and `Path` (the font file). nil = no callback. |
@@ -342,6 +347,8 @@ html2pdf [flags] -e '<html>'
 | `-page-width` | `0` | Page width in millimetres (`Options.PageWidth`). Overrides the width of `-page-size`; `0` keeps the named size. Must be positive. |
 | `-page-height` | `0` | Page height in millimetres (`Options.PageHeight`). Overrides the height of `-page-size`; `0` keeps the named size. Must be positive. |
 | `-landscape` | off | Landscape orientation. |
+| `-bookmarks` | `true` | Include heading bookmarks. |
+| `-title`, `-author`, `-subject` | empty | Override document metadata. |
 | `-scale` | `1.0` | Content scale factor. |
 | `-margin` | `0` | Page margin in points, all sides. |
 | `-font` | auto-detect | Regular font file (`Options.FontFile`). |

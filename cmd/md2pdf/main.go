@@ -28,7 +28,7 @@ func fontUseLine(u html2pdf.FontUse) string {
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "css": true, "format": true, "png-scale": true}
+var valueFlags = map[string]bool{"title": true, "author": true, "subject": true, "o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "css": true, "format": true, "png-scale": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -115,6 +115,10 @@ func main() {
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	cssFile := flag.String("css", "", "CSS file appended after the default Markdown stylesheet")
 	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
+	bookmarks := flag.Bool("bookmarks", true, "include heading bookmarks")
+	title := flag.String("title", "", "document title")
+	author := flag.String("author", "", "document author")
+	subject := flag.String("subject", "", "document subject")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: md2pdf [flags] input.md")
@@ -166,6 +170,7 @@ func main() {
 	}
 
 	opts := &html2pdf.Options{
+		NoBookmarks: !*bookmarks, Title: *title, Author: *author, Subject: *subject,
 		PageSize:  *pageSize,
 		Landscape: *landscape,
 		BaseDir:   filepath.Dir(input),

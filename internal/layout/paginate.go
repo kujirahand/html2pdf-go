@@ -43,6 +43,12 @@ func (l *layouter) paginate() []*Page {
 
 	for _, p := range l.prims {
 		switch p.kind {
+		case pLink:
+			k := pageOf(p.y)
+			pages[k].Links = append(pages[k].Links, Link{Href: p.text, X: p.x, Y: p.y + off(k), W: p.w, H: p.h})
+		case pTarget:
+			k := pageOf(p.w)
+			pages[k].Targets = append(pages[k].Targets, Target{ID: p.id, Title: p.text, Level: p.level, X: p.x, Y: max(p.y, starts[k]) + off(k)})
 		case pFill:
 			for k := pageOf(p.y); k <= pageOf(p.y+p.h-pageEps); k++ {
 				if top, bot := span(k, p.y, p.h); bot-top > pageEps {

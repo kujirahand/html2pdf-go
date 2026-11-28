@@ -69,7 +69,7 @@
 | `br` | 強制改行 | |
 | `b`, `strong` | 太字 | |
 | `u`, `ins` | 下線 | |
-| `a` | 青色・下線 | `href` は使われません（リンクにはなりません）。 |
+| `a` | 青色・下線 | PDF では `http`、`https`、`mailto`、同一文書のフラグメントがクリック可能です。他のスキームは無視し、URL は取得しません。 |
 
 ### リスト
 
@@ -104,12 +104,13 @@
 
 ## 3. 対応属性
 
-実装が読む属性は次のものだけです。それ以外の属性（`href`、`alt`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
+実装が読む属性は次のものだけです。それ以外の属性（`alt`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
 
 | 属性 | 対象要素 | 効果 |
 |---|---|---|
 | `class` | すべての要素 | `.class` セレクタのマッチに使われます（空白区切りの複数指定可）。 |
-| `id` | すべての要素 | `#id` セレクタのマッチに使われます（大文字小文字を区別する）。 |
+| `id` | すべての要素 | `#id` セレクタのマッチと、レイアウトされた位置への PDF リンクに使われます（大文字小文字を区別する）。 |
+| `href` | `a` | 対応 URL とフラグメントの PDF リンク先。 |
 | `style` | すべての要素 | インラインの宣言。優先順位は最高です。 |
 | `src` | `iframe`、`frame` | ローカルの HTML ファイルのパス（`BaseDir` 基準。`AllowExternalFiles` を指定しない限り `BaseDir` の内側に限られ、サイズは 32 MiB 以下）。URL（`//` で始まるもの、または `https:`、`data:`、`about:` などのスキーム付きのもの）は読み込まれず、空のボックス／セルになります。読めないファイルはエラーです。`iframe` では `srcdoc` が優先されます。 |
 | `srcdoc` | `iframe` | 埋め込む文書の HTML ソース。`src` より優先されます。 |
@@ -304,9 +305,11 @@
 - リスト: `list-style`、`list-style-type`、`ol` の `start`、独自マーカー。
 - 背景: `background-image`、グラデーション、`background-position`、`background-repeat`。
 - セレクタとルール: 属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
-- その他: リモート CSS、リモートのフレーム、リモート画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
+- その他: リモート CSS、リモートのフレーム、リモート画像、SVG、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
 
 ## 11. 変換オプション
+
+PDF のリンク矩形は行ごとに作られます。ブロックの ID はボックスの上端、インラインの ID（と `<a name>`）は最初の表示内容を指し、`<a id="x"></a>` のような空のインライン要素は次のテキストを指します。ID を持つインライン要素が入れ子の場合は最も内側の ID だけが到達先になり、フレーム文書内の ID は到達先に使えません。`h1`〜`h6` は既定で階層付きしおりになります。PDF 文書情報は `<title>` と `author`・`description`・`keywords` の meta 要素を使い、Creator と Producer は `html2pdf-go` です。作成日時は出力しません。PDF のナビゲーションと文書情報は PNG には適用されません。
 
 ### ライブラリ（`html2pdf.Options`）
 
@@ -316,6 +319,8 @@
 | `PageWidth`, `PageHeight` | float64（pt） | 任意のサイズ。両方が 0 より大きいときはそのまま使われ、`PageSize` と `Landscape` は無視されます。片方だけ指定したときは、もう片方を `PageSize` から取ります。 |
 | `Landscape` | bool | `PageSize` のサイズの幅と高さを入れ替えます。 |
 | `BaseDir` | string | 相対パス（画像・スタイルシート・フレーム文書）を解決する基準ディレクトリ。`AllowExternalFiles` を指定しない限り、これらのファイルはこのディレクトリの内側になければなりません。 |
+| `Title`, `Author`, `Subject` | string | 空でなければ対応する HTML メタデータを上書きします。 |
+| `NoBookmarks` | bool | 見出しのしおりを無効化します。既定は false。 |
 | `AllowExternalFiles` | bool | 文書が `BaseDir` の外のファイルを、絶対パスや `..` で参照することを許可します。既定は false で、画像・スタイルシート・フレーム文書は `BaseDir` の内側からしか読めません（`..` やシンボリックリンクで外へ出ることはできません。絶対パスは `BaseDir` の内側を指す場合のみ使えます）。`//` や `\\` で始まるパス（ネットワークパス）は、どちらのモードでも拒否されます。信頼できる文書でのみ有効にしてください。 |
 | `FontDirs` | []string | フォントを探すディレクトリ（深さ 4 階層まで、`.ttf`、`.ttc`、`.otf`）。指定したディレクトリだけを探し、空なら標準のシステムフォントディレクトリ。ライブラリは環境変数も設定ファイルも読みません。使えるフォントが見つからないとエラーを返します。`font-family` の名前検索の対象にもなります。 |
 | `OnFontUse` | func(FontUse) | 変換中に解決されたフォントのフェイスごとに、重複を除いて 1 回呼ばれます。`FontUse` は `Family`（一致した `font-family` の名前。照合用に正規化され小文字になります。既定のフェイスなら空）、`Bold`（太字が要求されたことを表します。太字フェイスが無い場合、`Path` は通常体のファイルで、`Bold` は true のままです）、`Path`（フォントファイル）を持ちます。nil ならコールバックなし。 |
@@ -342,6 +347,8 @@ html2pdf [flags] -e '<html>'
 | `-page-width` | `0` | ページ幅（mm、`Options.PageWidth`）。`-page-size` の幅を上書きします。`0` なら名前付きサイズのままです。正の値のみ指定できます。 |
 | `-page-height` | `0` | ページ高さ（mm、`Options.PageHeight`）。`-page-size` の高さを上書きします。`0` なら名前付きサイズのままです。正の値のみ指定できます。 |
 | `-landscape` | オフ | 横向き。 |
+| `-bookmarks` | `true` | 見出しのしおりを出力します。 |
+| `-title`, `-author`, `-subject` | 空 | 文書メタデータを上書きします。 |
 | `-scale` | `1.0` | 内容の拡大縮小率。 |
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
 | `-font` | 自動検出 | 通常フェイスのフォントファイル（`Options.FontFile`）。 |

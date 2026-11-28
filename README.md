@@ -72,6 +72,8 @@ By default a document can only read files (images, stylesheets, frame documents)
 
 With `-format png`, each page is written as a PNG image instead of a PDF (a multi-page document gets `-1`, `-2`, ... before the `.png` extension), rasterized at `-png-scale` times the 72-dpi point size (default 2, i.e. 144 dpi). The format can also be selected by giving `-o` a `.png` name and omitting `-format`. From Go, use `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG`, which return one PNG per page.
 
+PDF output includes clickable links, heading bookmarks and document metadata. Use `-bookmarks=false` to disable bookmarks, and `-title`, `-author`, or `-subject` to override metadata.
+
 `-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 
 ## Markdown to PDF (md2pdf)
@@ -86,7 +88,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
 ```
 
-It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-bookmarks`, `-title`, `-author`, `-subject`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
 
 From a Go program:
 

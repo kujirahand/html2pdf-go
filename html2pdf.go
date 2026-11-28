@@ -35,6 +35,10 @@ type FontUse struct {
 
 // Options configures a conversion.
 type Options struct {
+	// Title, Author and Subject override corresponding HTML metadata when nonempty.
+	Title, Author, Subject string
+	// NoBookmarks disables heading bookmarks.
+	NoBookmarks bool
 	// PageSize is a named page size such as "A4", "A5", or "Letter".
 	PageSize string
 	// PageWidth and PageHeight are in points; 0 means derive from PageSize.
@@ -156,7 +160,7 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
-	return render.Render(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, w)
+	return render.RenderDocument(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, w, render.Options{Title: firstNonempty(opts.Title, doc.Title), Author: firstNonempty(opts.Author, doc.Author), Subject: firstNonempty(opts.Subject, doc.Subject), Keywords: doc.Keywords, NoBookmarks: opts.NoBookmarks})
 }
 
 // ConvertFile reads the HTML file at htmlPath and writes the PDF to pdfPath.
@@ -248,4 +252,11 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+func firstNonempty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

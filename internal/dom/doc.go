@@ -33,7 +33,8 @@ type SheetRef struct {
 
 // Document is a parsed HTML document.
 type Document struct {
-	Body *Node
+	Body                             *Node
+	Title, Author, Subject, Keywords string
 	// Frameset is the first <frameset> element, or nil for a normal document.
 	Frameset *Node
 	// StylesheetText holds the contents of all <style> elements in document order.
@@ -79,6 +80,34 @@ func Parse(r io.Reader) (*Document, error) {
 				}
 			case html.ElementNode:
 				switch c.Data {
+				case "title":
+					if c.FirstChild != nil && doc.Title == "" {
+						doc.Title = strings.TrimSpace(c.FirstChild.Data)
+					}
+				case "meta":
+					var name, content string
+					for _, a := range c.Attr {
+						switch strings.ToLower(a.Key) {
+						case "name":
+							name = strings.ToLower(strings.TrimSpace(a.Val))
+						case "content":
+							content = a.Val
+						}
+					}
+					switch name {
+					case "author":
+						if doc.Author == "" {
+							doc.Author = content
+						}
+					case "description":
+						if doc.Subject == "" {
+							doc.Subject = content
+						}
+					case "keywords":
+						if doc.Keywords == "" {
+							doc.Keywords = content
+						}
+					}
 				case "style":
 					var sb strings.Builder
 					for t := c.FirstChild; t != nil; t = t.NextSibling {

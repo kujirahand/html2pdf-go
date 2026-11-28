@@ -14,6 +14,8 @@ type primKind int
 
 const (
 	pNone primKind = iota
+	pLink
+	pTarget
 	pFill
 	pHLine // horizontal line at y from x to x+w
 	pVLine // vertical line at x from y to y+h
@@ -34,6 +36,8 @@ type prim struct {
 	bold       bool
 	face       *text.Face
 	underline  bool
+	level      int
+	id         string
 	src        string
 	dir        string // directory a pImage src resolves against
 	// rx and ry are corner radii for pFill and pRoundStroke (top-left,
@@ -67,7 +71,10 @@ type layouter struct {
 	units   []unit
 	noUnits int // >0 while laying out table cell content
 	marker  *marker
-	imgs    map[string]*imgInfo
+	// pendingID is the id of an empty inline element, waiting for the next
+	// text to attach to.
+	pendingID string
+	imgs      map[string]*imgInfo
 	// lastMB is the bottom margin of the previous block-level sibling in
 	// the current flow, for sibling margin collapsing. flow() saves and
 	// restores it so nested flows start with a clean state.
@@ -397,6 +404,17 @@ func (l *layouter) block(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 	}
 	end := l.flow(n, st, cx, top+bm.b[css.Top]+bm.p[css.Top], contentW)
 	l.marker = nil
+	if n.Attr["id"] != "" || len(n.Tag) == 2 && n.Tag[0] == 'h' && n.Tag[1] >= '1' && n.Tag[1] <= '6' {
+		level := 0
+		if len(n.Tag) == 2 && n.Tag[0] == 'h' && n.Tag[1] >= '1' && n.Tag[1] <= '6' {
+			level = int(n.Tag[1] - '0')
+		}
+		targetY := top
+		if before < len(l.units) {
+			targetY = l.units[before].top
+		}
+		l.emit(prim{kind: pTarget, x: boxX, y: top, w: targetY, id: n.Attr["id"], level: level, text: nodeText(n)})
+	}
 	bottom := end + bm.p[css.Bottom] + bm.b[css.Bottom]
 
 	rx, ry := boxRadii(st, boxW, bottom-top)

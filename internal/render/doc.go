@@ -59,6 +59,17 @@ type renderer struct {
 // that referenced them) and confined to rootDir, the outermost document's
 // directory, unless allowExternal is set.
 func Render(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExternal bool, w io.Writer) error {
+	return RenderDocument(pages, fonts, rootDir, allowExternal, w, Options{})
+}
+
+// Options controls PDF document features.
+type Options struct {
+	Title, Author, Subject, Keywords string
+	NoBookmarks                      bool
+}
+
+// RenderDocument renders a document with metadata.
+func RenderDocument(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExternal bool, w io.Writer, opt Options) error {
 	r := &renderer{
 		w:             pdf.NewWriter(w),
 		fonts:         fonts,
@@ -67,15 +78,19 @@ func Render(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExte
 		pdfFont:       map[*text.Face]*pdf.Font{},
 		images:        map[string]*pdf.Image{},
 	}
+	r.w.SetInfo(pdf.Info{Title: opt.Title, Author: opt.Author, Subject: opt.Subject, Keywords: opt.Keywords, Creator: "html2pdf-go", Producer: "html2pdf-go"})
+	pdfPages := make([]*pdf.Page, 0, len(pages))
 	for _, p := range pages {
 		pg := r.w.AddPage(p.Width, p.Height)
 		pg.SetScale(p.Scale)
+		pdfPages = append(pdfPages, pg)
 		for _, it := range p.Items {
 			if err := r.item(pg, it); err != nil {
 				return err
 			}
 		}
 	}
+	addNavigation(r.w, pages, pdfPages, opt.NoBookmarks)
 	return r.w.Close()
 }
 

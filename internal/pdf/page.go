@@ -18,6 +18,7 @@ type Page struct {
 	imageSet      map[*Image]bool
 	objID         int
 	contentID     int
+	annots        []annotation
 }
 
 // AddPage appends a page of the given size in points.
@@ -238,6 +239,16 @@ func (w *Writer) writePage(p *Page) {
 		res.WriteString(" >>")
 	}
 	res.WriteString(" >>")
-	w.obj(p.objID, fmt.Sprintf("<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %s %s] /Resources %s /Contents %d 0 R >>",
-		w.pagesID, num(p.width), num(p.height), res.String(), p.contentID))
+	extra := ""
+	if len(p.annots) > 0 {
+		var b strings.Builder
+		b.WriteString(" /Annots [")
+		for _, a := range p.annots {
+			fmt.Fprintf(&b, " %d 0 R", a.id)
+		}
+		b.WriteString(" ]")
+		extra = b.String()
+	}
+	w.obj(p.objID, fmt.Sprintf("<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %s %s] /Resources %s /Contents %d 0 R%s >>",
+		w.pagesID, num(p.width), num(p.height), res.String(), p.contentID, extra))
 }

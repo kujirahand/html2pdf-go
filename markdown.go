@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
@@ -205,7 +206,17 @@ func ConvertMarkdown(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
-	return Convert(doc, w, opts)
+	o := *opts
+	if o.Title == "" {
+		parsed, parseErr := dom.Parse(bytes.NewReader(doc))
+		if parseErr != nil {
+			return parseErr
+		}
+		if parsed.Title == "" {
+			o.Title = firstHeading(parsed.Body)
+		}
+	}
+	return Convert(doc, w, &o)
 }
 
 // ConvertMarkdownFile reads the Markdown file at mdPath and writes the PDF to
@@ -243,4 +254,29 @@ func ConvertMarkdownPNG(src []byte, opts *Options, scale float64) ([][]byte, err
 		return nil, err
 	}
 	return ConvertPNG(doc, opts, scale)
+}
+
+func firstHeading(n *dom.Node) string {
+	if n.Tag == "h1" {
+		var b strings.Builder
+		var walk func(*dom.Node)
+		walk = func(n *dom.Node) {
+			if n.IsText() {
+				b.WriteString(n.Text)
+			}
+			for _, c := range n.Children {
+				walk(c)
+			}
+		}
+		walk(n)
+		if t := strings.Join(strings.Fields(b.String()), " "); t != "" {
+			return t
+		}
+	}
+	for _, c := range n.Children {
+		if t := firstHeading(c); t != "" {
+			return t
+		}
+	}
+	return ""
 }

@@ -42,6 +42,8 @@ PDF
 | `internal/render` | レイアウト済みページを `pdf` パッケージ経由で描画する |
 | `internal/pdf` | PDF ファイルの書き出し（オブジェクト、コンテンツストリーム、フォント・画像の埋め込み） |
 
+レイアウトはリンク矩形と ID・見出しの位置をページ座標に変換します。描画段階で内部リンクを解決し、PDF ライターがアノテーション、しおり、文書情報を書き出します。これらには描画と同じ Scale と Y 軸反転を使います。
+
 ## Scale（縮小・拡大率）
 
 `Options.Scale`（CLI では `-scale`）で内容全体を縮小・拡大できます。wkhtmltopdf の zoom / smart shrinking や、Chrome の printToPDF の `scale` に相当する調整機能です。0 以下は 1.0 として扱います。

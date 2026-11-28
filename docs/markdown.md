@@ -50,7 +50,7 @@ body { font-size: 12pt; }
 | `>` blockquotes | `blockquote` |
 | GFM tables | `table` with borders |
 | `---` | `hr`, a horizontal rule (drawn through CSS) |
-| `[text](url)` | `a`, blue underlined text (the link is not clickable) |
+| `[text](url)` | `a`, blue underlined text (clickable for supported URLs) |
 | `![alt](path)` | `img`; relative paths resolve against `BaseDir` |
 | Raw HTML | passed through as-is |
 
@@ -68,6 +68,8 @@ The layout engine collapses all whitespace (including newlines) and has no white
 - No italic: emphasis is drawn as regular text.
 - Code blocks and inline code are not set in a monospace font; the engine skips generic font families such as `monospace`. Indentation and line breaks are preserved, but characters are not aligned in columns.
 - Background color is not drawn on inline elements, so inline `code` has no background. Code blocks (blocks) do.
-- Links are drawn but are not clickable.
+- PDF links support `http`, `https`, `mailto`, and same-document fragments; other schemes are ignored.
 - Long code lines wrap like normal text.
 - Raw HTML in the source is passed through (goldmark runs with unsafe rendering enabled). Only convert Markdown you trust.
+
+PDF bookmarks are enabled by default (`-bookmarks=false` disables them). `-title`, `-author`, and `-subject` override metadata. If no title is specified and the generated HTML has no `<title>`, the first nonempty `h1` supplies the title. PNG output ignores these PDF features.
