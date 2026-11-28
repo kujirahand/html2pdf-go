@@ -348,6 +348,8 @@ html2pdf [flags] -e '<html>'
 | `-font-bold` | 通常フォント | 太字フェイスのフォントファイル（`Options.FontFileBold`）。 |
 | `-font-dirs` | なし | 先に探すフォントディレクトリのカンマ区切り一覧。ほかのフォントディレクトリの前に追加されます（下記参照）。 |
 | `-allow-external-files` | オフ | 文書が自身のフォルダの外のファイルを読むことを許可します（`Options.AllowExternalFiles`）。信頼できる文書専用です。 |
+| `-format` | `pdf` | 出力形式: `pdf` または `png`。`png` ではページごとに PNG 画像を書き出し、複数ページの場合は `.png` の前に `-1`、`-2`、... が付きます。 |
+| `-png-scale` | 2 | `-format png` のラスタライズ倍率。72dpi のポイントに対する倍率です（2 = 144dpi）。 |
 | `-verbose` | オフ | 検索したフォントディレクトリと使われたフォントを標準エラーに表示します。 |
 
 CLI はフォントディレクトリを集め、次の順で `Options.FontDirs` に渡します。`-font-dirs`、環境変数 `HTML2PDF_FONT_DIRS`（OS のパスリスト形式。Unix は `:`、Windows は `;` 区切り）、OS のフォントディレクトリの順です。先に集めたものが優先され、重複したディレクトリは最初の位置だけが残ります。`-font-dirs` は標準のディレクトリを置き換えるのではなく、先に探すディレクトリを追加します。`-verbose` を付けると、変換前に各ディレクトリを `font dir [flag|env|os]: <path>` の形で、変換後に解決された各フォントを `font: <family or (default)> (bold) -> <path>` の形で表示します。

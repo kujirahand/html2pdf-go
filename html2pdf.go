@@ -4,6 +4,8 @@ package html2pdf
 import (
 	"bytes"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"math"
 	"os"
@@ -13,6 +15,7 @@ import (
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/kujirahand/html2pdf-go/internal/layout"
+	"github.com/kujirahand/html2pdf-go/internal/raster"
 	"github.com/kujirahand/html2pdf-go/internal/render"
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
@@ -176,4 +179,73 @@ func ConvertFile(htmlPath, pdfPath string, opts *Options) error {
 		return err
 	}
 	return os.WriteFile(pdfPath, buf.Bytes(), 0o644)
+}
+
+// ConvertPNG converts the HTML document src into one PNG image per page,
+// each returned as PNG-encoded bytes. scale is the rasterization scale
+// relative to 72-dpi points (2 = 144 dpi); a value <= 0 means 2. File
+// access follows the same rules as Convert (see Options.BaseDir and
+// Options.AllowExternalFiles).
+func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
+	if opts == nil {
+		opts = &Options{}
+	}
+	if math.IsNaN(opts.Scale) || math.IsInf(opts.Scale, 0) {
+		return nil, fmt.Errorf("html2pdf: invalid scale %v", opts.Scale)
+	}
+	if math.IsNaN(scale) || math.IsInf(scale, 0) {
+		return nil, fmt.Errorf("html2pdf: invalid PNG scale %v", scale)
+	}
+	pageW, pageH, err := opts.pageSize()
+	if err != nil {
+		return nil, err
+	}
+	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold)
+	if err != nil {
+		return nil, err
+	}
+	if opts.OnFontUse != nil {
+		fonts.OnUse = func(family string, bold bool, path string) {
+			opts.OnFontUse(FontUse{Family: family, Bold: bold, Path: path})
+		}
+	}
+	doc, err := dom.Parse(bytes.NewReader(src))
+	if err != nil {
+		return nil, err
+	}
+	sheets, err := css.ResolveSheets(doc, opts.BaseDir, opts.BaseDir, opts.AllowExternalFiles)
+	if err != nil {
+		return nil, err
+	}
+	styles := css.ComputeStyles(doc, sheets)
+	pages, err := layout.Layout(doc, styles, fonts, layout.Options{
+		PageWidth:  pageW,
+		PageHeight: pageH,
+		BaseDir:    opts.BaseDir,
+		RootDir:    opts.BaseDir,
+		Scale:      opts.Scale,
+
+		AllowExternalFiles: opts.AllowExternalFiles,
+
+		MarginTop:    opts.Margin,
+		MarginRight:  opts.Margin,
+		MarginBottom: opts.Margin,
+		MarginLeft:   opts.Margin,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out [][]byte
+	err = raster.RenderEach(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, scale, func(img *image.NRGBA) error {
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, img); err != nil {
+			return err
+		}
+		out = append(out, buf.Bytes())
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }

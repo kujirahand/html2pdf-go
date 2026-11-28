@@ -64,7 +64,7 @@ samples: invoice fonts
 examples: fonts
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p examples/pdf
+    mkdir -p examples/pdf examples/png
     for f in examples/*.html; do
         name=$(basename "$f" .html)
         opts=(-margin 36 -font-dirs fonts)
@@ -75,6 +75,7 @@ examples: fonts
         esac
         echo "html2pdf: $f"
         go run ./cmd/html2pdf "$f" -o "examples/pdf/$name.pdf" "${opts[@]}"
+        go run ./cmd/html2pdf "$f" -o "examples/png/$name.png" "${opts[@]}" -format png
     done
     for f in examples/*.md; do
         name=$(basename "$f" .md)
@@ -82,6 +83,7 @@ examples: fonts
         if [ "$name" = "README" ]; then continue; fi
         echo "md2pdf: $f"
         go run ./cmd/md2pdf "$f" -o "examples/pdf/$name-md.pdf" -margin 48 -font-dirs fonts
+        go run ./cmd/md2pdf "$f" -o "examples/png/$name-md.png" -margin 48 -font-dirs fonts -format png
     done
 
 # Markdown サンプル PDF を out/sample-md.pdf に生成（fonts が必要）

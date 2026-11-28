@@ -231,3 +231,16 @@ func ConvertMarkdownFile(mdPath, pdfPath string, opts *Options) error {
 	}
 	return os.WriteFile(pdfPath, buf.Bytes(), 0o644)
 }
+
+// ConvertMarkdownPNG is ConvertPNG for Markdown input, with the same
+// preprocessing as ConvertMarkdown.
+func ConvertMarkdownPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
+	if opts == nil {
+		opts = &Options{}
+	}
+	doc, err := markdownDocument(src, opts.MarkdownCSS)
+	if err != nil {
+		return nil, err
+	}
+	return ConvertPNG(doc, opts, scale)
+}

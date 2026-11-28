@@ -28,7 +28,7 @@ func fontUseLine(u html2pdf.FontUse) string {
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "css": true}
+var valueFlags = map[string]bool{"o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "css": true, "format": true, "png-scale": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -55,11 +55,38 @@ func reorderArgs(args []string) []string {
 	return append(append(flags, "--"), pos...)
 }
 
+// pngPaths returns the file names for n PNG pages: output with its extension
+// replaced by .png for a single page, or with -1, -2, ... inserted before
+// .png for several.
+func pngPaths(output string, n int) []string {
+	base := strings.TrimSuffix(output, filepath.Ext(output))
+	if n == 1 {
+		return []string{base + ".png"}
+	}
+	paths := make([]string, n)
+	for i := range paths {
+		paths[i] = fmt.Sprintf("%s-%d.png", base, i+1)
+	}
+	return paths
+}
+
+// writePNGs writes the pages to the files named by pngPaths.
+func writePNGs(output string, pages [][]byte) error {
+	for i, path := range pngPaths(output, len(pages)) {
+		if err := os.WriteFile(path, pages[i], 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // mmToPt converts millimetres to PDF points.
 func mmToPt(mm float64) float64 { return mm * 72 / 25.4 }
 
 func main() {
-	out := flag.String("o", "", "output PDF path (default: input with .pdf extension)")
+	out := flag.String("o", "", "output path (default: input with .pdf extension; .png with -format png)")
+	format := flag.String("format", "pdf", "output format: pdf or png (png writes one file per page, name-1.png, name-2.png, ...)")
+	pngScale := flag.Float64("png-scale", 2, "rasterization scale for -format png (2 = 144 dpi)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
 	pageWidth := flag.Float64("page-width", 0, "page width in millimetres (overrides -page-size width; 0 keeps the named size)")
 	pageHeight := flag.Float64("page-height", 0, "page height in millimetres (overrides -page-size height; 0 keeps the named size)")
@@ -82,6 +109,11 @@ func main() {
 	if *showVersion {
 		fmt.Println("md2pdf " + version)
 		return
+	}
+
+	if *format != "pdf" && *format != "png" {
+		fmt.Fprintf(os.Stderr, "md2pdf: unknown -format %q (want pdf or png)\n", *format)
+		os.Exit(2)
 	}
 
 	if flag.NArg() < 1 {
@@ -140,7 +172,18 @@ func main() {
 	if *verbose {
 		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
-	err := html2pdf.ConvertMarkdownFile(input, output, opts)
+	var err error
+	if *format == "png" {
+		var src []byte
+		if src, err = os.ReadFile(input); err == nil {
+			var pages [][]byte
+			if pages, err = html2pdf.ConvertMarkdownPNG(src, opts, *pngScale); err == nil {
+				err = writePNGs(output, pages)
+			}
+		}
+	} else {
+		err = html2pdf.ConvertMarkdownFile(input, output, opts)
+	}
 	if *verbose {
 		for _, u := range uses {
 			fmt.Fprintln(os.Stderr, fontUseLine(u))
