@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Concert Ticket</title>
+<style>
+  body { margin: 0; padding: 40px 36px; font-family: "DejaVu Sans", sans-serif; color: #222222; }
+  table.ticket { width: 100%; border-collapse: collapse; border: 3px solid #1a3a5c; }
+  td.main { width: 70%; padding: 22px 26px; vertical-align: top; background-color: #f4f7fb; }
+  td.stub { width: 30%; padding: 22px 18px; vertical-align: top; border-left: 2px dashed #1a3a5c; background-color: #ffffff; }
+  .label { font-size: 8pt; color: #1a3a5c; margin: 12px 0 2px 0; }
+  .title { font-family: "DejaVu Serif", serif; font-size: 22pt; color: #1a3a5c; margin: 4px 0 4px 0; }
+  .sub { font-size: 10.5pt; color: #555555; margin: 0; }
+  .value { font-size: 12pt; margin: 0; }
+  .seat { font-size: 16pt; font-weight: bold; margin: 0; }
+  .price { font-size: 14pt; margin: 0; }
+  .tag { background-color: #1a3a5c; color: #ffffff; padding: 3px 10px; font-size: 9pt; }
+  .warn { font-size: 8.5pt; color: #aa2222; margin-top: 16px; border: 1px solid #aa2222; padding: 4px 8px; }
+  .stub .title2 { font-family: "DejaVu Serif", serif; font-size: 11pt; color: #1a3a5c; margin: 0 0 8px 0; }
+  .stub p { margin: 0; }
+  .small { font-size: 8.5pt; color: #555555; margin-top: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<table class="ticket">
+  <tr>
+    <td class="main">
+      <p><span class="tag">ADMISSION TICKET</span></p>
+      <p class="title">Sakuramml Live 2026</p>
+      <p class="sub">Yokohama Minato Hall</p>
+      <p class="label">DATE</p>
+      <p class="value">Sat, Dec 19, 2026 &nbsp; Doors 17:30 / Start 18:00</p>
+      <p class="label">SEAT</p>
+      <p class="seat">1F &nbsp; Row 12 &nbsp; Seat 8</p>
+      <p class="label">PRICE</p>
+      <p class="price">3,500 yen (tax incl.)</p>
+      <p class="warn">* No re-entry. Resale and reissue of this ticket are strictly prohibited.</p>
+    </td>
+    <td class="stub">
+      <p class="title2">Sakuramml Live 2026</p>
+      <p class="label">DATE</p>
+      <p class="value">Dec 19 (Sat)</p>
+      <p class="label">START</p>
+      <p class="value">18:00</p>
+      <p class="label">SEAT</p>
+      <p class="value">1F R12 S8</p>
+      <p class="small">Keep this stub until the end of the show.<br>No re-entry</p>
+    </td>
+  </tr>
+</table>
+<p style="font-size:8.5pt; color:#777777; margin-top:14px;">* This ticket is fictional. No. 0001-2026</p>
+</body>
+</html>

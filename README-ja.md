@@ -81,7 +81,7 @@ html2pdf -scale 0.95 hello.html                            # 全体を 95% に�
 - 見た目を変える: `<style>` の中身を変えます。使える HTML 要素と CSS は [docs/reference-ja.md](docs/reference-ja.md) に一覧があります
 - 改ページする: 次のページを始めたい位置に `<page-break></page-break>` を置きます（例: `<p>Page 1</p><page-break></page-break><p>Page 2</p>`）。先頭・末尾・連続した `<page-break>` で空白ページはできません
 - Go のプログラムから使う: 次の「ライブラリとしての使い方」を見てください
-- 実例を見る: [examples/](examples/) に住所録や領収書などのサンプル HTML があります
+- 実例を見る: [examples/](examples/) に住所録、領収書、イベント案内状、コンサートチケット、カフェメニュー、名刺、カレンダー、搭乗券、議事録、レシピなどのサンプル文書（HTML と Markdown、日英両版）があります。`just examples` で全てを `out/` に PDF 化できます
 
 ## ライブラリとしての使い方
 
@@ -119,6 +119,7 @@ go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 
 html2pdf input.html                    # input.pdf を出力
 html2pdf -o out.pdf -page-size A4 input.html
+html2pdf -page-width 91 -page-height 55 input.html   # ページサイズをミリメートルで指定
 html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と output.pdf を出力
 ```
@@ -139,7 +140,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 
