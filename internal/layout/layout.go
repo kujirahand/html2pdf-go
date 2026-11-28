@@ -229,6 +229,18 @@ func (l *layouter) face(st *css.Style) *text.Face {
 	return l.fonts.FaceFor(st.FontFamily, st.Bold())
 }
 
+// faceForRune returns the face that draws r in st: the style's face, or the
+// default face when the style's face lacks a glyph that the default has.
+func (l *layouter) faceForRune(st *css.Style, r rune) *text.Face {
+	f := l.face(st)
+	if f.GlyphID(r) == 0 {
+		if fb := l.fonts.FallbackFor(f, r, st.Bold()); fb != nil {
+			return fb
+		}
+	}
+	return f
+}
+
 // metrics returns the line-box ascent and descent contributed by st,
 // including half-leading from its line-height.
 func (l *layouter) metrics(st *css.Style) (asc, desc float64) {
