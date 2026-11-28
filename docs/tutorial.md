@@ -76,5 +76,5 @@ html2pdf -scale 0.95 hello.html                            # shrink everything t
 
 - Change the appearance: edit the contents of the `<style>` element. The available HTML elements and CSS are listed in [reference.md](reference.md)
 - Start a new page: put `<page-break></page-break>` where the next page should begin, for example `<p>Page 1</p><page-break></page-break><p>Page 2</p>`. Leading, trailing, and repeated `<page-break>` elements do not create blank pages
-- Use it from a Go program: see "Using it as a library" in [README.md](../README.md)
+- Use it from a Go program: see the [library guide](library.md)
 - See real examples: [examples/](../examples/) contains sample HTML and Markdown documents — an address book, a receipt, an event flyer, a concert ticket, a cafe menu, a business card, a calendar, a boarding pass, meeting minutes, a recipe and more, in Japanese and English. Run `just examples` to convert them all into `examples/pdf/`

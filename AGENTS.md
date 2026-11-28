@@ -21,7 +21,7 @@
 | `docs/<名前>.md` | `docs/<名前>-ja.md` |
 
 - 無印が英語版、`-ja` が付いたものが日本語版です。
-- 現在のペア: `README.md` / `README-ja.md`、`docs/architecture.md` / `docs/architecture-ja.md`、`docs/reference.md` / `docs/reference-ja.md`、`docs/tutorial.md` / `docs/tutorial-ja.md`、`docs/markdown.md` / `docs/markdown-ja.md`
+- 現在のペア: `README.md` / `README-ja.md`、`docs/architecture.md` / `docs/architecture-ja.md`、`docs/reference.md` / `docs/reference-ja.md`、`docs/tutorial.md` / `docs/tutorial-ja.md`、`docs/markdown.md` / `docs/markdown-ja.md`、`docs/library.md` / `docs/library-ja.md`、`docs/development.md` / `docs/development-ja.md`
 
 ### 同時更新のルール
 
