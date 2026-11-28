@@ -63,11 +63,14 @@ html2pdf -o out.pdf -page-size A4 input.html
 html2pdf -page-width 91 -page-height 55 input.html   # ページサイズをミリメートルで指定
 html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と output.pdf を出力
+html2pdf -format png input.html        # input.png を出力（PNG 画像出力）
 ```
 
 `-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は入力ファイルと同時には指定できません。
 
 既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。フォルダの外を指す絶対パスや `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
+
+`-format png` を指定すると、PDF の代わりにページごとの PNG 画像を出力します（複数ページの場合は `.png` の前に `-1`、`-2`、... が付きます）。解像度は `-png-scale` で、72dpi のポイントに対する倍率を指定します（既定 2、つまり 144dpi）。Go のプログラムからは `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG` が使え、ページごとの PNG を返します。
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
@@ -83,7 +86,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-format`、`-png-scale`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 

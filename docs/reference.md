@@ -348,6 +348,8 @@ html2pdf [flags] -e '<html>'
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
 | `-font-dirs` | none | Comma-separated directories searched first for fonts. They are added in front of the other font directories (see below). |
 | `-allow-external-files` | off | Let the document read files outside its own directory (`Options.AllowExternalFiles`). For trusted documents only. |
+| `-format` | `pdf` | Output format: `pdf` or `png`. With `png`, each page is written as a PNG image; a multi-page document gets `-1`, `-2`, ... inserted before the `.png` extension. |
+| `-png-scale` | 2 | Rasterization scale for `-format png`, relative to 72-dpi points (2 = 144 dpi). |
 | `-verbose` | off | Print the font directories searched and the fonts used to standard error. |
 
 The CLI collects the font directories and passes them as `Options.FontDirs`, in this order: `-font-dirs`, then the environment variable `HTML2PDF_FONT_DIRS` (the OS path list format: `:` on Unix, `;` on Windows), then the operating system's font directories. Directories collected earlier take priority, and a repeated directory keeps its first position. `-font-dirs` no longer replaces the standard directories; it adds directories that are searched first. With `-verbose`, each directory is printed before conversion as `font dir [flag|env|os]: <path>`, and each resolved font after conversion as `font: <family or (default)> (bold) -> <path>`.

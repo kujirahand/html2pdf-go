@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/font/sfnt"
 	"golang.org/x/image/math/fixed"
 )
@@ -215,6 +216,15 @@ func (f *Face) Advance(r rune, size float64) float64 {
 		return size * 0.5
 	}
 	return w / f.upem * size
+}
+
+// RasterFace returns a font.Face (golang.org/x/image/font) that rasterizes
+// this face's glyphs at the given size in points, scaled by scale
+// (2 = 144 dpi). Hinting is disabled so glyph advances match Advance.
+func (f *Face) RasterFace(size, scale float64) (font.Face, error) {
+	return opentype.NewFace(f.sf, &opentype.FaceOptions{
+		Size: size, DPI: 72 * scale, Hinting: font.HintingNone,
+	})
 }
 
 // Measure returns the width of s in points at the given size.
