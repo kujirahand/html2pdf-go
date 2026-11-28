@@ -264,7 +264,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 ## 9. Layout behavior notes
 
-**Blocks.** `width` sets the content width; padding and border are added outside it. Vertical margins collapse between adjacent block siblings (the larger one wins); there is no parent/child margin collapsing, and negative margins do not collapse. `height`, `min-*` and `max-*` do not exist (except that `height` works on an `iframe` box), so heights always follow the content. A block with a background or border that fits on one page is kept on one page.
+**Blocks.** `width` sets the content width; padding and border are added outside it. Vertical margins collapse between adjacent block siblings (the larger one wins); there is no parent/child margin collapsing, and negative margins do not collapse. `height`, `min-*` and `max-*` do not exist (except that `height` works on an `iframe` box and as a minimum row height on a table cell), so heights always follow the content. A block with a background or border that fits on one page is kept on one page.
 
 **Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, underline and `line-height`. Margin, padding and border on inline elements are ignored, but `background-color` is drawn behind the text run (split per line when it wraps). Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
 
@@ -283,7 +283,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Cells are placed left to right; `colspan` makes a cell span columns. There is no `rowspan`. A table of more than 10000 columns, or a document whose layout work exceeds a fixed budget (for example deeply nested tables), makes the conversion fail.
 - Column widths: a cell `width` (including the attribute) fixes its column (content width plus padding and border); `%` widths are used when the table has a `width`, or when an auto-width table has to shrink. Other columns get their max-content width; surplus space is shared equally, and when space is short columns shrink toward their min-content width. Spanning cells only widen columns that are too narrow.
 - A table without `width` is as wide as its content, up to the available width. With a `width`, if every column has a fixed width they are scaled to fill it.
-- Cell content is always vertically centered. Row height is the tallest cell.
+- Cell content is always vertically centered. Row height is the tallest cell. A cell `height` (absolute lengths; a percentage is ignored) is a border-box minimum for the row: taller content still wins.
 - Each cell draws its own borders; there is no `border-collapse` or `border-spacing`, so adjacent cell borders do not merge.
 - A table is centered when its `text-align` (inherited) is `center` and it is narrower than its container. `margin: auto` does not center it.
 
