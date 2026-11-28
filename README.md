@@ -74,6 +74,8 @@ With `-format png`, each page is written as a PNG image instead of a PDF (a mult
 
 `-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 
+The first `thead` of a long table repeats on continuation pages. Use `-repeat-thead=false` (or `Options.NoRepeatThead` in the library) to disable it.
+
 ## Markdown to PDF (md2pdf)
 
 `md2pdf` converts a Markdown file into a PDF. It turns the Markdown into HTML with [goldmark](https://github.com/yuin/goldmark) and passes it through the same engine (Markdown → HTML → PDF).

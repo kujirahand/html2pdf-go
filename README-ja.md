@@ -74,6 +74,8 @@ html2pdf -format png input.html        # input.png を出力（PNG 画像出力�
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
+長い表の最初の `thead` は継続ページに繰り返されます。`-repeat-thead=false`（ライブラリでは `Options.NoRepeatThead`）で無効にできます。
+
 ## Markdown から PDF へ（md2pdf）
 
 `md2pdf` は Markdown ファイルを PDF に変換します。[goldmark](https://github.com/yuin/goldmark) で Markdown を HTML にし、同じエンジンに渡します（Markdown → HTML → PDF）。

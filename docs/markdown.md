@@ -54,6 +54,8 @@ body { font-size: 12pt; }
 | `![alt](path)` | `img`; relative paths resolve against `BaseDir` |
 | Raw HTML | passed through as-is |
 
+Markdown tables have a `thead`, which repeats on continuation pages by default. Pass `-repeat-thead=false` to `md2pdf` or set `Options.NoRepeatThead` to disable it.
+
 ## 4. Code-block whitespace transform
 
 The layout engine collapses all whitespace (including newlines) and has no whitespace-preserving `pre`. Left alone, a code block would be flattened into one line. So each `<pre>` block that goldmark produces is rewritten before conversion:

@@ -182,3 +182,38 @@ func TestConvertFrameset(t *testing.T) {
 		t.Error("output is not a PDF")
 	}
 }
+
+func TestConvertRepeatThead(t *testing.T) {
+	skipWithoutFonts(t)
+	var src strings.Builder
+	src.WriteString(`<table><thead><tr><th>Heading</th></tr></thead><tbody>`)
+	for i := 0; i < 80; i++ {
+		src.WriteString(`<tr><td>body row</td></tr>`)
+	}
+	src.WriteString(`</tbody></table>`)
+	var repeated, once bytes.Buffer
+	if err := Convert([]byte(src.String()), &repeated, &Options{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Convert([]byte(src.String()), &once, &Options{NoRepeatThead: true}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(repeated.Bytes(), []byte("%PDF-")) || bytes.Equal(repeated.Bytes(), once.Bytes()) {
+		t.Fatal("expected different PDF output with repeated headings")
+	}
+}
+
+func TestMarkdownRepeatThead(t *testing.T) {
+	skipWithoutFonts(t)
+	src := "| Heading |\n|---|\n" + strings.Repeat("| body row |\n", 80)
+	var repeated, once bytes.Buffer
+	if err := ConvertMarkdown([]byte(src), &repeated, &Options{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := ConvertMarkdown([]byte(src), &once, &Options{NoRepeatThead: true}); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(repeated.Bytes(), once.Bytes()) {
+		t.Fatal("Markdown did not pass the repeat option")
+	}
+}
