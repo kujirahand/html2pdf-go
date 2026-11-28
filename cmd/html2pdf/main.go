@@ -29,7 +29,7 @@ func fontUseLine(u html2pdf.FontUse) string {
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"e": true, "o": true, "page-size": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true}
+var valueFlags = map[string]bool{"e": true, "o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -66,9 +66,14 @@ func convertString(src, path string, opts *html2pdf.Options) error {
 	return os.WriteFile(path, buf.Bytes(), 0o644)
 }
 
+// mmToPt converts millimetres to PDF points.
+func mmToPt(mm float64) float64 { return mm * 72 / 25.4 }
+
 func main() {
 	out := flag.String("o", "", "output PDF path (default: input with .pdf extension, or output.pdf with -e)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
+	pageWidth := flag.Float64("page-width", 0, "page width in millimetres (overrides -page-size width; 0 keeps the named size)")
+	pageHeight := flag.Float64("page-height", 0, "page height in millimetres (overrides -page-size height; 0 keeps the named size)")
 	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
@@ -123,6 +128,11 @@ func main() {
 		}
 	}
 
+	if *pageWidth < 0 || *pageHeight < 0 {
+		fmt.Fprintln(os.Stderr, "html2pdf: -page-width and -page-height must be positive")
+		os.Exit(2)
+	}
+
 	dirs := fontcfg.Gather(*fontDirs)
 	var uses []html2pdf.FontUse
 	if *verbose {
@@ -141,6 +151,12 @@ func main() {
 		FontDirs:  fontcfg.Paths(dirs),
 
 		FontFileBold: *fontBold,
+	}
+	if *pageWidth > 0 {
+		opts.PageWidth = mmToPt(*pageWidth)
+	}
+	if *pageHeight > 0 {
+		opts.PageHeight = mmToPt(*pageHeight)
 	}
 	if *verbose {
 		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }

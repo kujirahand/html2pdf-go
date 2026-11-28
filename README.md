@@ -81,7 +81,7 @@ html2pdf -scale 0.95 hello.html                            # shrink everything t
 - Change the appearance: edit the contents of the `<style>` element. The available HTML elements and CSS are listed in [docs/reference.md](docs/reference.md)
 - Start a new page: put `<page-break></page-break>` where the next page should begin, for example `<p>Page 1</p><page-break></page-break><p>Page 2</p>`. Leading, trailing, and repeated `<page-break>` elements do not create blank pages
 - Use it from a Go program: see "Using it as a library" below
-- See real examples: [examples/](examples/) contains sample HTML such as an address book and a receipt
+- See real examples: [examples/](examples/) contains sample HTML and Markdown documents — an address book, a receipt, an event flyer, a concert ticket, a cafe menu, a business card, a calendar, a boarding pass, meeting minutes, a recipe and more, in Japanese and English. Run `just examples` to convert them all into `out/`
 
 ## Using it as a library
 
@@ -119,6 +119,7 @@ go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 
 html2pdf input.html                    # writes input.pdf
 html2pdf -o out.pdf -page-size A4 input.html
+html2pdf -page-width 91 -page-height 55 input.html   # custom page size in millimetres
 html2pdf -scale 0.95 input.html        # shrinks the content to 95%
 html2pdf -e '<h1>Hello</h1>'           # HTML given directly; writes output.html and output.pdf
 ```
@@ -139,7 +140,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
 ```
 
-It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
 
 From a Go program:
 

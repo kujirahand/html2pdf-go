@@ -60,6 +60,28 @@ samples: invoice fonts
     go run ./cmd/html2pdf examples/receipt.html -o out/receipt.pdf -margin 48 -font-dirs fonts
     go run ./cmd/md2pdf examples/sample.md -o out/sample-md.pdf -margin 48 -font-dirs fonts
 
+# examples/ の全ファイルを out/ に PDF 化する
+examples: fonts
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p out
+    for f in examples/*.html; do
+        name=$(basename "$f" .html)
+        opts=(-margin 36 -font-dirs fonts)
+        case "$name" in
+            address-book) opts=(-landscape -margin 36 -font-dirs fonts) ;;
+            business-card-*) opts=(-page-width 91 -page-height 55 -margin 0 -font-dirs fonts) ;;
+            event-flyer-*) opts=(-margin 0 -font-dirs fonts) ;;
+        esac
+        echo "html2pdf: $f"
+        go run ./cmd/html2pdf "$f" -o "out/$name.pdf" "${opts[@]}"
+    done
+    for f in examples/*.md; do
+        name=$(basename "$f" .md)
+        echo "md2pdf: $f"
+        go run ./cmd/md2pdf "$f" -o "out/$name-md.pdf" -margin 48 -font-dirs fonts
+    done
+
 # Markdown サンプル PDF を out/sample-md.pdf に生成（fonts が必要）
 markdown: fonts
     mkdir -p out
