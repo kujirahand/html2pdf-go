@@ -36,7 +36,7 @@ func TestResolveSheetsAppliesExternalCSS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sheets, err := ResolveSheets(doc, dir)
+	sheets, err := ResolveSheets(doc, dir, dir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestResolveSheetsDocumentOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sheets, err := ResolveSheets(doc, dir)
+	sheets, err := ResolveSheets(doc, dir, dir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,8 @@ func TestResolveSheetsMissingFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ResolveSheets(doc, t.TempDir()); err == nil {
+	dir := t.TempDir()
+	if _, err := ResolveSheets(doc, dir, dir, false); err == nil {
 		t.Fatal("expected an error for a missing stylesheet")
 	}
 }
@@ -99,12 +100,57 @@ func TestResolveSheetsIgnoresURLs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		sheets, err := ResolveSheets(doc, t.TempDir())
+		dir := t.TempDir()
+		sheets, err := ResolveSheets(doc, dir, dir, false)
 		if err != nil {
 			t.Errorf("%s: unexpected error %v", href, err)
 		}
 		if len(sheets) != 0 {
 			t.Errorf("%s: got %d sheets, want 0", href, len(sheets))
 		}
+	}
+}
+
+// A stylesheet outside baseDir, reached with ".." or an absolute path, is
+// refused unless external files are allowed.
+func TestResolveSheetsConfinement(t *testing.T) {
+	root := t.TempDir()
+	base := filepath.Join(root, "doc")
+	if err := os.Mkdir(base, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(root, "outside.css")
+	if err := os.WriteFile(outside, []byte("p { font-size: 32pt; }"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, href := range []string{"../outside.css", outside} {
+		doc, err := dom.Parse(strings.NewReader(
+			`<html><head><link rel="stylesheet" href="` + href + `"></head><body><p>x</p></body></html>`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := ResolveSheets(doc, base, base, false); err == nil {
+			t.Errorf("href %q outside baseDir was read by default", href)
+		}
+		sheets, err := ResolveSheets(doc, base, base, true)
+		if err != nil || len(sheets) != 1 || !strings.Contains(sheets[0], "32pt") {
+			t.Errorf("href %q with allowExternal: %v, %v", href, sheets, err)
+		}
+	}
+}
+
+// A stylesheet that is not a regular file (here /dev/zero) is an error, not
+// an unbounded read.
+func TestResolveSheetsRejectsDevice(t *testing.T) {
+	if _, err := os.Stat("/dev/zero"); err != nil {
+		t.Skip("no /dev/zero")
+	}
+	doc, err := dom.Parse(strings.NewReader(
+		`<html><head><link rel="stylesheet" href="/dev/zero"></head><body><p>x</p></body></html>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ResolveSheets(doc, t.TempDir(), t.TempDir(), true); err == nil {
+		t.Fatal("expected an error for a device file")
 	}
 }

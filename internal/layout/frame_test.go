@@ -55,7 +55,7 @@ func layoutFrameFiles(t *testing.T, files map[string]string, main string) []*Pag
 	if err != nil {
 		t.Fatal(err)
 	}
-	sheets, err := css.ResolveSheets(doc, dir)
+	sheets, err := css.ResolveSheets(doc, dir, dir, false)
 	if err != nil {
 		t.Fatal(err)
 	}

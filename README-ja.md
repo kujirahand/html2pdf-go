@@ -1,3 +1,5 @@
+![html2pdf-go — HTML/CSS/Markdown から PDF へ](docs/html2pdf-go-logo800.png)
+
 # html2pdf-go
 
 [English README](README.md)
@@ -126,6 +128,8 @@ html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と 
 
 `-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は入力ファイルと同時には指定できません。
 
+既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。絶対パス、フォルダの外へ出る `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
+
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 
 ## Markdown から PDF へ（md2pdf）
@@ -140,7 +144,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 

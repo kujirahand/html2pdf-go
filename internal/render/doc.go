@@ -9,10 +9,11 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io"
-	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/datauri"
+	"github.com/kujirahand/html2pdf-go/internal/filex"
 	"github.com/kujirahand/html2pdf-go/internal/layout"
 	"github.com/kujirahand/html2pdf-go/internal/pdf"
 	"github.com/kujirahand/html2pdf-go/internal/text"
@@ -25,24 +26,42 @@ const (
 	maxImagePixels = 33000000
 )
 
+// maxImageFileSize caps the size of an image file.
+const maxImageFileSize = 64 << 20
+
+// maxTotalImagePixels bounds the decoded pixels of all images in one PDF:
+// each image is retained until the PDF is written. A variable so tests can
+// lower it.
+var maxTotalImagePixels = 100_000_000
+
 var pngSignature = []byte("\x89PNG\r\n\x1a\n")
 
 type renderer struct {
-	w       *pdf.Writer
-	fonts   *text.FontSet
-	baseDir string
-	pdfFont map[*text.Face]*pdf.Font
-	images  map[string]*pdf.Image
+	w     *pdf.Writer
+	fonts *text.FontSet
+	// rootDir confines image files to the outermost document's directory
+	// tree; see filex.ReadUnder.
+	rootDir string
+	// allowExternal lets image files lie outside rootDir.
+	allowExternal bool
+	// totalPixels is the pixel count of the images added so far.
+	totalPixels int
+	pdfFont     map[*text.Face]*pdf.Font
+	images      map[string]*pdf.Image
 }
 
-// Render writes pages to w as a PDF document.
-func Render(pages []*layout.Page, fonts *text.FontSet, baseDir string, w io.Writer) error {
+// Render writes pages to w as a PDF document. Image files are resolved
+// against the directory each ImageItem names (the directory of the document
+// that referenced them) and confined to rootDir, the outermost document's
+// directory, unless allowExternal is set.
+func Render(pages []*layout.Page, fonts *text.FontSet, rootDir string, allowExternal bool, w io.Writer) error {
 	r := &renderer{
-		w:       pdf.NewWriter(w),
-		fonts:   fonts,
-		baseDir: baseDir,
-		pdfFont: map[*text.Face]*pdf.Font{},
-		images:  map[string]*pdf.Image{},
+		w:             pdf.NewWriter(w),
+		fonts:         fonts,
+		rootDir:       rootDir,
+		allowExternal: allowExternal,
+		pdfFont:       map[*text.Face]*pdf.Font{},
+		images:        map[string]*pdf.Image{},
 	}
 	for _, p := range pages {
 		pg := r.w.AddPage(p.Width, p.Height)
@@ -119,16 +138,23 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 	case layout.ImageItem:
 		// An unusable image is skipped, matching layout's handling of
 		// unreadable images, rather than failing the whole render.
-		if img, err := r.image(it.Src); err == nil {
+		if img, err := r.image(it.Src, it.Dir); err == nil {
 			pg.DrawImage(img, it.X, it.Y, it.W, it.H)
 		}
 	}
 	return nil
 }
 
-// image loads src (a file path) and registers it with the PDF writer.
-func (r *renderer) image(src string) (*pdf.Image, error) {
-	if img, ok := r.images[src]; ok {
+// image loads src (a file path resolved against dir, or a data: URI) and
+// registers it with the PDF writer.
+func (r *renderer) image(src, dir string) (*pdf.Image, error) {
+	// A data URI is the same image wherever it appears; a file depends on
+	// the directory.
+	key := src
+	if len(src) < 5 || !strings.EqualFold(src[:5], "data:") {
+		key = dir + "\x00" + src
+	}
+	if img, ok := r.images[key]; ok {
 		return img, nil
 	}
 	data, isData, err := datauri.Decode(src)
@@ -136,10 +162,11 @@ func (r *renderer) image(src string) (*pdf.Image, error) {
 	if isData {
 		label = "data URI"
 	} else {
-		data, err = os.ReadFile(src)
-		if err != nil && !filepath.IsAbs(src) {
-			data, err = os.ReadFile(filepath.Join(r.baseDir, src))
+		p := src
+		if !filepath.IsAbs(p) {
+			p = filepath.Join(dir, p)
 		}
+		data, err = filex.ReadUnder(r.rootDir, p, maxImageFileSize, r.allowExternal)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("render: read image: %w", err)
@@ -151,6 +178,9 @@ func (r *renderer) image(src string) (*pdf.Image, error) {
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > maxImageDim || cfg.Height > maxImageDim ||
 		cfg.Width*cfg.Height > maxImagePixels {
 		return nil, fmt.Errorf("render: image %s too large (%dx%d)", label, cfg.Width, cfg.Height)
+	}
+	if r.totalPixels+cfg.Width*cfg.Height > maxTotalImagePixels {
+		return nil, fmt.Errorf("render: image %s exceeds the total image budget of %d pixels", label, maxTotalImagePixels)
 	}
 	if !bytes.HasPrefix(data, pngSignature) {
 		decoded, _, err := image.Decode(bytes.NewReader(data))
@@ -167,6 +197,7 @@ func (r *renderer) image(src string) (*pdf.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.images[src] = img
+	r.totalPixels += cfg.Width * cfg.Height
+	r.images[key] = img
 	return img, nil
 }

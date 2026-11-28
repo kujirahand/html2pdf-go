@@ -81,6 +81,7 @@ func main() {
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
+	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	htmlSrc := flag.String("e", "", "HTML source given directly instead of an input file; it is also written to output.html")
 	flag.Usage = func() {
@@ -146,9 +147,11 @@ func main() {
 		Landscape: *landscape,
 		BaseDir:   baseDir,
 		Scale:     *scale,
-		Margin:    *margin,
-		FontFile:  *fontFile,
-		FontDirs:  fontcfg.Paths(dirs),
+
+		AllowExternalFiles: *allowExternal,
+		Margin:             *margin,
+		FontFile:           *fontFile,
+		FontDirs:           fontcfg.Paths(dirs),
 
 		FontFileBold: *fontBold,
 	}

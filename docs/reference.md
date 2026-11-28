@@ -9,7 +9,7 @@ This manual lists what html2pdf-go supports. Everything here is taken from the s
 - Only the contents of `<body>` are rendered (or the frames, for a `<frameset>` document; see "Frames"). Everything else (`<head>`, `<title>`, `<meta>`, ...) is hidden.
 - Styles come from three places:
   - `<style>` elements anywhere in the document (all of them, in document order).
-  - `<link rel="stylesheet" href="...">` elements, in document order together with the `<style>` elements. Only local files are loaded, with relative paths resolved against the base directory. A link whose `href` contains `://` or starts with `data:` is ignored (remote CSS is not fetched), as is a `rel` containing `alternate`. A local file that cannot be read makes the conversion fail with an error.
+  - `<link rel="stylesheet" href="...">` elements, in document order together with the `<style>` elements. Only local files are loaded, with relative paths resolved against the base directory; the file must lie inside it unless `AllowExternalFiles` is set (see the `BaseDir` and `AllowExternalFiles` options), must be a regular file, and may be at most 32 MiB. A link whose `href` contains `://` or starts with `data:` is ignored (remote CSS is not fetched), as is a `rel` containing `alternate`. A local file that cannot be read makes the conversion fail with an error.
   - The `style` attribute of an element.
 - `@import` is skipped, in external CSS files too.
 - `<script>` is dropped, and no JavaScript runs.
@@ -111,10 +111,10 @@ Only these attributes are read by the implementation. All other attributes (`hre
 | `class` | any element | Matched by `.class` selectors (space-separated list). |
 | `id` | any element | Matched by `#id` selectors (case-sensitive). |
 | `style` | any element | Inline declarations; highest priority. |
-| `src` | `iframe`, `frame` | Local HTML file path, relative to `BaseDir`. A URL (starts with `//` or a scheme such as `https:`, `data:`, `about:`) is not loaded and gives an empty box or cell. An unreadable file is an error. For `iframe`, `srcdoc` takes precedence. |
+| `src` | `iframe`, `frame` | Local HTML file path, relative to `BaseDir` and confined to it unless `AllowExternalFiles` is set (at most 32 MiB). A URL (starts with `//` or a scheme such as `https:`, `data:`, `about:`) is not loaded and gives an empty box or cell. An unreadable file is an error. For `iframe`, `srcdoc` takes precedence. |
 | `srcdoc` | `iframe` | HTML source of the embedded document. Takes precedence over `src`. |
 | `rows`, `cols` | `frameset` | Comma-separated track sizes: pixels, a percentage, or a relative length (`*`, `2*`). Tracks of `px` and `%` that exceed the area shrink in proportion to fit it. |
-| `src` | `img` | Image file path, or a `data:` URI. Relative paths resolve against `BaseDir`. `data:` URIs may be base64 (`data:image/png;base64,...`) or percent-encoded (`data:image/gif,...`); the media type, if given, must be `image/*`; PNG, JPEG and GIF are decoded. `http(s)://` URLs (anything containing `://`) are not loaded. |
+| `src` | `img` | Image file path, or a `data:` URI. Relative paths resolve against `BaseDir` and are confined to it unless `AllowExternalFiles` is set; paths starting with `//` or `\\` are never loaded. The decoded images of one PDF may total at most 100 million pixels; an image over that budget is skipped. `data:` URIs may be base64 (`data:image/png;base64,...`) or percent-encoded (`data:image/gif,...`); the media type, if given, must be `image/*`; PNG, JPEG and GIF are decoded. `http(s)://` URLs (anything containing `://`) are not loaded. |
 | `width` | any element (meaningful for `img`, `iframe`, `table`, `td`, `th`, block elements) | Parsed as a CSS length; a bare number means px. Treated as the lowest-priority `width` (overridden by any CSS `width`). Negative or invalid values are ignored. |
 | `height` | `iframe` | Plain pixel number only (a percentage is ignored). Treated as the lowest-priority `height` (overridden by any CSS `height`). |
 | `colspan` | `td`, `th` | Number of columns spanned. Values of 1 or less, or non-numeric values, mean 1. Capped at 1000. |
@@ -280,7 +280,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 **Images.** `img` is inline, with its bottom on the text baseline. The default size is the image's pixel size (the file's, or the decoded `data:` URI's) × 0.75. A CSS or attribute `width` sets the width and the height follows the aspect ratio (`height` is ignored). Images over 8192 pixels on a side or 33 million pixels, and unreadable, invalid or unsupported images (including SVG), are skipped silently (no placeholder, no `alt` text).
 
 **Tables.**
-- Cells are placed left to right; `colspan` makes a cell span columns. There is no `rowspan`.
+- Cells are placed left to right; `colspan` makes a cell span columns. There is no `rowspan`. A table of more than 10000 columns, or a document whose layout work exceeds a fixed budget (for example deeply nested tables), makes the conversion fail.
 - Column widths: a cell `width` (including the attribute) fixes its column (content width plus padding and border); `%` widths are used when the table has a `width`, or when an auto-width table has to shrink. Other columns get their max-content width; surplus space is shared equally, and when space is short columns shrink toward their min-content width. Spanning cells only widen columns that are too narrow.
 - A table without `width` is as wide as its content, up to the available width. With a `width`, if every column has a fixed width they are scaled to fill it.
 - Cell content is always vertically centered. Row height is the tallest cell.
@@ -315,7 +315,8 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `PageSize` | string | `A4` (595.28 × 841.89pt), `A5` (419.53 × 595.28pt) or `Letter` (612 × 792pt); case-insensitive. Empty = `A4`. Other names are an error. |
 | `PageWidth`, `PageHeight` | float64 (points) | Custom size. If both are greater than 0 they are used as given and `PageSize` and `Landscape` are ignored. If only one is set, the other comes from `PageSize`. |
 | `Landscape` | bool | Swaps width and height of the `PageSize` size. |
-| `BaseDir` | string | Directory against which relative image paths resolve. |
+| `BaseDir` | string | Directory against which relative paths (images, stylesheets, frame documents) resolve. Unless `AllowExternalFiles` is set, these files must lie inside it. |
+| `AllowExternalFiles` | bool | Permits documents to reference files outside `BaseDir`, by absolute path or with `..`. Default false: images, stylesheets and frame documents can only be read from inside `BaseDir` (`..` and symbolic links cannot leave it, absolute paths are refused). Paths starting with `//` or `\\` (network paths) are refused in both modes. Only enable it for documents you trust. |
 | `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Only the given directories are searched; empty = standard system font directories. The library reads no environment variable or config file. An error is returned if no usable font is found. Also searched by `font-family` names. |
 | `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, normalized for matching, i.e. lower-cased; empty for the default face), `Bold` (bold was requested; if there is no bold face, `Path` is the regular file and `Bold` is still true) and `Path` (the font file). nil = no callback. |
 | `FontFile` | string | Path of a font file used as the regular face instead of the automatic choice. If it cannot be read or parsed, `Convert` returns an error. Empty = automatic selection. |
@@ -346,6 +347,7 @@ html2pdf [flags] -e '<html>'
 | `-font` | auto-detect | Regular font file (`Options.FontFile`). |
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
 | `-font-dirs` | none | Comma-separated directories searched first for fonts. They are added in front of the other font directories (see below). |
+| `-allow-external-files` | off | Let the document read files outside its own directory (`Options.AllowExternalFiles`). For trusted documents only. |
 | `-verbose` | off | Print the font directories searched and the fonts used to standard error. |
 
 The CLI collects the font directories and passes them as `Options.FontDirs`, in this order: `-font-dirs`, then the environment variable `HTML2PDF_FONT_DIRS` (the OS path list format: `:` on Unix, `;` on Windows), then the operating system's font directories. Directories collected earlier take priority, and a repeated directory keeps its first position. `-font-dirs` no longer replaces the standard directories; it adds directories that are searched first. With `-verbose`, each directory is printed before conversion as `font dir [flag|env|os]: <path>`, and each resolved font after conversion as `font: <family or (default)> (bold) -> <path>`.

@@ -39,7 +39,10 @@ hr { display: block; margin: 1.2em 0; border-top: 1px solid #999999; }
 // MarkdownToHTML converts the Markdown document src (CommonMark plus the
 // GitHub Flavored Markdown tables, strikethrough and task lists) into a
 // complete HTML document that embeds DefaultMarkdownCSS. Raw HTML in the
-// source passes through unchanged, so only convert trusted input.
+// source passes through unchanged, so only convert trusted input. Raw HTML
+// can reference local files (images, stylesheets, frames); when converting,
+// these are confined to Options.BaseDir unless Options.AllowExternalFiles is
+// set.
 func MarkdownToHTML(src []byte) ([]byte, error) {
 	return markdownDocument(src, "")
 }

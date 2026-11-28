@@ -6,13 +6,13 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/datauri"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
+	"github.com/kujirahand/html2pdf-go/internal/filex"
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
 
@@ -50,6 +50,7 @@ type seg struct {
 
 type imgBox struct {
 	path string
+	dir  string // directory path resolves against (the layouter's BaseDir)
 	w, h float64
 }
 
@@ -131,18 +132,25 @@ func (l *layouter) loadImage(src string) (string, *imgInfo) {
 		l.imgs[src] = info
 		return src, info
 	}
-	if src == "" || strings.Contains(src, "://") {
+	if src == "" || strings.Contains(src, "://") || strings.HasPrefix(src, "//") || strings.HasPrefix(src, `\\`) {
 		return "", &imgInfo{}
 	}
+	// src stays as written: the renderer resolves it against the same
+	// directory (ImageItem.Dir) with the same rules.
 	p := src
-	if !filepath.IsAbs(p) {
-		p = filepath.Join(l.opt.BaseDir, p)
-	}
 	if info, ok := l.imgs[p]; ok {
 		return p, info
 	}
 	info := &imgInfo{}
-	if f, err := os.Open(p); err == nil {
+	resolved := src
+	if !filepath.IsAbs(resolved) {
+		resolved = filepath.Join(l.opt.BaseDir, resolved)
+	}
+	root := l.opt.RootDir
+	if root == "" {
+		root = l.opt.BaseDir
+	}
+	if f, err := filex.OpenUnder(root, resolved, l.opt.AllowExternalFiles); err == nil {
 		if cfg, _, err := image.DecodeConfig(f); err == nil && cfg.Width > 0 && cfg.Height > 0 &&
 			cfg.Width <= maxImageDim && cfg.Height <= maxImageDim &&
 			cfg.Width*cfg.Height <= maxImagePixels {
@@ -167,7 +175,7 @@ func (l *layouter) imageBox(st *css.Style, src string, cw float64) *imgBox {
 			w, h = nw, nw*float64(info.h)/float64(info.w)
 		}
 	}
-	return &imgBox{path: path, w: w, h: h}
+	return &imgBox{path: path, dir: l.opt.BaseDir, w: w, h: h}
 }
 
 func isSpace(r rune) bool { return r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f' }
@@ -319,7 +327,7 @@ func (l *layouter) line(cells []cellr, adv []float64, emptySt, bst *css.Style, x
 	for i := 0; i < len(cells); {
 		c := cells[i]
 		if c.img != nil {
-			l.emit(prim{kind: pImage, x: cx, y: baseline - c.img.h, w: c.img.w, h: c.img.h, src: c.img.path})
+			l.emit(prim{kind: pImage, x: cx, y: baseline - c.img.h, w: c.img.w, h: c.img.h, src: c.img.path, dir: c.img.dir})
 			cx += adv[i]
 			i++
 			continue
@@ -376,6 +384,10 @@ func (l *layouter) inlineWidths(segs []seg, cw float64) (mn, mx float64) {
 
 // contentWidths estimates the min- and max-content widths of n's content box.
 func (l *layouter) contentWidths(n *dom.Node, st *css.Style, cw float64) (mn, mx float64) {
+	l.step()
+	if l.err != nil {
+		return 0, 0
+	}
 	sum := st.Display == "table-row"
 	var run []*dom.Node
 	add := func(a, b float64) {

@@ -3,17 +3,19 @@ package layout
 import (
 	"fmt"
 	"math"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/dom"
+	"github.com/kujirahand/html2pdf-go/internal/filex"
 	"github.com/kujirahand/html2pdf-go/internal/text"
 )
 
 const (
+	// maxFrameFileSize caps the size of a frame document file.
+	maxFrameFileSize = 32 << 20
 	// maxFrameDepth limits frameset nesting, which also stops a frame that
 	// refers back to its own document.
 	maxFrameDepth = 8
@@ -95,7 +97,11 @@ func layoutFrame(frame *dom.Node, fonts *text.FontSet, opt Options, scale, w, h 
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(opt.BaseDir, p)
 	}
-	data, err := os.ReadFile(p)
+	root := opt.RootDir
+	if root == "" {
+		root = opt.BaseDir
+	}
+	data, err := filex.ReadUnder(root, p, maxFrameFileSize, opt.AllowExternalFiles)
 	if err != nil {
 		return nil, fmt.Errorf("layout: read frame: %w", err)
 	}
@@ -116,7 +122,7 @@ func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w,
 	if err != nil {
 		return nil, err
 	}
-	sheets, err := css.ResolveSheets(doc, dir)
+	sheets, err := css.ResolveSheets(doc, dir, opt.RootDir, opt.AllowExternalFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +132,13 @@ func layoutFrameDoc(src, dir string, fonts *text.FontSet, opt Options, scale, w,
 		PageWidth:  w * scale,
 		PageHeight: h * scale,
 		BaseDir:    dir,
+		RootDir:    opt.RootDir,
 		Scale:      scale,
-		depth:      opt.depth + 1,
-		frames:     opt.frames,
+
+		AllowExternalFiles: opt.AllowExternalFiles,
+		depth:              opt.depth + 1,
+		frames:             opt.frames,
+		work:               opt.work,
 	})
 	if err != nil {
 		return nil, err
