@@ -35,7 +35,7 @@ func ResolveSheets(doc *dom.Document, baseDir, rootDir string, allowExternal boo
 			out = append(out, s.Text)
 			continue
 		}
-		if IsURL(s.Href) {
+		if IsURL(s.Href) || filex.IsNetworkPath(s.Href) {
 			continue
 		}
 		p := s.Href

@@ -8,6 +8,7 @@ import (
 	_ "image/png"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
 	"github.com/kujirahand/html2pdf-go/internal/datauri"
@@ -132,7 +133,7 @@ func (l *layouter) loadImage(src string) (string, *imgInfo) {
 		l.imgs[src] = info
 		return src, info
 	}
-	if src == "" || strings.Contains(src, "://") || strings.HasPrefix(src, "//") || strings.HasPrefix(src, `\\`) {
+	if src == "" || strings.Contains(src, "://") || filex.IsNetworkPath(src) {
 		return "", &imgInfo{}
 	}
 	// src stays as written: the renderer resolves it against the same
@@ -193,6 +194,19 @@ func hasContent(cells []cellr) bool {
 // A <br> always ends a paragraph (even an empty one); a trailing paragraph
 // is kept only if it has visible content.
 func (l *layouter) paragraphs(segs []seg, cw float64) []para {
+	// Charge the budget per rune: this loop is the text-layout sink, and a
+	// hostile document can make it run over the same large text again and
+	// again through nested tables.
+	textLen := 0
+	for _, s := range segs {
+		if s.kind == segText {
+			textLen += utf8.RuneCountInString(s.text)
+		}
+	}
+	l.charge(textLen)
+	if l.err != nil {
+		return nil
+	}
 	var out []para
 	var cur []cellr
 	var last *css.Style

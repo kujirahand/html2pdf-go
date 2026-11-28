@@ -6,9 +6,23 @@
 
 A library and CLI for converting HTML/CSS/Markdown to PDF. By supporting the major HTML/CSS tags, it makes it easy to create reasonably good-looking PDFs.
 
+## Install
+
+```sh
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.ps1 | iex
+```
+
+The binaries are unsigned, so downloading them in a browser makes the OS block them (Gatekeeper / SmartScreen); installing with these scripts avoids that, and they verify the SHA-256 checksum before installing.
+
 ## Tutorial
 
-See [docs/tutorial.md](docs/tutorial.md) for a walkthrough that converts one HTML file to PDF with the CLI.
+See [docs/tutorial.md](docs/tutorial.md) for a walkthrough that converts one HTML file to PDF with the CLI, and the sample catalog [examples/README.md](examples/README.md) for the kinds of PDFs it can create.
 
 ## Using it as a library
 
@@ -53,7 +67,7 @@ html2pdf -e '<h1>Hello</h1>'           # HTML given directly; writes output.html
 
 `-e <HTML>` converts HTML given directly on the command line, which is handy for debugging. The source is also written to `output.html` in the current directory, and relative image and CSS paths resolve against the current directory. The PDF goes to the `-o` path, or to `output.pdf` if `-o` is omitted. `-e` cannot be combined with an input file.
 
-By default a document can only read files (images, stylesheets, frame documents) from inside its own directory (`BaseDir`): absolute paths, `..` that leaves the directory, and network paths such as `//host/share` are refused. `-allow-external-files` (`Options.AllowExternalFiles` in the library) lifts this for documents you trust.
+By default a document can only read files (images, stylesheets, frame documents) from inside its own directory (`BaseDir`): absolute paths or `..` pointing outside it, and network paths such as `//host/share`, are refused. `-allow-external-files` (`Options.AllowExternalFiles` in the library) lifts this for documents you trust.
 
 `-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
 

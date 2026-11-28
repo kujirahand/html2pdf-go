@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/kujirahand/html2pdf-go/internal/css"
@@ -38,7 +39,11 @@ type Options struct {
 	PageHeight float64
 	// Landscape swaps the page width and height.
 	Landscape bool
-	// BaseDir is used to resolve relative paths such as images.
+	// BaseDir is used to resolve relative paths such as images, and
+	// confines the files a document can read to that directory's tree.
+	// If it is empty, Convert lets documents read no local files at all;
+	// ConvertFile and ConvertMarkdownFile default it to the converted
+	// file's directory.
 	BaseDir string
 	// AllowExternalFiles permits documents to reference files outside
 	// BaseDir, by absolute path or with "..". By default (false), images,
@@ -157,9 +162,17 @@ func ConvertFile(htmlPath, pdfPath string, opts *Options) error {
 	if err != nil {
 		return err
 	}
+	// Work on a copy so the caller's Options is never modified.
+	var o Options
+	if opts != nil {
+		o = *opts
+	}
+	if o.BaseDir == "" {
+		o.BaseDir = filepath.Dir(htmlPath)
+	}
 	// Render into memory first so a failed conversion leaves no partial file.
 	var buf bytes.Buffer
-	if err := Convert(src, &buf, opts); err != nil {
+	if err := Convert(src, &buf, &o); err != nil {
 		return err
 	}
 	return os.WriteFile(pdfPath, buf.Bytes(), 0o644)

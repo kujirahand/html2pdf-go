@@ -90,7 +90,7 @@ func layoutFramesetIn(page *Page, fs *dom.Node, fonts *text.FontSet, opt Options
 // an empty cell: no src, or a src that is a URL rather than a file path.
 func layoutFrame(frame *dom.Node, fonts *text.FontSet, opt Options, scale, w, h float64) ([]Item, error) {
 	src := strings.TrimSpace(frame.Attr["src"])
-	if src == "" || css.IsURL(src) {
+	if src == "" || css.IsURL(src) || filex.IsNetworkPath(src) {
 		return nil, nil
 	}
 	p := src

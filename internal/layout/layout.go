@@ -80,19 +80,27 @@ type layouter struct {
 // out their cells repeatedly at every level, so cost grows exponentially
 // with depth; this turns a hostile document into an error instead of a
 // hang. A variable so tests can lower it.
-var maxLayoutWork = 3_000_000
+var maxLayoutWork = 30_000_000
 
 // step counts one unit of layout work and records an error once the budget
 // is spent. The counter is shared by every nested layout of one conversion
 // (Options.work). Callers check l.err to unwind.
 func (l *layouter) step() {
+	l.charge(1)
+}
+
+// charge adds n units of layout work to the shared budget. Text layout is
+// charged per rune (see paragraphs), so a document cannot hide expensive
+// content inside a moderate number of calls: re-laying out a large text
+// costs in proportion to its length every time.
+func (l *layouter) charge(n int) {
 	if l.err != nil {
 		return
 	}
 	if l.opt.work == nil {
 		l.opt.work = new(int)
 	}
-	*l.opt.work += 1
+	*l.opt.work += n
 	if *l.opt.work > maxLayoutWork {
 		l.err = fmt.Errorf("layout: document is too complex (work limit %d exceeded)", maxLayoutWork)
 	}

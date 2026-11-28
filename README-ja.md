@@ -6,9 +6,23 @@
 
 HTML/CSS/Markdown→PDFの変換ライブラリとCLIです。HTML/CSSの主要タグをサポートすることで、それなりに見栄えの良いPDFを手軽に作成できます。
 
+## インストール
+
+```sh
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/install.ps1 | iex
+```
+
+バイナリは署名されていないため、ブラウザでダウンロードすると OS にブロックされます（Gatekeeper / SmartScreen）。これらのスクリプトでインストールすればブロックを避けられ、インストール前に SHA-256 チェックサムも検証します。
+
 ## チュートリアル
 
-CLI で HTML ファイルを 1 つ PDF に変換する手順を [docs/tutorial-ja.md](docs/tutorial-ja.md) にまとめました。
+CLI で HTML ファイルを 1 つ PDF に変換する手順を [docs/tutorial-ja.md](docs/tutorial-ja.md) にまとめました。どんな PDF が作れるかは、サンプル文書のカタログ [examples/README.md](examples/README.md) もご覧ください。
 
 ## ライブラリとしての使い方
 
@@ -53,7 +67,7 @@ html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と 
 
 `-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は入力ファイルと同時には指定できません。
 
-既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。絶対パス、フォルダの外へ出る `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
+既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。フォルダの外を指す絶対パスや `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
 
 `-scale`（ライブラリでは `Options.Scale`）は内容の縮小・拡大率です（既定 1.0）。wkhtmltopdf の zoom / smart shrinking や Chrome の printToPDF の `scale` に相当する調整機能で、実寸ではわずかに次のページへ溢れる文書を収めたいときに使います。
 

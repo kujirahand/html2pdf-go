@@ -14,112 +14,82 @@ import (
 	"strings"
 )
 
-// Read reads the file ref refers to, a reference made by a document.
-//
-// A ref starting with "//" or `\\` is rejected: on Windows it is a UNC path
-// (a network share). With allowExternal false, ref must be relative to
-// baseDir and the file is opened through os.OpenRoot, so neither ".." nor a
-// symbolic link can leave baseDir; absolute refs are rejected. With
-// allowExternal true, ref is used as given (relative refs resolve against
-// baseDir, absolute ones are taken as they are). The target must be a
-// regular file of at most limit bytes.
-func Read(baseDir, ref string, limit int64, allowExternal bool) ([]byte, error) {
-	f, err := Open(baseDir, ref, allowExternal)
-	if err != nil {
-		return nil, err
+// IsNetworkPath reports whether a document reference is a network path
+// rather than a local file: it starts with two path separators in any mix
+// ("//host/share", `\\host\share`, "/\host\share"), which on Windows is a
+// UNC path that would make the process contact a remote host. Loaders
+// reject such references before resolving them; the confinement below is
+// about the resolved path and deliberately does not repeat this check, so
+// a root directory that itself sits on a network share keeps working.
+func IsNetworkPath(ref string) bool {
+	if len(ref) >= 2 && isSep(ref[0]) && isSep(ref[1]) {
+		return true
 	}
-	defer f.Close()
-	return readLimited(f, ref, limit)
+	// A Windows UNC volume name (\\host\share) is longer than a drive
+	// letter volume (C:). Empty on other platforms.
+	return len(filepath.VolumeName(ref)) > 2
 }
 
-// ReadUnder is Read for a reference the caller has already resolved to a
-// path (for example a frame document resolving "../x" against its own
-// directory). The confinement root is rootDir rather than the directory the
-// reference was resolved against, so a nested document can use files
-// anywhere inside the outermost document's tree, but never outside it.
-// With allowExternal true the path is used as given.
+func isSep(c byte) bool { return c == '/' || c == '\\' }
+
+// ReadUnder reads the file an already-resolved document reference points
+// to (for example a frame document resolving "../x" against its own
+// directory). The confinement root is rootDir rather than the directory
+// the reference was resolved against, so a nested document can use files
+// anywhere inside the outermost document's tree, but never outside it:
+// the path is opened through os.OpenRoot, so neither ".." nor a symbolic
+// link can leave rootDir. With allowExternal true the path is used as
+// given. With allowExternal false and an empty rootDir, no file is read
+// at all. The target must be a regular file of at most limit bytes.
 func ReadUnder(rootDir, resolved string, limit int64, allowExternal bool) ([]byte, error) {
 	f, err := OpenUnder(rootDir, resolved, allowExternal)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return readLimited(f, resolved, limit)
-}
-
-func readLimited(f *os.File, name string, limit int64) ([]byte, error) {
 	data, err := io.ReadAll(io.LimitReader(f, limit+1))
 	if err != nil {
 		return nil, err
 	}
 	if int64(len(data)) > limit {
-		return nil, fmt.Errorf("filex: %s is larger than %d bytes", name, limit)
+		return nil, fmt.Errorf("filex: %s is larger than %d bytes", resolved, limit)
 	}
 	return data, nil
 }
 
-// Open is Read's streaming twin for readers that only need the start of a
-// file, such as image sizing. It applies the same confinement, rejects
-// non-regular files and leaves closing the file to the caller.
-func Open(baseDir, ref string, allowExternal bool) (*os.File, error) {
-	if err := checkRef(ref); err != nil {
-		return nil, err
-	}
-	if !allowExternal && filepath.IsAbs(ref) {
-		return nil, fmt.Errorf("filex: absolute path %q is outside the base directory", ref)
-	}
-	p := ref
-	if !filepath.IsAbs(p) {
-		p = filepath.Join(baseDir, p)
-	}
-	return openResolved(baseDir, p, allowExternal)
-}
-
-// OpenUnder is Open for an already-resolved path; see ReadUnder.
+// OpenUnder is ReadUnder's streaming twin for readers that only need the
+// start of a file, such as image sizing. It applies the same confinement,
+// rejects non-regular files and leaves closing the file to the caller.
 func OpenUnder(rootDir, resolved string, allowExternal bool) (*os.File, error) {
-	if err := checkRef(resolved); err != nil {
-		return nil, err
+	if resolved == "" {
+		return nil, errors.New("filex: empty file reference")
 	}
-	return openResolved(rootDir, resolved, allowExternal)
-}
-
-func checkRef(ref string) error {
-	if ref == "" {
-		return errors.New("filex: empty file reference")
-	}
-	if strings.HasPrefix(ref, "//") || strings.HasPrefix(ref, `\\`) {
-		return fmt.Errorf("filex: network path %q is not allowed", ref)
-	}
-	return nil
-}
-
-// openResolved opens path, which the caller resolved against some document
-// directory, confining it to rootDir unless allowExternal is set. The
-// target must be a regular file.
-func openResolved(rootDir, path string, allowExternal bool) (*os.File, error) {
 	if rootDir == "" {
+		if !allowExternal {
+			return nil, errors.New("filex: no base directory: documents cannot read local files")
+		}
 		rootDir = "."
 	}
 	var f *os.File
 	var err error
 	if allowExternal {
 		// Check before opening: opening a FIFO would block.
-		if err := checkRegular(os.Stat(path)); err != nil {
+		if err := checkRegular(os.Stat(resolved)); err != nil {
 			return nil, err
 		}
-		f, err = os.Open(path)
+		f, err = os.Open(resolved)
 	} else {
 		absRoot, err := filepath.Abs(rootDir)
 		if err != nil {
 			return nil, err
 		}
-		absPath, err := filepath.Abs(path)
+		absPath, err := filepath.Abs(resolved)
 		if err != nil {
 			return nil, err
 		}
 		rel, err := filepath.Rel(absRoot, absPath)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return nil, fmt.Errorf("filex: path %q is outside the base directory", path)
+			return nil, fmt.Errorf("filex: path %q is outside the base directory", resolved)
 		}
 		var root *os.Root
 		if root, err = os.OpenRoot(absRoot); err != nil {

@@ -1,124 +1,124 @@
 package filex
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 )
 
-// setup returns a base directory holding in.txt next to a secret file
-// outside it.
-func setup(t *testing.T) (base, secret string) {
+// setup returns a root directory holding in.txt, with a secret file in a
+// sibling directory outside the root.
+func setup(t *testing.T) (root, secret string) {
 	t.Helper()
-	root := t.TempDir()
-	base = filepath.Join(root, "doc")
-	if err := os.Mkdir(base, 0o755); err != nil {
+	parent := t.TempDir()
+	root = filepath.Join(parent, "root")
+	if err := os.Mkdir(root, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(base, "in.txt"), []byte("inside"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "in.txt"), []byte("inside"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	secret = filepath.Join(root, "secret.txt")
+	secret = filepath.Join(parent, "secret.txt")
 	if err := os.WriteFile(secret, []byte("secret"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return base, secret
+	return root, secret
 }
 
-func TestReadInside(t *testing.T) {
-	base, _ := setup(t)
-	for _, allow := range []bool{false, true} {
-		data, err := Read(base, "in.txt", 100, allow)
-		if err != nil || string(data) != "inside" {
-			t.Errorf("allow=%v: got %q, %v", allow, data, err)
-		}
-	}
-}
-
-func TestReadEscapeRejected(t *testing.T) {
-	base, _ := setup(t)
-	if _, err := Read(base, "../secret.txt", 100, false); err == nil {
-		t.Error("../ escape was allowed")
-	}
-	if data, err := Read(base, "../secret.txt", 100, true); err != nil || string(data) != "secret" {
-		t.Errorf("external ../: got %q, %v", data, err)
-	}
-}
-
-func TestReadSymlinkEscapeRejected(t *testing.T) {
-	base, secret := setup(t)
-	if err := os.Symlink(secret, filepath.Join(base, "link.txt")); err != nil {
-		t.Skip("symlinks unavailable:", err)
-	}
-	if _, err := Read(base, "link.txt", 100, false); err == nil {
-		t.Error("symlink escape was allowed")
-	}
-}
-
-func TestReadAbsolute(t *testing.T) {
-	base, secret := setup(t)
-	if _, err := Read(base, secret, 100, false); err == nil {
-		t.Error("absolute path was allowed while confined")
-	}
-	if data, err := Read(base, secret, 100, true); err != nil || string(data) != "secret" {
-		t.Errorf("external absolute: got %q, %v", data, err)
-	}
-}
-
-func TestReadNonRegular(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("no /dev/null")
-	}
-	if _, err := Read("/", "dev/null", 100, false); err == nil {
-		t.Error("device file was read while confined")
-	}
-	if _, err := Read("", "/dev/null", 100, true); err == nil {
-		t.Error("device file was read in external mode")
-	}
-	if _, err := Open("", "/dev/zero", true); err == nil {
-		t.Error("Open accepted /dev/zero")
-	}
-}
-
-func TestReadSizeLimit(t *testing.T) {
-	base, _ := setup(t)
-	if err := os.WriteFile(filepath.Join(base, "big.txt"), []byte(strings.Repeat("x", 11)), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := Read(base, "big.txt", 10, false); err == nil {
-		t.Error("file over the limit was read")
-	}
-	if data, err := Read(base, "big.txt", 11, false); err != nil || len(data) != 11 {
-		t.Errorf("file at the limit: %d bytes, %v", len(data), err)
-	}
-}
-
-func TestReadNetworkPathRejected(t *testing.T) {
-	base, _ := setup(t)
-	for _, ref := range []string{"//host/share/x", `\\host\share\x`} {
-		for _, allow := range []bool{false, true} {
-			if _, err := Read(base, ref, 100, allow); err == nil {
-				t.Errorf("%q allow=%v was accepted", ref, allow)
-			}
-		}
-	}
-}
-
-func TestOpenReturnsFile(t *testing.T) {
-	base, _ := setup(t)
-	f, err := Open(base, "in.txt", false)
+func TestReadUnderInside(t *testing.T) {
+	root, _ := setup(t)
+	data, err := ReadUnder(root, filepath.Join(root, "in.txt"), 100, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	if string(data) != "inside" {
+		t.Fatalf("got %q, want %q", data, "inside")
+	}
 }
 
-// ReadUnder confines an already-resolved path to the root: a nested
-// document may reach files elsewhere in the root tree (including by
-// absolute path), but never outside it.
+func TestReadUnderEscapeRejected(t *testing.T) {
+	root, secret := setup(t)
+	for _, p := range []string{secret, filepath.Join(root, "..", "secret.txt")} {
+		if _, err := ReadUnder(root, p, 100, false); err == nil {
+			t.Errorf("ReadUnder(%q) outside the root was allowed", p)
+		}
+		if _, err := ReadUnder(root, p, 100, true); err != nil {
+			t.Errorf("ReadUnder(%q, external): %v", p, err)
+		}
+	}
+}
+
+func TestReadUnderSymlinkEscapeRejected(t *testing.T) {
+	root, secret := setup(t)
+	link := filepath.Join(root, "link.txt")
+	if err := os.Symlink(secret, link); err != nil {
+		t.Skip(err)
+	}
+	if _, err := ReadUnder(root, link, 100, false); err == nil {
+		t.Fatal("symlink escaping the root was read")
+	}
+}
+
+func TestReadUnderNonRegular(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no /dev/null on Windows")
+	}
+	root, _ := setup(t)
+	if _, err := ReadUnder(root, "/dev/null", 100, true); err == nil {
+		t.Fatal("/dev/null was read as a regular file")
+	}
+}
+
+func TestReadUnderSizeLimit(t *testing.T) {
+	root, _ := setup(t)
+	if _, err := ReadUnder(root, filepath.Join(root, "in.txt"), 3, false); err == nil {
+		t.Fatal("file larger than the limit was read")
+	}
+}
+
+func TestReadUnderNoRoot(t *testing.T) {
+	root, _ := setup(t)
+	p := filepath.Join(root, "in.txt")
+	if _, err := ReadUnder("", p, 100, false); err == nil {
+		t.Fatal("read with no root directory was allowed")
+	}
+	if _, err := ReadUnder("", p, 100, true); err != nil {
+		t.Fatalf("external read with no root: %v", err)
+	}
+}
+
+func TestOpenUnderReturnsFile(t *testing.T) {
+	root, _ := setup(t)
+	f, err := OpenUnder(root, filepath.Join(root, "in.txt"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Size() != 6 {
+		t.Fatalf("size = %d, want 6", fi.Size())
+	}
+}
+
+func TestIsNetworkPath(t *testing.T) {
+	for _, ref := range []string{"//host/share/x", `\\host\share\x`, `/\host\share\x`, `\/host/share/x`} {
+		if !IsNetworkPath(ref) {
+			t.Errorf("IsNetworkPath(%q) = false, want true", ref)
+		}
+	}
+	for _, ref := range []string{"a/b.png", "/abs/path.png", "style.css", "../up.png"} {
+		if IsNetworkPath(ref) {
+			t.Errorf("IsNetworkPath(%q) = true, want false", ref)
+		}
+	}
+}
+
+// A nested document may reach files elsewhere in the root tree (including
+// by absolute path), but never outside it.
 func TestReadUnderRootConfinement(t *testing.T) {
 	root := t.TempDir()
 	sub := filepath.Join(root, "sub")
@@ -129,8 +129,6 @@ func TestReadUnderRootConfinement(t *testing.T) {
 	if err := os.WriteFile(shared, []byte("shared"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// Resolved against the nested document's directory, escaping into the
-	// root is fine.
 	data, err := ReadUnder(root, filepath.Join(sub, "..", "shared.txt"), 100, false)
 	if err != nil {
 		t.Fatalf("in-root parent reference: %v", err)
@@ -138,23 +136,13 @@ func TestReadUnderRootConfinement(t *testing.T) {
 	if string(data) != "shared" {
 		t.Fatalf("got %q, want %q", data, "shared")
 	}
-	// An absolute path inside the root is fine too.
 	if _, err := ReadUnder(root, shared, 100, false); err != nil {
 		t.Fatalf("in-root absolute path: %v", err)
 	}
-	// Anything outside the root is refused, however it is written.
 	outside := filepath.Join(filepath.Dir(root), "outside.txt")
 	for _, p := range []string{outside, filepath.Join(root, "..", "outside.txt")} {
 		if _, err := ReadUnder(root, p, 100, false); err == nil {
 			t.Errorf("ReadUnder(%q) outside the root was allowed", p)
-		}
-		if _, err := ReadUnder(root, p, 100, true); err != nil && p == outside {
-			// allowExternal reads the path as given; the file does not
-			// exist in this test, so only the confinement error matters.
-			var pe *os.PathError
-			if !errors.As(err, &pe) {
-				t.Errorf("ReadUnder(%q, external): got %v, want a plain read error", p, err)
-			}
 		}
 	}
 }
