@@ -261,6 +261,14 @@ func (l *layouter) table(n *dom.Node, st *css.Style, x, y, cw float64) float64 {
 			l.scratch(func() { ch = l.flow(c.n, c.st, 0, 0, innerW) })
 			heights[i] = c.bm.b[css.Top] + c.bm.p[css.Top] + ch + c.bm.p[css.Bottom] + c.bm.b[css.Bottom]
 			rowH = max(rowH, heights[i])
+			// A specified height is a border-box minimum for the cell (as in
+			// browsers, where table-cell height acts as a minimum). Percentages
+			// are ignored: a cell has no definite base for them. It raises the
+			// row only, so the content stays vertically centred as before;
+			// taller content still wins.
+			if h := c.st.Height; h != nil && h.Unit != css.UnitPercent {
+				rowH = max(rowH, h.Resolve(c.st.FontSize.Value, css.RootFontSize, 0))
+			}
 		}
 		rowSlot := l.reserve()
 		for i, c := range r.cells {
