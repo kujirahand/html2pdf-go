@@ -72,6 +72,12 @@ html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # output file and marg
 html2pdf -scale 0.95 hello.html                            # shrink everything to 95%
 ```
 
+You can also pipe input and write the PDF to stdout:
+
+```sh
+cat hello.html | html2pdf -o - > hello.pdf
+```
+
 ## 4. Next steps
 
 - Change the appearance: edit the contents of the `<style>` element. The available HTML elements and CSS are listed in [reference.md](reference.md)

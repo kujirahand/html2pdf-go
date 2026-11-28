@@ -2,13 +2,17 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	html2pdf "github.com/kujirahand/html2pdf-go"
+	"github.com/kujirahand/html2pdf-go/internal/cliio"
 	"github.com/kujirahand/html2pdf-go/internal/fontcfg"
 )
 
@@ -100,7 +104,7 @@ func resolveFormat(format, output string) (string, error) {
 func mmToPt(mm float64) float64 { return mm * 72 / 25.4 }
 
 func main() {
-	out := flag.String("o", "", "output path (default: input with .pdf extension; a .png extension selects PNG output unless -format is given)")
+	out := flag.String("o", "", "output path or existing directory; - writes to stdout (default: input with .pdf extension, or output.pdf for stdin)")
 	format := flag.String("format", "", "output format: pdf or png (default: png when the -o name ends in .png, otherwise pdf; png writes one file per page, name-1.png, name-2.png, ...)")
 	pngScale := flag.Float64("png-scale", 2, "rasterization scale for -format png (2 = 144 dpi)")
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
@@ -117,7 +121,10 @@ func main() {
 	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: md2pdf [flags] input.md")
+		fmt.Fprintln(os.Stderr, "usage: md2pdf [flags] [input ... | -]")
+		fmt.Fprintln(os.Stderr, "Use - for stdin, or omit input when stdin is piped; -o - writes to stdout.")
+		fmt.Fprintln(os.Stderr, "Multiple files are converted independently; failures are reported and remaining files continue.")
+		fmt.Fprintln(os.Stderr, "With multiple inputs, -o must be an existing directory. Multi-page PNG cannot go to stdout.")
 		flag.PrintDefaults()
 	}
 	flag.CommandLine.Parse(reorderArgs(os.Args[1:]))
@@ -132,14 +139,13 @@ func main() {
 		os.Exit(2)
 	}
 
-	if flag.NArg() < 1 {
+	jobs, err := cliio.Plan(false, flag.Args(), *out, cliio.StdinPipe())
+	if err != nil {
+		if !errors.Is(err, cliio.ErrNoInput) {
+			fmt.Fprintf(os.Stderr, "md2pdf: %v\n", err)
+		}
 		flag.Usage()
 		os.Exit(2)
-	}
-	input := flag.Arg(0)
-	output := *out
-	if output == "" {
-		output = strings.TrimSuffix(input, filepath.Ext(input)) + ".pdf"
 	}
 
 	if *pageWidth < 0 || *pageHeight < 0 {
@@ -168,7 +174,7 @@ func main() {
 	opts := &html2pdf.Options{
 		PageSize:  *pageSize,
 		Landscape: *landscape,
-		BaseDir:   filepath.Dir(input),
+		BaseDir:   ".",
 		Scale:     *scale,
 
 		AllowExternalFiles: *allowExternal,
@@ -188,30 +194,60 @@ func main() {
 	if *verbose {
 		opts.OnFontUse = func(u html2pdf.FontUse) { uses = append(uses, u) }
 	}
-	outFormat, ferr := resolveFormat(*format, output)
-	if ferr != nil {
-		fmt.Fprintf(os.Stderr, "md2pdf: %v\n", ferr)
-		os.Exit(2)
-	}
-	var err error
-	if outFormat == "png" {
+	failed := false
+	for _, job := range jobs {
+		opts.BaseDir = job.BaseDir
+		outFormat, _ := resolveFormat(*format, job.Output)
 		var src []byte
-		if src, err = os.ReadFile(input); err == nil {
+		var err error
+		if job.Stdin {
+			src, err = io.ReadAll(os.Stdin)
+		} else {
+			src, err = os.ReadFile(job.Input)
+		}
+		if err == nil && outFormat == "png" {
 			var pages [][]byte
-			if pages, err = html2pdf.ConvertMarkdownPNG(src, opts, *pngScale); err == nil {
-				err = writePNGs(output, pages)
+			pages, err = html2pdf.ConvertMarkdownPNG(src, opts, *pngScale)
+			if err == nil {
+				if job.Output == "-" {
+					if len(pages) != 1 {
+						err = fmt.Errorf("cannot write a multi-page PNG to stdout (got %d pages)", len(pages))
+					} else {
+						_, err = os.Stdout.Write(pages[0])
+					}
+				} else {
+					err = writePNGs(job.Output, pages)
+				}
+			}
+		} else if err == nil {
+			var buf bytes.Buffer
+			err = html2pdf.ConvertMarkdown(src, &buf, opts)
+			if err == nil {
+				if job.Output == "-" {
+					_, err = buf.WriteTo(os.Stdout)
+				} else {
+					err = os.WriteFile(job.Output, buf.Bytes(), 0o644)
+				}
 			}
 		}
-	} else {
-		err = html2pdf.ConvertMarkdownFile(input, output, opts)
+		if err != nil {
+			label := job.Input
+			if job.Stdin {
+				label = "stdin"
+			}
+			if job.Inline {
+				label = "inline HTML"
+			}
+			fmt.Fprintf(os.Stderr, "md2pdf: %s: %v\n", label, err)
+			failed = true
+		}
 	}
 	if *verbose {
 		for _, u := range uses {
 			fmt.Fprintln(os.Stderr, fontUseLine(u))
 		}
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	if failed {
 		os.Exit(1)
 	}
 }

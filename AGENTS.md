@@ -48,6 +48,7 @@
 | `internal/css/` | CSS のパース、セレクタ照合、カスケード、計算済みスタイルの生成 |
 | `internal/text/` | フォントの読み込み・選択・計測、文字列の折り返しと禁則処理 |
 | `internal/layout/` | ボックス生成、ブロック／テーブルレイアウト、ページ分割（ページネーション） |
+| `internal/cliio/` | CLI 用の標準入力判定と入出力ジョブの計画 |
 | `internal/fontcfg/` | CLI 用のフォントフォルダ収集（`-font-dirs` → 環境変数 `HTML2PDF_FONT_DIRS` → OS 既定）。ライブラリは使わない |
 | `internal/filex/` | 文書が参照するローカルファイル（画像・スタイルシート・フレーム文書）を読む唯一の入口。既定では `BaseDir` の内側に閉じ込め（`os.OpenRoot`）、通常ファイルのみ・サイズ上限つきで読む。`AllowExternalFiles` で外部参照を許可する |
 | `internal/raster/` | レイアウト結果を PNG 画像にラスタライズする（`-format png` / `ConvertPNG`）。PDF 経路とは独立 |

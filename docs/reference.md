@@ -330,14 +330,15 @@ Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertF
 ### CLI
 
 ```
-html2pdf [flags] input.html
+html2pdf [flags] [input.html ... | -]
 html2pdf [flags] -e '<html>'
+md2pdf [flags] [input.md ... | -]
 ```
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `-e` | none | HTML source given directly instead of an input file; it is also written to `output.html` in the current directory. Relative paths resolve against the current directory. Cannot be combined with an input file. |
-| `-o` | input name with `.pdf` (`output.pdf` with `-e`) | Output PDF path. |
+| `-e` | none | Inline HTML, also written to `output.html` in the current directory. Cannot be combined with stdin or input files. |
+| `-o` | input name with `.pdf` (`output.pdf` for stdin and `-e`) | Output path, existing directory, or `-` for stdout. |
 | `-page-size` | `A4` | `A4`, `A5` or `Letter`. |
 | `-page-width` | `0` | Page width in millimetres (`Options.PageWidth`). Overrides the width of `-page-size`; `0` keeps the named size. Must be positive. |
 | `-page-height` | `0` | Page height in millimetres (`Options.PageHeight`). Overrides the height of `-page-size`; `0` keeps the named size. Must be positive. |
@@ -352,6 +353,8 @@ html2pdf [flags] -e '<html>'
 | `-png-scale` | 2 | Rasterization scale for `-format png`, relative to 72-dpi points (2 = 144 dpi). |
 | `-verbose` | off | Print the font directories searched and the fonts used to standard error. |
 
+`-e` is available only in `html2pdf`; `md2pdf` also accepts `-css` to append a stylesheet. Both CLIs read stdin for input `-`, or when no file is given and stdin is a pipe or redirected file. Stdin does not write `output.html`. `-e`, stdin, and input files cannot be combined; a pipe is ignored when `-e` or files are given. `-o -` writes to stdout; logs and errors go to stderr. A single-page PNG can be written to stdout, but a multi-page PNG is an error. Batch conversion reports failures on stderr, continues with remaining files, and exits non-zero if any failed. With multiple inputs, `-o` must be an existing directory. An existing directory also works for a single input, stdin, or `-e`.
+
 The CLI collects the font directories and passes them as `Options.FontDirs`, in this order: `-font-dirs`, then the environment variable `HTML2PDF_FONT_DIRS` (the OS path list format: `:` on Unix, `;` on Windows), then the operating system's font directories. Directories collected earlier take priority, and a repeated directory keeps its first position. `-font-dirs` no longer replaces the standard directories; it adds directories that are searched first. With `-verbose`, each directory is printed before conversion as `font dir [flag|env|os]: <path>`, and each resolved font after conversion as `font: <family or (default)> (bold) -> <path>`.
 
-The CLI sets `BaseDir` to the input file's directory. `PageWidth` and `PageHeight` are set from `-page-width` and `-page-height`, converted from millimetres to points. Flags may appear before or after the input file.
+The CLI sets `BaseDir` to the input file's directory, or the current directory for stdin and `-e`. `PageWidth` and `PageHeight` are set from `-page-width` and `-page-height`, converted from millimetres to points. Flags may appear before or after the input file.

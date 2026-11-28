@@ -64,9 +64,14 @@ html2pdf -page-width 91 -page-height 55 input.html   # custom page size in milli
 html2pdf -scale 0.95 input.html        # shrinks the content to 95%
 html2pdf -e '<h1>Hello</h1>'           # HTML given directly; writes output.html and output.pdf
 html2pdf -format png input.html        # writes input.png (PNG image output)
+cat doc.html | html2pdf -o - > doc.pdf
+html2pdf examples/*.html
+html2pdf -o outdir a.html b.html   # outdir must be an existing directory
 ```
 
-`-e <HTML>` converts HTML given directly on the command line, which is handy for debugging. The source is also written to `output.html` in the current directory, and relative image and CSS paths resolve against the current directory. The PDF goes to the `-o` path, or to `output.pdf` if `-o` is omitted. `-e` cannot be combined with an input file.
+`-e <HTML>` converts HTML given directly on the command line, which is handy for debugging. The source is also written to `output.html` in the current directory, and relative image and CSS paths resolve against the current directory. The PDF goes to the `-o` path, or to `output.pdf` if `-o` is omitted. `-e` cannot be combined with stdin or an input file.
+
+Both CLIs read stdin when the input is `-`, or when no file is given and stdin is a pipe or redirected file. Stdin uses the current directory as `BaseDir`, defaults to `output.pdf` without `-o`, and does not write `output.html`. Use `-o -` for stdout; logs and errors go to stderr. A single-page PNG can go to stdout; a multi-page PNG cannot. `-e`, stdin, and input files cannot be combined (a pipe is ignored when `-e` or files are given). Multiple files are converted independently; failures are reported on stderr, conversion continues, and the exit status is non-zero if any failed. With multiple inputs, `-o` must name an existing directory. An existing directory also works for a single input, stdin, or `-e`.
 
 By default a document can only read files (images, stylesheets, frame documents) from inside its own directory (`BaseDir`): absolute paths or `..` pointing outside it, and network paths such as `//host/share`, are refused. `-allow-external-files` (`Options.AllowExternalFiles` in the library) lifts this for documents you trust.
 
@@ -84,6 +89,8 @@ go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
 md2pdf input.md                        # writes input.pdf
 md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
+cat notes.md | md2pdf -o - > notes.pdf
+md2pdf notes/*.md
 ```
 
 It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.

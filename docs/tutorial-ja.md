@@ -72,6 +72,12 @@ html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # 出力先と余白�
 html2pdf -scale 0.95 hello.html                            # 全体を 95% に縮小
 ```
 
+パイプを使って標準出力に PDF を書き出すこともできます。
+
+```sh
+cat hello.html | html2pdf -o - > hello.pdf
+```
+
 ## 4. 次のステップ
 
 - 見た目を変える: `<style>` の中身を変えます。使える HTML 要素と CSS は [reference-ja.md](reference-ja.md) に一覧があります

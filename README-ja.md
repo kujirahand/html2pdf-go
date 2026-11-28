@@ -64,9 +64,14 @@ html2pdf -page-width 91 -page-height 55 input.html   # ページサイズをミ�
 html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と output.pdf を出力
 html2pdf -format png input.html        # input.png を出力（PNG 画像出力）
+cat doc.html | html2pdf -o - > doc.pdf
+html2pdf examples/*.html
+html2pdf -o outdir a.html b.html   # outdir must be an existing directory
 ```
 
-`-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は入力ファイルと同時には指定できません。
+`-e <HTML>` を使うと、コマンドラインで直接渡した HTML を変換できます。デバッグに便利です。渡したソースはカレントディレクトリの `output.html` にも書き出され、画像や CSS の相対パスはカレントディレクトリを基準に解決されます。PDF は `-o` のパスに、`-o` を省略すると `output.pdf` に出力されます。`-e` は標準入力や入力ファイルと同時には指定できません。
+
+両 CLI は、入力に `-` を指定した場合、またはファイル指定がなく標準入力がパイプやリダイレクトされたファイルの場合に標準入力を読みます。標準入力では `BaseDir` はカレントディレクトリ、`-o` 省略時の出力は `output.pdf` で、`output.html` は書き出しません。`-o -` で標準出力に書き出し、ログとエラーは標準エラーに出ます。1 ページの PNG は標準出力に書けますが、複数ページの PNG は書けません。`-e`、標準入力、入力ファイルは同時に指定できません（`-e` またはファイル指定時はパイプを無視します）。複数ファイルは個別に変換し、失敗を標準エラーに報告して残りを続行します。失敗があれば終了ステータスは非ゼロです。複数入力で `-o` を指定する場合は既存のディレクトリでなければなりません。既存ディレクトリは単一入力、標準入力、`-e` にも使えます。
 
 既定では、文書が読めるファイル（画像・スタイルシート・フレーム文書）は文書自身のフォルダ（`BaseDir`）の内側にあるものだけです。フォルダの外を指す絶対パスや `..`、`//host/share` のようなネットワークパスは拒否されます。信頼できる文書では、`-allow-external-files`（ライブラリでは `Options.AllowExternalFiles`）でこの制限を解除できます。
 
@@ -84,6 +89,8 @@ go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
 md2pdf input.md                        # input.pdf を出力
 md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
+cat notes.md | md2pdf -o - > notes.pdf
+md2pdf notes/*.md
 ```
 
 `html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-format`、`-png-scale`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
