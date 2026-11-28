@@ -4,7 +4,7 @@
 
 [English README](README.md)
 
-HTML/CSS/Markdown→PDFの変換ライブラリとCLIです。HTML/CSSの主要タグをサポートすることで、それなりに見栄えの良いPDFを手軽に作成できます。
+HTML/CSS/Markdown→PDFの変換ライブラリとCLIです。HTML/CSSの主要タグをサポートすることで、それなりに見栄えの良いPDFを手軽に作成できます。Pure Go言語で実装しているので、実行ファイル1つで、ブラウザ依存もなく、手軽に使える小さなツールです。
 
 ## インストール
 
