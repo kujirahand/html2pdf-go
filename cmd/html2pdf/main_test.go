@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"testing"
@@ -60,5 +61,13 @@ func TestNegativePageWidthFails(t *testing.T) {
 	ee, ok := err.(*exec.ExitError)
 	if !ok || ee.ExitCode() != 2 {
 		t.Fatalf("want exit 2, got %v", err)
+	}
+}
+
+func TestReorderHeaderFooter(t *testing.T) {
+	got := reorderArgs([]string{"input.html", "-header", "{title}", "-footer", "{page} / {pages}"})
+	want := []string{"-header", "{title}", "-footer", "{page} / {pages}", "--", "input.html"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q; want %q", got, want)
 	}
 }

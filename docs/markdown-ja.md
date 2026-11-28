@@ -15,6 +15,8 @@ Markdown → (goldmark) → HTML → コードブロック変換 → + 既定 CS
 3. 結果を完全な HTML 文書で包みます。`<style>` 要素には `DefaultMarkdownCSS` と、指定があれば追加の CSS を続けて入れます。
 4. 文書を `Convert` に渡します。そのため、通常の `Options`（ページサイズ、余白、フォント、拡大率）がそのまま使えます。
 
+ヘッダー・フッター（`-header` / `-footer`、`Options.Header` / `Options.Footer`）は Markdown でも使えます。Markdown には `<title>` がないため、`ConvertMarkdown` と `ConvertMarkdownFile` は最初の `<h1>` のテキストを `{title}` に使います（`MarkdownToHTML` の出力は変わりません）。プレースホルダは [reference-ja.md](reference-ja.md) を参照してください。
+
 関数:
 
 - `MarkdownToHTML(src []byte) ([]byte, error)` は HTML 文書を返します（`DefaultMarkdownCSS` のみ入ります）。

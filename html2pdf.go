@@ -72,6 +72,10 @@ type Options struct {
 	// Margin is the page margin in points, applied to all four sides.
 	// 0 means no margin.
 	Margin float64
+	// Header and Footer are single-line templates drawn in the page margins.
+	Header, Footer string
+	// FileName supplies the {file} placeholder for in-memory conversions.
+	FileName string
 	// MarkdownCSS is extra CSS appended after DefaultMarkdownCSS. It is used
 	// only by ConvertMarkdown and ConvertMarkdownFile; Convert ignores it.
 	MarkdownCSS string
@@ -148,14 +152,15 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 
 		AllowExternalFiles: opts.AllowExternalFiles,
 
-		MarginTop:    opts.Margin,
+		MarginTop:    bandMargin(opts.Margin, opts.Header),
 		MarginRight:  opts.Margin,
-		MarginBottom: opts.Margin,
+		MarginBottom: bandMargin(opts.Margin, opts.Footer),
 		MarginLeft:   opts.Margin,
 	})
 	if err != nil {
 		return err
 	}
+	addPageBands(pages, fonts, opts, doc.Title)
 	return render.Render(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, w)
 }
 
@@ -172,6 +177,9 @@ func ConvertFile(htmlPath, pdfPath string, opts *Options) error {
 	}
 	if o.BaseDir == "" {
 		o.BaseDir = filepath.Dir(htmlPath)
+	}
+	if o.FileName == "" {
+		o.FileName = filepath.Base(htmlPath)
 	}
 	// Render into memory first so a failed conversion leaves no partial file.
 	var buf bytes.Buffer
@@ -227,14 +235,15 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 
 		AllowExternalFiles: opts.AllowExternalFiles,
 
-		MarginTop:    opts.Margin,
+		MarginTop:    bandMargin(opts.Margin, opts.Header),
 		MarginRight:  opts.Margin,
-		MarginBottom: opts.Margin,
+		MarginBottom: bandMargin(opts.Margin, opts.Footer),
 		MarginLeft:   opts.Margin,
 	})
 	if err != nil {
 		return nil, err
 	}
+	addPageBands(pages, fonts, opts, doc.Title)
 	var out [][]byte
 	err = raster.RenderEach(pages, fonts, opts.BaseDir, opts.AllowExternalFiles, scale, func(img *image.NRGBA) error {
 		var buf bytes.Buffer

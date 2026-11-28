@@ -70,6 +70,7 @@ To change the output file or the page settings, pass options:
 ```sh
 html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # output file and margins
 html2pdf -scale 0.95 hello.html                            # shrink everything to 95%
+html2pdf -footer "{page} / {pages}" hello.html             # page numbers in the footer
 ```
 
 ## 4. Next steps

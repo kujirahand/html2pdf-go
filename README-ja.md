@@ -84,9 +84,10 @@ go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
 md2pdf input.md                        # input.pdf を出力
 md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
+md2pdf -footer "{title}  —  {page}/{pages}" input.md   # ページ番号つきのヘッダー・フッター
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-format`、`-png-scale`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-header`、`-footer`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-format`、`-png-scale`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 

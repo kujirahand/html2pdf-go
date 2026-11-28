@@ -70,6 +70,7 @@ html2pdf hello.html
 ```sh
 html2pdf -o out.pdf -page-size A4 -margin 48 hello.html   # 出力先と余白を指定
 html2pdf -scale 0.95 hello.html                            # 全体を 95% に縮小
+html2pdf -footer "{page} / {pages}" hello.html             # フッターにページ番号
 ```
 
 ## 4. 次のステップ

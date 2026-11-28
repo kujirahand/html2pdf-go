@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kujirahand/html2pdf-go/internal/dom"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
+	stdhtml "golang.org/x/net/html"
 )
 
 // DefaultMarkdownCSS is the stylesheet embedded in documents produced by
@@ -194,6 +196,45 @@ func preservePreBlocks(htmlSrc []byte) []byte {
 	return []byte(out.String())
 }
 
+// markdownConversionDocument adds a title only for the conversion path.
+func markdownConversionDocument(src []byte, extraCSS string) ([]byte, error) {
+	doc, err := markdownDocument(src, extraCSS)
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := dom.Parse(bytes.NewReader(doc))
+	if err != nil {
+		return nil, err
+	}
+	var find func(*dom.Node) *dom.Node
+	find = func(n *dom.Node) *dom.Node {
+		if n.Tag == "h1" {
+			return n
+		}
+		for _, c := range n.Children {
+			if h := find(c); h != nil {
+				return h
+			}
+		}
+		return nil
+	}
+	var content func(*dom.Node) string
+	content = func(n *dom.Node) string {
+		if n.IsText() {
+			return n.Text
+		}
+		var b strings.Builder
+		for _, c := range n.Children {
+			b.WriteString(content(c))
+		}
+		return b.String()
+	}
+	if h := find(parsed.Body); h != nil {
+		doc = bytes.Replace(doc, []byte("<head>"), []byte("<head><title>"+stdhtml.EscapeString(content(h))+"</title>"), 1)
+	}
+	return doc, nil
+}
+
 // ConvertMarkdown renders the Markdown document src as a PDF and writes it to
 // w. It converts the Markdown to HTML with MarkdownToHTML and then calls
 // Convert. If opts.MarkdownCSS is set it is appended after DefaultMarkdownCSS.
@@ -201,7 +242,7 @@ func ConvertMarkdown(src []byte, w io.Writer, opts *Options) error {
 	if opts == nil {
 		opts = &Options{}
 	}
-	doc, err := markdownDocument(src, opts.MarkdownCSS)
+	doc, err := markdownConversionDocument(src, opts.MarkdownCSS)
 	if err != nil {
 		return err
 	}
@@ -224,6 +265,9 @@ func ConvertMarkdownFile(mdPath, pdfPath string, opts *Options) error {
 	if o.BaseDir == "" {
 		o.BaseDir = filepath.Dir(mdPath)
 	}
+	if o.FileName == "" {
+		o.FileName = filepath.Base(mdPath)
+	}
 	// Render into memory first so a failed conversion leaves no partial file.
 	var buf bytes.Buffer
 	if err := ConvertMarkdown(src, &buf, &o); err != nil {
@@ -238,7 +282,7 @@ func ConvertMarkdownPNG(src []byte, opts *Options, scale float64) ([][]byte, err
 	if opts == nil {
 		opts = &Options{}
 	}
-	doc, err := markdownDocument(src, opts.MarkdownCSS)
+	doc, err := markdownConversionDocument(src, opts.MarkdownCSS)
 	if err != nil {
 		return nil, err
 	}

@@ -295,6 +295,18 @@
 
 **テキスト。** 基本のフェイスは通常と太字の 2 種類で、変換時に見つかった日本語対応フォント 1 つから選ばれます（Noto Sans CJK / Noto Sans JP を優先）。`FontFile` / `FontFileBold` を指定した場合はそのファイルが使われます。太字のフェイスがなければ、太字も通常のフェイスで描かれます。`font-family` では、ファミリー名でほかのインストール済みフォントも選べます（7 章）。インストール済みフォントは、初めて名前検索したときにフォントディレクトリ（`FontDirs`、なければ標準のディレクトリ）を走査して索引化されます。フォントコレクション（`.ttc`）は 1 つのフェイスがファイルを代表します。斜体はありません。
 
+**ヘッダー・フッター。** `Options.Header` / `Options.Footer`（CLI は `-header` / `-footer`）に空でないテンプレートを指定すると、各ページに通常の基本フェイス、9pt、#444、1 行、中央揃えで描画します。改行・タブは空白に置き換え、左右余白の内側の幅に収まらない場合は末尾を `…` で切り詰めます。未知のプレースホルダはそのままです。
+
+| プレースホルダ | 値 |
+|---|---|
+| `{page}` | 1 始まりのページ番号 |
+| `{pages}` | 空ページ除去後の総ページ数 |
+| `{title}` | HTML の `<title>` のテキスト。なければ空。Markdown 変換では最初の `<h1>` のテキスト |
+| `{date}` | 変換日のローカル日付（YYYY-MM-DD） |
+| `{file}` | 入力ファイルのベース名 |
+
+`ConvertFile` / `ConvertMarkdownFile` は `Options.FileName` が空のとき入力ファイルのベース名を設定します。`Convert` / `ConvertPNG` などのメモリ入力では `Options.FileName` を指定でき、CLI の `-e` では空です。各側の余白が 24pt 未満なら本文用余白を 24pt に広げ、24pt 以上ならそのまま使います。文字はその側の余白領域全体の上下中央に置き、空の側の余白は変更しません。`-scale` / `Options.Scale` は文字サイズと位置に影響しません。
+
 ## 10. 未対応
 
 - フォントとテキスト: `font-style`（斜体）、`font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
@@ -304,7 +316,7 @@
 - リスト: `list-style`、`list-style-type`、`ol` の `start`、独自マーカー。
 - 背景: `background-image`、グラデーション、`background-position`、`background-repeat`。
 - セレクタとルール: 属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
-- その他: リモート CSS、リモートのフレーム、リモート画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`、ヘッダー・フッター、ページ番号。
+- その他: リモート CSS、リモートのフレーム、リモート画像、SVG、リンク（`href`）、フォーム、JavaScript、`page-break-before` / `page-break-inside`。
 
 ## 11. 変換オプション
 
@@ -323,6 +335,8 @@
 | `FontFileBold` | string | 太字フェイスのファイルパス。`FontFile` だけを指定した場合、太字は通常フェイスで代用されます。読み込めないファイルはエラーです。 |
 | `Scale` | float64 | 内容を縮小（1 未満）・拡大（1 超）します。0 以下は 1.0 として扱い、NaN と無限大はエラー。 |
 | `Margin` | float64（pt） | 4 辺共通のページ余白。0 は余白なし（`body` 自身の 8px の margin は残ります）。 |
+| `Header`, `Footer` | string | ヘッダー・フッターのテンプレート。空なら描画しません。 |
+| `FileName` | string | `{file}` に使う入力ファイル名。 |
 | `MarkdownCSS` | string | `DefaultMarkdownCSS` の後ろに追加される CSS。`ConvertMarkdown` と `ConvertMarkdownFile` だけが使います。[markdown-ja.md](markdown-ja.md) を参照。 |
 
 関数: `Convert(src []byte, w io.Writer, opts *Options) error` と `ConvertFile(htmlPath, pdfPath string, opts *Options) error`（`opts` は nil 可。`ConvertFile` は変換が成功したときだけファイルを書き出します）。
@@ -344,6 +358,8 @@ html2pdf [flags] -e '<html>'
 | `-landscape` | オフ | 横向き。 |
 | `-scale` | `1.0` | 内容の拡大縮小率。 |
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
+| `-header` | 空 | ヘッダーのテンプレート（`Options.Header`）。 |
+| `-footer` | 空 | フッターのテンプレート（`Options.Footer`）。 |
 | `-font` | 自動検出 | 通常フェイスのフォントファイル（`Options.FontFile`）。 |
 | `-font-bold` | 通常フォント | 太字フェイスのフォントファイル（`Options.FontFileBold`）。 |
 | `-font-dirs` | なし | 先に探すフォントディレクトリのカンマ区切り一覧。ほかのフォントディレクトリの前に追加されます（下記参照）。 |

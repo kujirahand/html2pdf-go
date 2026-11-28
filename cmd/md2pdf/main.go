@@ -28,7 +28,7 @@ func fontUseLine(u html2pdf.FontUse) string {
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "css": true, "format": true, "png-scale": true}
+var valueFlags = map[string]bool{"o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "css": true, "format": true, "png-scale": true, "header": true, "footer": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -109,6 +109,8 @@ func main() {
 	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
+	header := flag.String("header", "", "centered header template")
+	footer := flag.String("footer", "", "centered footer template")
 	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
@@ -173,12 +175,15 @@ func main() {
 
 		AllowExternalFiles: *allowExternal,
 		Margin:             *margin,
+		Header:             *header,
+		Footer:             *footer,
 		FontFile:           *fontFile,
 		FontDirs:           fontcfg.Paths(dirs),
 
 		FontFileBold: *fontBold,
 		MarkdownCSS:  extraCSS,
 	}
+	opts.FileName = filepath.Base(input)
 	if *pageWidth > 0 {
 		opts.PageWidth = mmToPt(*pageWidth)
 	}

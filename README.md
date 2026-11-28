@@ -84,9 +84,10 @@ go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
 md2pdf input.md                        # writes input.pdf
 md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
+md2pdf -footer "{title}  —  {page}/{pages}" input.md   # header/footer with page numbers
 ```
 
-It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-header`, `-footer`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
 
 From a Go program:
 

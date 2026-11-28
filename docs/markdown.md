@@ -15,6 +15,8 @@ Markdown → (goldmark) → HTML → code-block transform → + default CSS → 
 3. The result is wrapped in a complete HTML document whose `<style>` element holds `DefaultMarkdownCSS` followed by your extra CSS, if any.
 4. The document is passed to `Convert`, so the usual `Options` (page size, margin, fonts, scale) apply.
 
+Headers and footers (`-header` / `-footer`, `Options.Header` / `Options.Footer`) work for Markdown too. Because Markdown has no `<title>`, `ConvertMarkdown` and `ConvertMarkdownFile` use the text of the first `<h1>` as `{title}` (`MarkdownToHTML` output is unchanged). See [reference.md](reference.md) for the placeholders.
+
 Functions:
 
 - `MarkdownToHTML(src []byte) ([]byte, error)` returns the HTML document (with `DefaultMarkdownCSS` only).

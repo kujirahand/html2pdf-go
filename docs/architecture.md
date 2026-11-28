@@ -30,6 +30,8 @@ PDF
 
 The `text` package is used by `layout` and `render` for font measurement and line breaking.
 
+After layout, headers and footers are added to each page using the final count after empty pages are removed, and shared by PDF and PNG rendering. Their placement and size remain in physical points regardless of `Scale`.
+
 ## Package responsibilities
 
 | Package | Responsibility |

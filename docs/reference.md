@@ -295,6 +295,18 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 **Text.** The base faces are regular and bold, from one Japanese-capable font found at conversion time (Noto Sans CJK / Noto Sans JP preferred), or from `FontFile` / `FontFileBold` if given. If no bold face exists, bold text is drawn with the regular face. `font-family` can pick other installed fonts by family name (section 7). Installed fonts are indexed on first use by scanning the font directories (`FontDirs`, or the standard ones). For a font collection (`.ttc`) only one face represents the file. There is no italic.
 
+**Headers and footers.** A nonempty `Options.Header` / `Options.Footer` template (CLI: `-header` / `-footer`) is drawn on every page, centered on one line in the regular base face, 9pt, #444. Newlines and tabs become spaces; text wider than the area inside the left and right margins is truncated with `…`. Unknown placeholders are left unchanged.
+
+| Placeholder | Value |
+|---|---|
+| `{page}` | Page number, starting at 1 |
+| `{pages}` | Total pages after empty pages are removed |
+| `{title}` | HTML `<title>` text, or empty if absent. For Markdown conversion, the first `<h1>` text |
+| `{date}` | Local conversion date (YYYY-MM-DD) |
+| `{file}` | Input file basename |
+
+`ConvertFile` / `ConvertMarkdownFile` set the input basename when `Options.FileName` is empty. For in-memory inputs such as `Convert` / `ConvertPNG`, set `Options.FileName` explicitly; the CLI leaves it empty for `-e`. On each enabled side, a margin under 24pt is increased to 24pt for the body; a margin of at least 24pt is unchanged. Text is vertically centered in the entire margin on that side; the margin on an empty side is unchanged. `-scale` / `Options.Scale` does not affect the text size or position.
+
 ## 10. Not supported
 
 - Fonts and text: `font-style` (italic), `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
@@ -304,7 +316,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
-- Other: remote CSS, remote frames, remote images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`, headers and footers, page numbers.
+- Other: remote CSS, remote frames, remote images, SVG, links (`href`), forms, JavaScript, `page-break-before`/`page-break-inside`.
 
 ## 11. Conversion options
 
@@ -323,6 +335,8 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
+| `Header`, `Footer` | string | Header and footer templates; empty disables drawing. |
+| `FileName` | string | Input file name used for `{file}`. |
 | `MarkdownCSS` | string | Extra CSS appended after `DefaultMarkdownCSS`. Used only by `ConvertMarkdown` and `ConvertMarkdownFile`; see [markdown.md](markdown.md). |
 
 Functions: `Convert(src []byte, w io.Writer, opts *Options) error` and `ConvertFile(htmlPath, pdfPath string, opts *Options) error` (nil `opts` is allowed; `ConvertFile` writes the file only on success).
@@ -344,6 +358,8 @@ html2pdf [flags] -e '<html>'
 | `-landscape` | off | Landscape orientation. |
 | `-scale` | `1.0` | Content scale factor. |
 | `-margin` | `0` | Page margin in points, all sides. |
+| `-header` | empty | Header template (`Options.Header`). |
+| `-footer` | empty | Footer template (`Options.Footer`). |
 | `-font` | auto-detect | Regular font file (`Options.FontFile`). |
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
 | `-font-dirs` | none | Comma-separated directories searched first for fonts. They are added in front of the other font directories (see below). |
