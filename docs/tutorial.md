@@ -1,5 +1,7 @@
 # Tutorial
 
+[日本語版](tutorial-ja.md)
+
 First, let's convert one HTML file into a PDF with the CLI.
 
 ## 1. Install it

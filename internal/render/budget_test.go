@@ -79,3 +79,26 @@ func TestImageConfinement(t *testing.T) {
 		}
 	}
 }
+
+// A failed image is loaded at most once: after the first failure, raising
+// the budget must not make a retry succeed, because no retry happens.
+func TestFailedImageIsCached(t *testing.T) {
+	saved := maxTotalImagePixels
+	defer func() { maxTotalImagePixels = saved }()
+
+	dir := t.TempDir()
+	writePNG(t, filepath.Join(dir, "a.png"), 10, 10)
+	r := newTestRenderer(dir, false)
+
+	maxTotalImagePixels = 50 // too small for the 100-pixel image
+	if _, err := r.image("a.png", dir); err == nil {
+		t.Fatal("over-budget image was accepted")
+	}
+	maxTotalImagePixels = 1000 // would now fit, if it were loaded again
+	if _, err := r.image("a.png", dir); err == nil {
+		t.Fatal("failed image was retried instead of served from the failure cache")
+	}
+	if r.totalPixels != 0 {
+		t.Fatalf("totalPixels = %d, want 0", r.totalPixels)
+	}
+}

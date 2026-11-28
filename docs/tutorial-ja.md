@@ -1,5 +1,7 @@
 # チュートリアル
 
+[English](tutorial.md)
+
 まずは CLI で、HTML ファイルを 1 つ PDF に変換してみます。
 
 ## 1. インストールする

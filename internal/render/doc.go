@@ -48,6 +48,10 @@ type renderer struct {
 	totalPixels int
 	pdfFont     map[*text.Face]*pdf.Font
 	images      map[string]*pdf.Image
+	// failed caches image load errors by the same key as images, so a
+	// document referencing one unusable image many times cannot make the
+	// renderer read and decode it again for every occurrence.
+	failed map[string]error
 }
 
 // Render writes pages to w as a PDF document. Image files are resolved
@@ -146,7 +150,8 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 }
 
 // image loads src (a file path resolved against dir, or a data: URI) and
-// registers it with the PDF writer.
+// registers it with the PDF writer. Both successes and failures are
+// cached: each distinct image is loaded at most once per document.
 func (r *renderer) image(src, dir string) (*pdf.Image, error) {
 	// A data URI is the same image wherever it appears; a file depends on
 	// the directory.
@@ -157,6 +162,21 @@ func (r *renderer) image(src, dir string) (*pdf.Image, error) {
 	if img, ok := r.images[key]; ok {
 		return img, nil
 	}
+	if err, ok := r.failed[key]; ok {
+		return nil, err
+	}
+	img, err := r.loadImage(src, dir, key)
+	if err != nil {
+		if r.failed == nil {
+			r.failed = map[string]error{}
+		}
+		r.failed[key] = err
+		return nil, err
+	}
+	return img, nil
+}
+
+func (r *renderer) loadImage(src, dir, key string) (*pdf.Image, error) {
 	data, isData, err := datauri.Decode(src)
 	label := src
 	if isData {
