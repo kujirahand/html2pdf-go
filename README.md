@@ -20,38 +20,9 @@ irm https://raw.githubusercontent.com/kujirahand/html2pdf-go/main/scripts/instal
 
 The binaries are unsigned, so downloading them in a browser makes the OS block them (Gatekeeper / SmartScreen); installing with these scripts avoids that, and they verify the SHA-256 checksum before installing.
 
-## Tutorial
+## Examples
 
-See [docs/tutorial.md](docs/tutorial.md) for a walkthrough that converts one HTML file to PDF with the CLI, and the sample catalog [examples/README.md](examples/README.md) for the kinds of PDFs it can create.
-
-## Using it as a library
-
-```sh
-go get github.com/kujirahand/html2pdf-go
-```
-
-```go
-package main
-
-import (
-	"bytes"
-	"log"
-	"os"
-
-	html2pdf "github.com/kujirahand/html2pdf-go"
-)
-
-func main() {
-	var buf bytes.Buffer
-	src := []byte("<h1>Hello</h1><p>こんにちは</p>")
-	if err := html2pdf.Convert(src, &buf, &html2pdf.Options{PageSize: "A4"}); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.WriteFile("out.pdf", buf.Bytes(), 0o644); err != nil {
-		log.Fatal(err)
-	}
-}
-```
+See the sample catalog [examples/README.md](examples/README.md) (in Japanese) for the kinds of PDFs it can create.
 
 ## Using the CLI
 
@@ -66,17 +37,7 @@ html2pdf -e '<h1>Hello</h1>'           # HTML given directly; writes output.html
 html2pdf -format png input.html        # writes input.png (PNG image output)
 ```
 
-`-e <HTML>` converts HTML given directly on the command line, which is handy for debugging. The source is also written to `output.html` in the current directory, and relative image and CSS paths resolve against the current directory. The PDF goes to the `-o` path, or to `output.pdf` if `-o` is omitted. `-e` cannot be combined with an input file.
-
-By default a document can only read files (images, stylesheets, frame documents) from inside its own directory (`BaseDir`): absolute paths or `..` pointing outside it, and network paths such as `//host/share`, are refused. `-allow-external-files` (`Options.AllowExternalFiles` in the library) lifts this for documents you trust.
-
-With `-format png`, each page is written as a PNG image instead of a PDF (a multi-page document gets `-1`, `-2`, ... before the `.png` extension), rasterized at `-png-scale` times the 72-dpi point size (default 2, i.e. 144 dpi). The format can also be selected by giving `-o` a `.png` name and omitting `-format`. From Go, use `html2pdf.ConvertPNG` / `html2pdf.ConvertMarkdownPNG`, which return one PNG per page.
-
-`-scale` (`Options.Scale` in the library) is the factor that shrinks or enlarges the content (default 1.0). It is the equivalent of wkhtmltopdf's zoom / smart shrinking and Chrome printToPDF's `scale`, and is useful when a document at its real size spills just slightly onto the next page and you want it to fit.
-
-## Markdown to PDF (md2pdf)
-
-`md2pdf` converts a Markdown file into a PDF. It turns the Markdown into HTML with [goldmark](https://github.com/yuin/goldmark) and passes it through the same engine (Markdown → HTML → PDF).
+Markdown files are converted with `md2pdf`:
 
 ```sh
 go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
@@ -86,47 +47,24 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
 ```
 
-It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+The full flag list is in [docs/reference.md](docs/reference.md), and the Markdown details are in [docs/markdown.md](docs/markdown.md).
 
-From a Go program:
+## Supported HTML/CSS/Markdown
 
-```go
-// Markdown bytes to PDF bytes
-err := html2pdf.ConvertMarkdown(src, &buf, &html2pdf.Options{PageSize: "A4", MarkdownCSS: "h1 { color: #205090; }"})
+- HTML: document structure (`div`, `section`, `center`, `page-break`, ...), headings and paragraphs, lists, tables (including nested ones), images (PNG/JPEG/GIF), and frames (`frameset`, `iframe`). Full list: [docs/reference.md](docs/reference.md).
+- CSS: class, ID, element and descendant selectors; fonts, colors, backgrounds, margin and padding, borders (including `border-radius`), `width`, `text-align` and `line-height`; page breaks through `page-break-after`. Full list: [docs/reference.md](docs/reference.md).
+- Markdown: headings, bold, lists (including nested and task lists), blockquotes, code blocks, GFM tables, horizontal rules, links, images and raw HTML. Full list: [docs/markdown.md](docs/markdown.md).
 
-// Markdown file to PDF file (BaseDir defaults to the Markdown file's directory)
-err = html2pdf.ConvertMarkdownFile("input.md", "out.pdf", nil)
+Not supported: `float`, `position`, flex and grid layout, `@media` / `@font-face`, attribute selectors and pseudo-classes, italic, and JavaScript.
 
-// Just the HTML document, with the default stylesheet embedded
-htmlDoc, err := html2pdf.MarkdownToHTML(src)
-```
+## Documentation
 
-Supported Markdown: headings, paragraphs, bold, lists (including nested ones), task lists, blockquotes, fenced and indented code blocks, GFM tables, horizontal rules, links, images, and raw HTML.
-
-Limitations:
-
-- There is no italic face, so emphasis is drawn as regular text.
-- Code blocks keep their line breaks and indentation (through a transform of `<pre>` blocks), but they are not set in a monospace font.
-- Raw HTML in the Markdown passes through unchanged, so only convert input you trust.
-
-See [docs/markdown.md](docs/markdown.md) for details.
-
-## Development
-
-Development tasks use the [just](https://github.com/casey/just) task runner. Running `just` with no arguments lists the recipes.
-
-```sh
-just test      # go test ./...
-just make      # builds native CLI binaries in bin/
-just fonts     # downloads the IPAex fonts into fonts/ (does nothing if already downloaded)
-just samples   # generates the sample PDFs into out/
-```
-
-## Supported range and roadmap
-
-See [docs/architecture.md](docs/architecture.md).
-
-For the list of supported HTML elements and CSS, see [docs/reference.md](docs/reference.md) (Japanese: [docs/reference-ja.md](docs/reference-ja.md)).
+- [Tutorial](docs/tutorial.md): convert one HTML file to PDF with the CLI.
+- [Library guide](docs/library.md): use html2pdf-go as a Go library.
+- [Support reference](docs/reference.md): supported HTML elements, CSS and conversion options.
+- [Markdown](docs/markdown.md): how Markdown is converted (md2pdf).
+- [Architecture](docs/architecture.md): design and conversion pipeline.
+- [Development](docs/development.md): development tasks with `just`.
 
 ## License
 
