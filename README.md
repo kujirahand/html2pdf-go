@@ -31,6 +31,8 @@ go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 
 html2pdf input.html                    # writes input.pdf
 html2pdf -o out.pdf -page-size A4 input.html
+html2pdf -page-width 91 -page-height 55 input.html   # custom page size in millimetres
+html2pdf -scale 0.95 input.html        # shrinks the content to 95%
 html2pdf -e '<h1>Hello</h1>'           # HTML given directly; writes output.html and output.pdf
 html2pdf -format png input.html        # writes input.png (PNG image output)
 ```
@@ -41,6 +43,7 @@ Markdown files are converted with `md2pdf`:
 go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
 
 md2pdf input.md                        # writes input.pdf
+md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
 ```
 

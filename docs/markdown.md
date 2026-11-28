@@ -2,7 +2,7 @@
 
 [日本語版 / Japanese](markdown-ja.md)
 
-`md2pdf` converts a Markdown file into a PDF with the same engine as `html2pdf`. For the HTML and CSS the engine supports, see [reference.md](reference.md).
+`md2pdf` converts a Markdown file into a PDF with the same engine as `html2pdf`. It accepts the same flags as `html2pdf` plus `-css` for an extra stylesheet. For the HTML and CSS the engine supports, see [reference.md](reference.md).
 
 ## 1. Pipeline
 

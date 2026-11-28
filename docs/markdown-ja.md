@@ -2,7 +2,7 @@
 
 [English](markdown.md)
 
-`md2pdf` は、`html2pdf` と同じエンジンで Markdown ファイルを PDF に変換します。エンジンが対応する HTML と CSS は [reference-ja.md](reference-ja.md) を参照してください。
+`md2pdf` は、`html2pdf` と同じエンジンで Markdown ファイルを PDF に変換します。フラグは `html2pdf` と共通で、追加のスタイルシートを指定する `-css` があります。エンジンが対応する HTML と CSS は [reference-ja.md](reference-ja.md) を参照してください。
 
 ## 1. 処理の流れ
 

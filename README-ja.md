@@ -31,6 +31,8 @@ go install github.com/kujirahand/html2pdf-go/cmd/html2pdf@latest
 
 html2pdf input.html                    # input.pdf を出力
 html2pdf -o out.pdf -page-size A4 input.html
+html2pdf -page-width 91 -page-height 55 input.html   # カスタムページサイズ（ミリメートル）
+html2pdf -scale 0.95 input.html        # 内容を 95% に縮小
 html2pdf -e '<h1>Hello</h1>'           # HTML を直接指定。output.html と output.pdf を出力
 html2pdf -format png input.html        # input.png を出力（PNG 画像出力）
 ```
@@ -41,6 +43,7 @@ Markdown ファイルは `md2pdf` で変換します。
 go install github.com/kujirahand/html2pdf-go/cmd/md2pdf@latest
 
 md2pdf input.md                        # input.pdf を出力
+md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
