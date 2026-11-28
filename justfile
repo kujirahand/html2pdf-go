@@ -78,6 +78,8 @@ examples: fonts
     done
     for f in examples/*.md; do
         name=$(basename "$f" .md)
+        # README.md はカタログなので変換対象から除く
+        if [ "$name" = "README" ]; then continue; fi
         echo "md2pdf: $f"
         go run ./cmd/md2pdf "$f" -o "examples/pdf/$name-md.pdf" -margin 48 -font-dirs fonts
     done
