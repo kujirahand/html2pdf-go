@@ -35,6 +35,8 @@ type FontUse struct {
 
 // Options configures a conversion.
 type Options struct {
+	// NoRepeatThead disables repeating thead on continuation pages; the zero value repeats it.
+	NoRepeatThead bool
 	// PageSize is a named page size such as "A4", "A5", or "Letter".
 	PageSize string
 	// PageWidth and PageHeight are in points; 0 means derive from PageSize.
@@ -147,6 +149,7 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 		Scale:      opts.Scale,
 
 		AllowExternalFiles: opts.AllowExternalFiles,
+		NoRepeatThead:      opts.NoRepeatThead,
 
 		MarginTop:    opts.Margin,
 		MarginRight:  opts.Margin,
@@ -226,6 +229,7 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 		Scale:      opts.Scale,
 
 		AllowExternalFiles: opts.AllowExternalFiles,
+		NoRepeatThead:      opts.NoRepeatThead,
 
 		MarginTop:    opts.Margin,
 		MarginRight:  opts.Margin,

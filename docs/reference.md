@@ -83,7 +83,7 @@ An `iframe` that appears as a block-level child is drawn as an embedded document
 | Element | Rendering | Notes |
 |---|---|---|
 | `table` | table | Nested tables work. |
-| `thead`, `tbody`, `tfoot` | row group | All three behave the same; rows are laid out in source order (`tfoot` is not moved to the bottom). |
+| `thead`, `tbody`, `tfoot` | row group | Rows are laid out in source order (`tfoot` is not moved to the bottom). The first `thead` repeats on continuation pages. |
 | `tr` | table row | |
 | `td` | table cell, padding 1px | |
 | `th` | table cell, padding 1px, bold, centered | |
@@ -104,7 +104,7 @@ See the `display: none` list under "Document structure". Any element can also be
 
 ## 3. Supported attributes
 
-Only these attributes are read by the implementation. All other attributes (`href`, `alt`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `rowspan`, `start`, ...) have no effect. Attribute names are case-insensitive.
+Only these attributes are read by the implementation. All other attributes (`href`, `alt`, `align`, `bgcolor`, `border`, `cellpadding`, `cellspacing`, `start`, ...) have no effect. Attribute names are case-insensitive.
 
 | Attribute | Applies to | Effect |
 |---|---|---|
@@ -117,6 +117,7 @@ Only these attributes are read by the implementation. All other attributes (`hre
 | `src` | `img` | Image file path, or a `data:` URI. Relative paths resolve against `BaseDir` and are confined to it unless `AllowExternalFiles` is set; paths starting with `//` or `\\` are never loaded. The decoded images of one PDF may total at most 100 million pixels; an image over that budget is skipped. `data:` URIs may be base64 (`data:image/png;base64,...`) or percent-encoded (`data:image/gif,...`); the media type, if given, must be `image/*`; PNG, JPEG and GIF are decoded. `http(s)://` URLs (anything containing `://`) are not loaded. |
 | `width` | any element (meaningful for `img`, `iframe`, `table`, `td`, `th`, block elements) | Parsed as a CSS length; a bare number means px. Treated as the lowest-priority `width` (overridden by any CSS `width`). Negative or invalid values are ignored. |
 | `height` | `iframe` | Plain pixel number only (a percentage is ignored). Treated as the lowest-priority `height` (overridden by any CSS `height`). |
+| `rowspan` | `td`, `th` | Number of rows spanned. Values of 1 or less, or non-numeric values, mean 1. Capped at 1000 and at the remaining rows in the row group. |
 | `colspan` | `td`, `th` | Number of columns spanned. Values of 1 or less, or non-numeric values, mean 1. Capped at 1000. |
 
 ## 4. CSS selectors
@@ -280,15 +281,17 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 **Images.** `img` is inline, with its bottom on the text baseline. The default size is the image's pixel size (the file's, or the decoded `data:` URI's) × 0.75. A CSS or attribute `width` sets the width and the height follows the aspect ratio (`height` is ignored). Images over 8192 pixels on a side or 33 million pixels, and unreadable, invalid or unsupported images (including SVG), are skipped silently (no placeholder, no `alt` text).
 
 **Tables.**
-- Cells are placed left to right; `colspan` makes a cell span columns. There is no `rowspan`. A table of more than 10000 columns, or a document whose layout work exceeds a fixed budget (for example deeply nested tables), makes the conversion fail.
+- Cells are placed left to right; `colspan` and `rowspan` span columns and rows. Cells overlapping columns occupied by earlier rows shift right. A table of more than 10000 columns, or a document whose layout work exceeds a fixed budget (for example deeply nested tables), makes the conversion fail.
 - Column widths: a cell `width` (including the attribute) fixes its column (content width plus padding and border); `%` widths are used when the table has a `width`, or when an auto-width table has to shrink. Other columns get their max-content width; surplus space is shared equally, and when space is short columns shrink toward their min-content width. Spanning cells only widen columns that are too narrow.
 - A table without `width` is as wide as its content, up to the available width. With a `width`, if every column has a fixed width they are scaled to fill it.
-- Cell content is always vertically centered. Row height is the tallest cell. A cell `height` (absolute lengths; a percentage is ignored) is a border-box minimum for the row: taller content still wins.
+- Cell content is vertically centered in the full span. Row height starts at the tallest single-row cell; when a spanning cell needs more height, its last row grows. A cell `height` (absolute lengths; a percentage is ignored) is a border-box minimum for its rows: taller content still wins.
 - Each cell draws its own borders; there is no `border-collapse` or `border-spacing`, so adjacent cell borders do not merge.
 - A table is centered when its `text-align` (inherited) is `center` and it is narrower than its container. `margin: auto` does not center it.
 
+- Rows connected by `rowspan` form an indivisible block. The first `thead` repeats on continuation pages by default, unless the heading and next block cannot fit together on a page.
+
 **Page breaks.**
-- Lines of text (inline images sit inside lines), table rows, and bordered or filled boxes that fit on one page are never split across pages. A row or box taller than a page is not split either, and the overflow is not drawn.
+- Lines of text (inline images sit inside lines), table rows and `rowspan` blocks, and bordered or filled boxes that fit on one page are never split across pages. A row, `rowspan` block or box taller than a page is not split either, and the overflow is not drawn.
 - `page-break-after` / `break-after` forces a new page after a block or a table. It is ignored inside table cells and on inline elements and table rows. `page-break-before`, `page-break-inside`, `break-before` and `break-inside` are not supported.
 - `<page-break>` is a dedicated element for a forced page break: the content after it starts on the next page. It is built on `page-break-after: always` (section 8), so the same restrictions apply. The parser would nest what follows an unclosed `<page-break>` inside it, so the children are moved to just after the element, keeping their order; `<p>a</p><page-break><p>b</p>` therefore puts `b` on the next page. A `<page-break>` at the start or end of the document, or several in a row, does not create blank pages. A `<page-break>` placed inside an inline element does not break the page.
 - A page that would contain no text or images is dropped, so a blank page cannot be produced.
@@ -300,7 +303,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - Fonts and text: `font-style` (italic), `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
 - Box: `height` (except on `iframe`), `min-width`, `max-width`, `min-height`, `max-height`, `box-sizing`, `overflow`, `outline`, `box-shadow`, `opacity`, `visibility`, `margin: auto` centering.
 - Layout: `float`, `clear`, `position` (`absolute`, `fixed`, `relative`, `sticky`), `z-index`, flex, grid, multi-column, `inline-block` behavior.
-- Tables: `rowspan`, `border-collapse`, `border-spacing`, `cellspacing`/`cellpadding`, table `caption`, `colgroup`/`col`, `vertical-align` in cells, `table-layout`, `border-radius` on cells.
+- Tables: `border-collapse`, `border-spacing`, `cellspacing`/`cellpadding`, table `caption`, `colgroup`/`col`, `vertical-align` in cells, `table-layout`, `border-radius` on cells.
 - Lists: `list-style`, `list-style-type`, `ol start`, custom markers.
 - Backgrounds: `background-image`, gradients, `background-position`, `background-repeat`.
 - Selectors and rules: attribute selectors, pseudo-classes, pseudo-elements, `>` `+` `~`, `@media`, `@import`, `@page`, `@font-face`, `!important` priority, `inherit`/`initial`, `var()`, `calc()`.
@@ -312,6 +315,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 | Field | Type | Meaning |
 |---|---|---|
+| `NoRepeatThead` | bool | Set to true to disable repeated table headings. The default false repeats them. |
 | `PageSize` | string | `A4` (595.28 × 841.89pt), `A5` (419.53 × 595.28pt) or `Letter` (612 × 792pt); case-insensitive. Empty = `A4`. Other names are an error. |
 | `PageWidth`, `PageHeight` | float64 (points) | Custom size. If both are greater than 0 they are used as given and `PageSize` and `Landscape` are ignored. If only one is set, the other comes from `PageSize`. |
 | `Landscape` | bool | Swaps width and height of the `PageSize` size. |
@@ -339,6 +343,7 @@ html2pdf [flags] -e '<html>'
 | `-e` | none | HTML source given directly instead of an input file; it is also written to `output.html` in the current directory. Relative paths resolve against the current directory. Cannot be combined with an input file. |
 | `-o` | input name with `.pdf` (`output.pdf` with `-e`) | Output PDF path. |
 | `-page-size` | `A4` | `A4`, `A5` or `Letter`. |
+| `-repeat-thead` | `true` | Repeat table headings on continuation pages; set to `false` to disable. |
 | `-page-width` | `0` | Page width in millimetres (`Options.PageWidth`). Overrides the width of `-page-size`; `0` keeps the named size. Must be positive. |
 | `-page-height` | `0` | Page height in millimetres (`Options.PageHeight`). Overrides the height of `-page-size`; `0` keeps the named size. Must be positive. |
 | `-landscape` | off | Landscape orientation. |

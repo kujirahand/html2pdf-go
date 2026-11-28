@@ -10,17 +10,11 @@ func (l *layouter) paginate() []*Page {
 	o := l.opt
 	avail := o.PageHeight - o.MarginTop - o.MarginBottom
 	starts := []float64{0}
-	placed, force := false, false
+	var sim pageSim
 	for _, u := range l.units {
-		if u.forced {
-			force = true
-			continue
-		}
-		cur := starts[len(starts)-1]
-		if placed && (force || u.bottom-cur > avail+pageEps) {
+		if sim.feed(u, avail) {
 			starts = append(starts, u.top)
 		}
-		placed, force = true, false
 	}
 
 	pages := make([]*Page, len(starts))

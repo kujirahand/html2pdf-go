@@ -83,7 +83,7 @@
 | 要素 | 描画方法 | 備考 |
 |---|---|---|
 | `table` | 表 | 入れ子の表も使えます。 |
-| `thead`, `tbody`, `tfoot` | 行グループ | 3 つとも同じ扱いで、行はソース順に配置されます（`tfoot` は末尾に移動しません）。 |
+| `thead`, `tbody`, `tfoot` | 行グループ | 行はソース順に配置されます（`tfoot` は末尾に移動しません）。最初の `thead` は改ページ時に繰り返されます。 |
 | `tr` | 表の行 | |
 | `td` | セル、padding 1px | |
 | `th` | セル、padding 1px、太字、中央寄せ | |
@@ -104,7 +104,7 @@
 
 ## 3. 対応属性
 
-実装が読む属性は次のものだけです。それ以外の属性（`href`、`alt`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`rowspan`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
+実装が読む属性は次のものだけです。それ以外の属性（`href`、`alt`、`align`、`bgcolor`、`border`、`cellpadding`、`cellspacing`、`start` など）は効果がありません。属性名は大文字小文字を区別しません。
 
 | 属性 | 対象要素 | 効果 |
 |---|---|---|
@@ -117,6 +117,7 @@
 | `src` | `img` | 画像ファイルのパス、または `data:` URI。相対パスは `BaseDir` を基準に解決され、`AllowExternalFiles` を指定しない限り `BaseDir` の内側に限られます。`//` や `\\` で始まるパスは読み込まれません。1 つの PDF に含まれるデコード後の画像は合計 1 億ピクセルまでで、予算を超える画像はスキップされます。`data:` URI は base64 形式（`data:image/png;base64,...`）とパーセントエンコード形式（`data:image/gif,...`）に対応し、メディアタイプを指定する場合は `image/*` でなければなりません。デコードできるのは PNG・JPEG・GIF です。`http(s)://` の URL（`://` を含むもの）は読み込まれません。 |
 | `width` | すべての要素（意味があるのは `img`、`iframe`、`table`、`td`、`th`、ブロック要素） | CSS の長さとして解釈され、単位なしの数値は px。最も優先順位の低い `width` として扱われ、CSS の `width` があればそちらが優先されます。負の値や不正な値は無視されます。 |
 | `height` | `iframe` | 単位なしの px 数値のみ（% は無視）。最も優先順位の低い `height` として扱われ、CSS の `height` があればそちらが優先されます。 |
+| `rowspan` | `td`, `th` | 結合する行数。1 以下や数値でない値は 1。上限は 1000 で、行グループの残り行数に制限されます。 |
 | `colspan` | `td`, `th` | 結合する列数。1 以下や数値でない値は 1 として扱われます。上限は 1000。 |
 
 ## 4. CSS セレクタ
@@ -280,15 +281,17 @@
 **画像。** `img` はインラインで、下端がテキストのベースラインに揃います。既定のサイズは、画像（ファイル、またはデコードした `data:` URI）のピクセルサイズ × 0.75 です。CSS または属性の `width` で幅を指定でき、高さは縦横比から決まります（`height` は無視）。1 辺が 8192 ピクセルを超える、または 3300 万ピクセルを超える画像、読み込めない・不正な・非対応（SVG を含む）の画像は黙ってスキップされます（代替表示も `alt` テキストもありません）。
 
 **表。**
-- セルは左から順に配置され、`colspan` で列を結合できます。`rowspan` はありません。列数が 10000 を超える表や、レイアウトの作業量が固定の予算を超える文書（たとえば深くネストした表）は、変換がエラーになります。
+- セルは左から順に配置され、`colspan` と `rowspan` で列と行を結合できます。上の行から占有された列と重なるセルは右にずれます。列数が 10000 を超える表や、レイアウトの作業量が固定の予算を超える文書（たとえば深くネストした表）は、変換がエラーになります。
 - 列幅: セルの `width`（属性を含む）でその列が固定されます（content 幅 + padding + 罫線）。`%` 指定は、表に `width` がある場合、または `width` 未指定の表が縮小を迫られた場合に使われます。それ以外の列は最大内容幅になり、余りは均等に配分され、足りないときは最小内容幅に向けて縮みます。結合セルは、幅が足りない列だけを広げます。
 - `width` のない表は内容に合わせた幅で、利用可能幅が上限です。`width` があり、すべての列が固定幅のときは、表幅いっぱいに比例拡大されます。
-- セルの内容は常に垂直方向の中央に置かれます。行の高さは最も高いセルで決まります。セルの `height`（絶対長。パーセントは無視）は行の高さの最小値（border-box）として働き、内容がそれより高ければ内容が優先されます。
+- セルの内容は結合範囲の垂直方向の中央に置かれます。行高は単一行セルの最大高で決まり、結合セルに高さが足りない場合は最後の行を伸ばします。セルの `height`（絶対長。パーセントは無視）は、そのセルが占める行の高さの最小値（border-box）として働き、内容がそれより高ければ内容が優先されます。
 - 罫線はセルごとに描かれ、`border-collapse` や `border-spacing` はないため、隣り合うセルの罫線は統合されません。
 - 表は、（継承された）`text-align` が `center` で、かつ包含ブロックより狭いときに中央寄せされます。`margin: auto` では中央寄せされません。
 
+- `rowspan` でつながる行は分割しないブロックになります。最初の `thead` は既定で継続ページに繰り返され、見出しと次のブロックが同じページに収まらない場合は繰り返されません。
+
 **改ページ。**
-- テキストの行（インライン画像は行の中に含まれます）、表の行、1 ページに収まる罫線・背景付きのボックスは、ページをまたいで分割されません。1 ページより高い行やボックスも分割されず、はみ出した部分は描画されません。
+- テキストの行（インライン画像は行の中に含まれます）、表の行と `rowspan` ブロック、1 ページに収まる罫線・背景付きのボックスは、ページをまたいで分割されません。1 ページより高い行、`rowspan` ブロックやボックスも分割されず、はみ出した部分は描画されません。
 - `page-break-after` / `break-after` は、ブロックまたは表の後ろで強制的に改ページします。表のセルの内側、インライン要素、表の行では無視されます。`page-break-before`、`page-break-inside`、`break-before`、`break-inside` は未対応です。
 - `<page-break>` は強制改ページ専用の要素で、後ろの内容が次のページから始まります。`page-break-after: always`（8 章）を使って実現しているため、制限も同じです。閉じていない `<page-break>` の後ろの内容はパーサーによって要素の子になってしまうため、子要素を順序を保ったまま要素の直後へ移します。したがって `<p>a</p><page-break><p>b</p>` と書いても `b` は次のページになります。文書の先頭・末尾に置いた場合や連続して置いた場合も、空白ページはできません。インライン要素の中に置いた `<page-break>` は改ページしません。
 - テキストも画像も含まないページは破棄されるため、空白ページは作れません。
@@ -300,7 +303,7 @@
 - フォントとテキスト: `font-style`（斜体）、`font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
 - ボックス: `height`（`iframe` を除く）、`min-width`、`max-width`、`min-height`、`max-height`、`box-sizing`、`overflow`、`outline`、`box-shadow`、`opacity`、`visibility`、`margin: auto` による中央寄せ。
 - レイアウト: `float`、`clear`、`position`（`absolute`、`fixed`、`relative`、`sticky`）、`z-index`、flex、grid、マルチカラム、`inline-block` の挙動。
-- 表: `rowspan`、`border-collapse`、`border-spacing`、`cellspacing` / `cellpadding`、表の `caption`、`colgroup` / `col`、セルの `vertical-align`、`table-layout`、セルの `border-radius`。
+- 表: `border-collapse`、`border-spacing`、`cellspacing` / `cellpadding`、表の `caption`、`colgroup` / `col`、セルの `vertical-align`、`table-layout`、セルの `border-radius`。
 - リスト: `list-style`、`list-style-type`、`ol` の `start`、独自マーカー。
 - 背景: `background-image`、グラデーション、`background-position`、`background-repeat`。
 - セレクタとルール: 属性セレクタ、擬似クラス、擬似要素、`>` `+` `~`、`@media`、`@import`、`@page`、`@font-face`、`!important` による優先、`inherit` / `initial`、`var()`、`calc()`。
@@ -312,6 +315,7 @@
 
 | フィールド | 型 | 意味 |
 |---|---|---|
+| `NoRepeatThead` | bool | true で表の `thead` の繰り返しを止めます。既定の false では繰り返します。 |
 | `PageSize` | string | `A4`（595.28 × 841.89pt）、`A5`（419.53 × 595.28pt）、`Letter`（612 × 792pt）。大文字小文字は区別しません。空なら `A4`。それ以外の名前はエラー。 |
 | `PageWidth`, `PageHeight` | float64（pt） | 任意のサイズ。両方が 0 より大きいときはそのまま使われ、`PageSize` と `Landscape` は無視されます。片方だけ指定したときは、もう片方を `PageSize` から取ります。 |
 | `Landscape` | bool | `PageSize` のサイズの幅と高さを入れ替えます。 |
@@ -339,6 +343,7 @@ html2pdf [flags] -e '<html>'
 | `-e` | なし | 入力ファイルの代わりに直接指定する HTML ソース。カレントディレクトリの `output.html` にも書き出されます。相対パスはカレントディレクトリを基準に解決されます。入力ファイルとは同時に指定できません。 |
 | `-o` | 入力ファイル名の拡張子を `.pdf` にしたもの（`-e` のときは `output.pdf`） | 出力 PDF のパス。 |
 | `-page-size` | `A4` | `A4`、`A5`、`Letter`。 |
+| `-repeat-thead` | `true` | 継続ページに表の見出しを繰り返します。`false` で無効にします。 |
 | `-page-width` | `0` | ページ幅（mm、`Options.PageWidth`）。`-page-size` の幅を上書きします。`0` なら名前付きサイズのままです。正の値のみ指定できます。 |
 | `-page-height` | `0` | ページ高さ（mm、`Options.PageHeight`）。`-page-size` の高さを上書きします。`0` なら名前付きサイズのままです。正の値のみ指定できます。 |
 | `-landscape` | オフ | 横向き。 |

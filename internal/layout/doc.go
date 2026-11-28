@@ -14,6 +14,8 @@ import (
 
 // Options configures page geometry. All values are in points.
 type Options struct {
+	// NoRepeatThead disables repeated table headings on continuation pages.
+	NoRepeatThead                                    bool
 	PageWidth, PageHeight                            float64
 	MarginTop, MarginRight, MarginBottom, MarginLeft float64
 	// BaseDir resolves relative image paths.

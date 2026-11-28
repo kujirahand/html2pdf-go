@@ -117,6 +117,7 @@ func main() {
 	pageSize := flag.String("page-size", "A4", "page size, e.g. A4")
 	pageWidth := flag.Float64("page-width", 0, "page width in millimetres (overrides -page-size width; 0 keeps the named size)")
 	pageHeight := flag.Float64("page-height", 0, "page height in millimetres (overrides -page-size height; 0 keeps the named size)")
+	repeatThead := flag.Bool("repeat-thead", true, "repeat table headings on continuation pages")
 	landscape := flag.Bool("landscape", false, "landscape orientation (swap page width and height)")
 	scale := flag.Float64("scale", 1.0, "content scale factor, e.g. 0.95 to shrink slightly")
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
@@ -197,6 +198,7 @@ func main() {
 		Scale:     *scale,
 
 		AllowExternalFiles: *allowExternal,
+		NoRepeatThead:      !*repeatThead,
 		Margin:             *margin,
 		FontFile:           *fontFile,
 		FontDirs:           fontcfg.Paths(dirs),

@@ -64,9 +64,11 @@ It is based on measurements of invoice HTML.
   - `em` is relative to the element's own `font-size` (except that a `font-size` specification itself is relative to the parent element's `font-size`), and `rem` is relative to the root element's `font-size`
   - The basis of `%` differs per property (for `width`-like properties it is the width of the containing block)
 
+Rows connected by `rowspan` form one pagination unit. The table layout simulates pagination with `pageSim` and redraws the first `thead` in flow coordinates on continuation pages when it fits with the next block.
+
 ## Limitations
 
-- A table row or image taller than one page is not split; the overflowing part is not drawn
+- A table row, `rowspan` block or image taller than one page is not split; the overflowing part is not drawn
 - Processing time for nested tables grows exponentially with depth, so deeply nested tables are not a good fit
 - Table column widths use automatic layout; in a table with no `width` specified, a cell's `%` specification is not used when the column widths fit in total, and is used only when shrinking is required
 - Inside a block with `text-align: center`, a table is centered (a difference from browsers)
