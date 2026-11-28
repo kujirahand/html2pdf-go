@@ -27,7 +27,7 @@ Elements that are not listed here, and unknown elements, have `display: inline` 
 | Element | Rendering | Notes |
 |---|---|---|
 | `body` | block, margin 8px | The root of rendering. |
-| `div`, `section`, `article`, `header`, `footer`, `address` | block | `address` is not italic. |
+| `div`, `section`, `article`, `header`, `footer`, `address` | block | `address` is italic. |
 | `center` | block, `text-align: center` | |
 | `page-break` | block, forces a page break after it | Put `<page-break></page-break>` (or just `<page-break>`) where the next page should start. Anything written after an unclosed `<page-break>` is moved out to follow it. See section 9. |
 | `frameset` | frame grid | See "Frames" below. |
@@ -66,6 +66,7 @@ An `iframe` that appears as a block-level child is drawn as an embedded document
 | `blockquote` | block, margin `1em 0` | No indentation. |
 | `pre` | block, monospace | Uses a monospace font; whitespace and newlines are still collapsed. |
 | `code`, `kbd`, `samp`, `tt` | inline, monospace, background `#f0f0f0` | |
+| `i`, `em`, `cite`, `dfn`, `var` | italic | |
 | `br` | forced line break | |
 | `b`, `strong` | bold | |
 | `u`, `ins` | underline | |
@@ -160,7 +161,7 @@ Within one rule, later declarations win. `!important` is ignored.
 
 Example: `#a` = (1, 0, 0); `div#a.b` = (1, 1, 1); `td.a.b` = (0, 2, 1); `.total td` = (0, 1, 1); `p` = (0, 0, 1). An ID always beats any number of classes.
 
-**Inheritance.** Only these properties are inherited: `font-size`, `font-weight`, `font-family`, `color`, `text-align`, `text-decoration`, `line-height`. All others start from their initial value on every element.
+**Inheritance.** Only these properties are inherited: `font-size`, `font-weight`, `font-style`, `font-family`, `color`, `text-align`, `text-decoration`, `line-height`. All others start from their initial value on every element.
 
 ## 6. Values
 
@@ -198,7 +199,8 @@ Any property not listed here is ignored.
 |---|---|---|
 | `display` | any keyword | Layout recognizes `none`, `block`, `list-item`, `table`, `table-row-group`, `table-row`, `table-cell`, `table-caption`. Every other value (`inline`, `inline-block`, `flex`, `grid`, ...) is treated as inline. Not validated. |
 | `font-size` | length, or `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | Keywords: 9, 10, 13, 16, 18, 24, 32px; `smaller` = 0.8333em, `larger` = 1.2em. A unitless number or negative value is ignored. Inherited. |
-| `font-weight` | `bold`, `bolder`, `normal`, `lighter`, number | `bold`/`bolder` = 700, `normal`/`lighter` = 400. A number of 700 or more is drawn bold, otherwise regular (only two faces exist). Inherited. |
+| `font-weight` | `bold`, `bolder`, `normal`, `lighter`, number | `bold`/`bolder` = 700, `normal`/`lighter` = 400. A number of 700 or more is drawn bold, otherwise regular. Inherited. |
+| `font-style` | `normal`, `italic`, `oblique` | Inherited. `oblique` uses the same face as `italic`. |
 | `font-family` | comma-separated family names | Quotes (`'` or `"`) and surrounding whitespace are stripped from each name. Names are tried in order against the family names of installed fonts (case-insensitive, name table only, not file names); the first match is used, in its bold face for bold text. The generic name `monospace` resolves the way a web browser's fixed-font default does, by OS and UI locale: MS Gothic on Japanese Windows, Courier New on English Windows, Osaka-Mono on Japanese macOS, Courier on English macOS, and on Linux the usual fontconfig choices (Noto Sans Mono CJK JP for Japanese; DejaVu Sans Mono or Liberation Mono otherwise). The locale is read from LC_ALL, LC_CTYPE, then LANG; when it cannot be determined, the Japanese and Western candidates for the OS are both tried. If none of those browser defaults is installed, any installed family whose name contains "Mono" is used (Japanese-capable ones preferred), and with no monospace font at all, the base font is used. If the resolved monospace font has no Japanese glyphs, Japanese text set in it is not drawn. The other generic names (`serif`, `sans-serif`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`) are skipped. With no match, the base font is used. Inherited. |
 | `color` | color | Inherited. Also the default border color. |
 | `background-color` | color | Drawn on blocks, tables, rows (`tr`) and cells. Also drawn behind inline elements, per line. |
@@ -258,6 +260,7 @@ Any property not listed here is ignored.
 | `td`, `th` | `padding: 1px` |
 | `page-break` | `page-break-after: always` |
 | `code`, `kbd`, `samp`, `tt` | `font-family: monospace`, `background-color: #f0f0f0` |
+| `i`, `em`, `cite`, `dfn`, `var`, `address` | `font-style: italic` |
 | `pre` | `font-family: monospace` |
 
 The initial font size is 16px (12pt). Elements not covered by these rules (for example `nav`, `main`, `aside`, `figure`, `dl`, `dt`, `dd`, `form`, `hr`, `fieldset`) are inline: they get no line break or margin around them, and `hr` draws nothing.
@@ -266,7 +269,7 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 
 **Blocks.** `width` sets the content width; padding and border are added outside it. Vertical margins collapse between adjacent block siblings (the larger one wins); there is no parent/child margin collapsing, and negative margins do not collapse. `height`, `min-*` and `max-*` do not exist (except that `height` works on an `iframe` box), so heights always follow the content. A block with a background or border that fits on one page is kept on one page.
 
-**Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, underline and `line-height`. Margin, padding and border on inline elements are ignored, but `background-color` is drawn behind the text run (split per line when it wraps). Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
+**Inline content.** Inline elements affect only their text: `color`, `font-size`, `font-weight`, `font-style`, underline and `line-height`. Margin, padding and border on inline elements are ignored, but `background-color` is drawn behind the text run (split per line when it wraps). Whitespace (including newlines, even in `pre`) collapses to single spaces; leading spaces in a line are dropped. `&nbsp;` is kept and does not break. Block-level elements inside inline content start a new line.
 
 **Line breaking and kinsoku (Japanese line-break rules).**
 - A line breaks at spaces, and between CJK characters (CJK ideographs and kana, Hangul, CJK compatibility and full-width forms, and U+20000–3FFFF).
@@ -293,11 +296,11 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 - `<page-break>` is a dedicated element for a forced page break: the content after it starts on the next page. It is built on `page-break-after: always` (section 8), so the same restrictions apply. The parser would nest what follows an unclosed `<page-break>` inside it, so the children are moved to just after the element, keeping their order; `<p>a</p><page-break><p>b</p>` therefore puts `b` on the next page. A `<page-break>` at the start or end of the document, or several in a row, does not create blank pages. A `<page-break>` placed inside an inline element does not break the page.
 - A page that would contain no text or images is dropped, so a blank page cannot be produced.
 
-**Text.** The base faces are regular and bold, from one Japanese-capable font found at conversion time (Noto Sans CJK / Noto Sans JP preferred), or from `FontFile` / `FontFileBold` if given. If no bold face exists, bold text is drawn with the regular face. `font-family` can pick other installed fonts by family name (section 7). Installed fonts are indexed on first use by scanning the font directories (`FontDirs`, or the standard ones). For a font collection (`.ttc`) only one face represents the file. There is no italic.
+**Text.** Base regular and bold faces are selected from Japanese-capable fonts or specified with `FontFile` / `FontFileBold`. Italic and bold italic are searched in the base regular family, or specified with `FontFileItalic` / `FontFileBoldItalic` (CLI: `-font-italic` / `-font-bold-italic`). Setting `FontFile` disables automatic italic discovery. A matching named family uses its own faces. Missing italic falls back to regular; missing bold italic falls back to bold, then regular. `-verbose` reports the requested italic or bold italic and the actual path. The index scans `FontDirs` (standard directories if empty); one face represents each `.ttc`. Synthetic italic is not supported.
 
 ## 10. Not supported
 
-- Fonts and text: `font-style` (italic), `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
+- Fonts and text: `font` shorthand, `letter-spacing`, `word-spacing`, `text-indent`, `text-transform`, `white-space`, `vertical-align`, `text-shadow`, `line-through` / `overline`, `justify` alignment.
 - Box: `height` (except on `iframe`), `min-width`, `max-width`, `min-height`, `max-height`, `box-sizing`, `overflow`, `outline`, `box-shadow`, `opacity`, `visibility`, `margin: auto` centering.
 - Layout: `float`, `clear`, `position` (`absolute`, `fixed`, `relative`, `sticky`), `z-index`, flex, grid, multi-column, `inline-block` behavior.
 - Tables: `rowspan`, `border-collapse`, `border-spacing`, `cellspacing`/`cellpadding`, table `caption`, `colgroup`/`col`, `vertical-align` in cells, `table-layout`, `border-radius` on cells.
@@ -318,9 +321,10 @@ The initial font size is 16px (12pt). Elements not covered by these rules (for e
 | `BaseDir` | string | Directory against which relative paths (images, stylesheets, frame documents) resolve. Unless `AllowExternalFiles` is set, these files must lie inside it. |
 | `AllowExternalFiles` | bool | Permits documents to reference files outside `BaseDir`, by absolute path or with `..`. Default false: images, stylesheets and frame documents can only be read from inside `BaseDir` (`..` and symbolic links cannot leave it; absolute paths are accepted only when they point inside `BaseDir`). Paths starting with `//` or `\\` (network paths) are refused in both modes. Only enable it for documents you trust. |
 | `FontDirs` | []string | Directories to search for fonts (up to 4 levels deep; `.ttf`, `.ttc`, `.otf`). Only the given directories are searched; empty = standard system font directories. The library reads no environment variable or config file. An error is returned if no usable font is found. Also searched by `font-family` names. |
-| `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, normalized for matching, i.e. lower-cased; empty for the default face), `Bold` (bold was requested; if there is no bold face, `Path` is the regular file and `Bold` is still true) and `Path` (the font file). nil = no callback. |
+| `OnFontUse` | func(FontUse) | Called once for each distinct font face resolved during conversion. `FontUse` has `Family` (the matched `font-family` name, normalized for matching, i.e. lower-cased; empty for the default face), `Bold` (bold was requested; if there is no bold face, `Path` is the regular file and `Bold` is still true), `Italic` (italic was requested), and `Path` (the font file). nil = no callback. |
 | `FontFile` | string | Path of a font file used as the regular face instead of the automatic choice. If it cannot be read or parsed, `Convert` returns an error. Empty = automatic selection. |
 | `FontFileBold` | string | Path of the bold face. If `FontFile` is set without `FontFileBold`, bold text uses the regular face. An unreadable file is an error. |
+| `FontFileItalic`, `FontFileBoldItalic` | string | Italic and bold italic paths. When omitted, automatic discovery and upright fallback apply as described above. Invalid paths are errors. |
 | `Scale` | float64 | Shrinks (below 1) or enlarges (above 1) the content. 0 or less means 1.0; NaN or infinity is an error. |
 | `Margin` | float64 (points) | Page margin on all four sides. 0 = no margin (the `body` still has its own 8px margin). |
 | `MarkdownCSS` | string | Extra CSS appended after `DefaultMarkdownCSS`. Used only by `ConvertMarkdown` and `ConvertMarkdownFile`; see [markdown.md](markdown.md). |
@@ -346,6 +350,8 @@ html2pdf [flags] -e '<html>'
 | `-margin` | `0` | Page margin in points, all sides. |
 | `-font` | auto-detect | Regular font file (`Options.FontFile`). |
 | `-font-bold` | the regular font | Bold font file (`Options.FontFileBold`). |
+| `-font-italic` | auto-detect | Italic face (`Options.FontFileItalic`). |
+| `-font-bold-italic` | auto-detect | Bold italic face (`Options.FontFileBoldItalic`). |
 | `-font-dirs` | none | Comma-separated directories searched first for fonts. They are added in front of the other font directories (see below). |
 | `-allow-external-files` | off | Let the document read files outside its own directory (`Options.AllowExternalFiles`). For trusted documents only. |
 | `-format` | auto | Output format: `pdf` or `png`. Without this flag, a `-o` name ending in `.png` selects PNG and anything else selects PDF. With `png`, each page is written as a PNG image; a multi-page document gets `-1`, `-2`, ... inserted before the `.png` extension. |

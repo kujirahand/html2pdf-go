@@ -41,7 +41,7 @@ func near(a, b float64) bool { return a-b < 1e-6 && b-a < 1e-6 }
 
 func layoutFrameFiles(t *testing.T, files map[string]string, main string) []*Page {
 	t.Helper()
-	fonts, err := text.LoadFontSet(nil, "", "")
+	fonts, err := text.LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestFramesetNested(t *testing.T) {
 }
 
 func TestFramesetMissingFrame(t *testing.T) {
-	fonts, err := text.LoadFontSet(nil, "", "")
+	fonts, err := text.LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}
@@ -250,7 +250,7 @@ func TestIframeInlineNotDrawn(t *testing.T) {
 }
 
 func TestIframeMissingSrc(t *testing.T) {
-	fonts, err := text.LoadFontSet(nil, "", "")
+	fonts, err := text.LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestIframeMissingSrc(t *testing.T) {
 }
 
 func TestIframeSelfReference(t *testing.T) {
-	fonts, err := text.LoadFontSet(nil, "", "")
+	fonts, err := text.LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}
@@ -325,7 +325,7 @@ func TestFrameURLsAreEmpty(t *testing.T) {
 }
 
 func TestFrameCountLimit(t *testing.T) {
-	fonts, err := text.LoadFontSet(nil, "", "")
+	fonts, err := text.LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no system font available: %v", err)
 	}

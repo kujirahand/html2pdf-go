@@ -27,7 +27,7 @@ func testFonts(t *testing.T) *text.FontSet {
 	if err := os.WriteFile(path, goregular.TTF, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	fonts, err := text.LoadFontSet([]string{filepath.Dir(path)}, path, "")
+	fonts, err := text.LoadFontSet([]string{filepath.Dir(path)}, path, "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

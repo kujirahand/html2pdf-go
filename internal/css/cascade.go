@@ -49,6 +49,7 @@ h6 { font-size: 0.67em; font-weight: bold; margin: 2.33em 0 }
 ul, ol { margin: 1em 0; padding-left: 40px }
 ul ul, ul ol, ol ul, ol ol { margin: 0 }
 b, strong { font-weight: bold }
+i, em, cite, dfn, var, address { font-style: italic }
 u, ins { text-decoration: underline }
 a { color: blue; text-decoration: underline }
 center { text-align: center }

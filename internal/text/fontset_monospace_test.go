@@ -28,7 +28,7 @@ func TestMonospacePrefersBrowserDefaultOverGenericScan(t *testing.T) {
 		"courier new": {regular: dejavuMono},
 		"zz mono":     {regular: liberationMono},
 	}
-	got := fs.FaceFor([]string{"monospace"}, false)
+	got := fs.FaceFor([]string{"monospace"}, false, false)
 	if got == nil {
 		t.Fatal("monospace did not resolve")
 	}

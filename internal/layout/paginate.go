@@ -70,7 +70,7 @@ func (l *layouter) paginate() []*Page {
 		case pText:
 			k := pageOf(p.y)
 			pages[k].Items = append(pages[k].Items, TextItem{Text: p.text, X: p.x, Y: p.y + off(k), Size: p.size,
-				Bold: p.bold, Face: p.face, Color: p.color, Underline: p.underline})
+				Bold: p.bold, Italic: p.italic, Face: p.face, Color: p.color, Underline: p.underline})
 		case pImage:
 			k := pageOf(p.y)
 			pages[k].Items = append(pages[k].Items, ImageItem{Src: p.src, Dir: p.dir, X: p.x, Y: p.y + off(k), W: p.w, H: p.h})

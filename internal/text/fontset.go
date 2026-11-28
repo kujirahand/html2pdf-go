@@ -16,12 +16,17 @@ var genericFamilies = map[string]bool{
 	"system-ui": true, "ui-serif": true, "ui-sans-serif": true, "ui-monospace": true, "ui-rounded": true,
 }
 
-// FontSet resolves CSS font-family lists to faces. Regular and Bold are the
-// base faces used when no listed family is found.
+// FontSet resolves CSS font-family lists to faces, falling back to the base slots.
 type FontSet struct {
-	Regular, Bold *Face
+	Regular, Bold, Italic, BoldItalic *Face
 
 	dirs []string // directories searched by name; empty means the defaults
+
+	// autoItalicFamily is the lower-cased base regular family whose italic
+	// faces fill the empty Italic / BoldItalic slots; "" disables that.
+	autoItalicFamily                   string
+	explicitItalic, explicitBoldItalic bool
+	italicOnce                         sync.Once
 
 	once  sync.Once
 	index map[string]*family // lower-cased family name -> faces on disk
@@ -29,32 +34,33 @@ type FontSet struct {
 	mu    sync.Mutex
 	faces map[string]*Face // loaded faces by path
 
-	// OnUse, if set, is called once for each distinct (family, bold, path)
+	// OnUse, if set, is called once for each distinct (family, bold, italic, path)
 	// that FaceFor returns. family is the matched index family name, or ""
 	// for the base faces. Calls are serialized.
-	OnUse func(family string, bold bool, path string)
+	OnUse func(family string, bold, italic bool, path string)
 
 	useMu sync.Mutex
 	used  map[useKey]bool
 
 	monoMu   sync.Mutex
-	monoDone [2]bool // regular, bold: monospace already resolved
-	mono     [2]*Face
+	monoDone [4]bool // cached per weight and slant
+	mono     [4]*Face
 }
 
 type useKey struct {
 	family string
 	bold   bool
+	italic bool
 	path   string
 }
 
 // report records the face f returned for family (see OnUse), once per
 // distinct combination, and returns f.
-func (s *FontSet) report(family string, bold bool, f *Face) *Face {
+func (s *FontSet) report(family string, bold, italic bool, f *Face) *Face {
 	if s.OnUse == nil || f == nil || f.path == "" {
 		return f
 	}
-	k := useKey{family, bold, f.path}
+	k := useKey{family, bold, italic, f.path}
 	s.useMu.Lock()
 	defer s.useMu.Unlock()
 	if s.used[k] {
@@ -64,22 +70,23 @@ func (s *FontSet) report(family string, bold bool, f *Face) *Face {
 		s.used = map[useKey]bool{}
 	}
 	s.used[k] = true
-	s.OnUse(family, bold, f.path)
+	s.OnUse(family, bold, italic, f.path)
 	return f
 }
 
 // family is the font files found for one family name.
 type family struct {
-	regular, bold string // file paths, "" if absent
+	regular, bold, italic, boldItalic string // file paths, "" if absent
 }
 
 // LoadFontSet builds a FontSet. If regularFile is set it is loaded as the
 // base regular face (failure is an error); otherwise the base faces come from
 // LoadFonts(dirs). boldFile likewise overrides the base bold face. When
 // regularFile is set without boldFile, bold text uses the regular face.
-// Families are looked up by name in dirs (or the default directories if dirs
-// is empty) on first use.
-func LoadFontSet(dirs []string, regularFile, boldFile string) (*FontSet, error) {
+// Italic slots are searched in the base regular family unless regularFile is set.
+// Explicit italic paths override those slots. Families are indexed in dirs
+// (or the default directories if dirs is empty).
+func LoadFontSet(dirs []string, regularFile, boldFile, italicFile, boldItalicFile string) (*FontSet, error) {
 	fs := &FontSet{dirs: dirs, faces: map[string]*Face{}}
 	if regularFile == "" {
 		base, err := LoadFonts(dirs)
@@ -87,6 +94,9 @@ func LoadFontSet(dirs []string, regularFile, boldFile string) (*FontSet, error) 
 			return nil, err
 		}
 		fs.Regular, fs.Bold = base.Regular, base.Bold
+		// The italic slots are resolved on first use (see baseItalics), so
+		// documents without italic text do not pay for indexing the fonts.
+		fs.autoItalicFamily = strings.ToLower(fs.Regular.family)
 	} else {
 		f, err := loadFace(regularFile)
 		if err != nil {
@@ -101,42 +111,105 @@ func LoadFontSet(dirs []string, regularFile, boldFile string) (*FontSet, error) 
 		}
 		fs.Bold = f
 	}
+	if italicFile != "" {
+		f, err := loadFace(italicFile)
+		if err != nil {
+			return nil, err
+		}
+		fs.Italic = f
+	}
+	if boldItalicFile != "" {
+		f, err := loadFace(boldItalicFile)
+		if err != nil {
+			return nil, err
+		}
+		fs.BoldItalic = f
+	}
+	fs.explicitItalic = italicFile != ""
+	fs.explicitBoldItalic = boldItalicFile != ""
 	return fs, nil
 }
 
-// FaceFor returns the face for the first family in families that names an
-// installed font (case-insensitively), choosing its bold or regular face.
-// The generic name monospace resolves through monospace; other generic names
-// such as serif are skipped. If none match it returns the base
-// Regular or Bold face.
-func (s *FontSet) FaceFor(families []string, bold bool) *Face {
+// baseItalics fills the Italic and BoldItalic slots that were not given
+// explicitly from the base regular family, once, the first time an italic
+// face is requested.
+func (s *FontSet) baseItalics() {
+	s.italicOnce.Do(func() {
+		if s.autoItalicFamily == "" {
+			return
+		}
+		fam := s.lookup(s.autoItalicFamily)
+		if fam == nil {
+			return
+		}
+		if !s.explicitItalic {
+			s.Italic = s.load(fam.italic)
+		}
+		if !s.explicitBoldItalic {
+			s.BoldItalic = s.load(fam.boldItalic)
+		}
+	})
+}
+
+// BaseFace resolves the requested style using the base slots.
+func (s *FontSet) BaseFace(bold, italic bool) *Face {
+	if italic {
+		s.baseItalics()
+	}
+	if bold {
+		if italic && s.BoldItalic != nil {
+			return s.BoldItalic
+		}
+		if s.Bold != nil {
+			return s.Bold
+		}
+		return s.Regular
+	}
+	if italic && s.Italic != nil {
+		return s.Italic
+	}
+	return s.Regular
+}
+
+func (f *family) path(bold, italic bool) string {
+	if bold {
+		if italic && f.boldItalic != "" {
+			return f.boldItalic
+		}
+		if f.bold != "" {
+			return f.bold
+		}
+		return f.regular
+	}
+	if italic && f.italic != "" {
+		return f.italic
+	}
+	if f.regular != "" {
+		return f.regular
+	}
+	return f.bold
+}
+
+// FaceFor resolves a family and style, using base faces when no family matches.
+func (s *FontSet) FaceFor(families []string, bold, italic bool) *Face {
 	for _, name := range families {
 		key := strings.ToLower(strings.TrimSpace(name))
 		if key == "monospace" {
-			if f := s.monospace(bold); f != nil {
-				return s.report(key, bold, f)
+			if f := s.monospace(bold, italic); f != nil {
+				return s.report(key, bold, italic, f)
 			}
 			continue
 		}
 		if key == "" || genericFamilies[key] {
 			continue
 		}
-		fam := s.lookup(key)
-		if fam == nil {
-			continue
-		}
-		path := fam.regular
-		if (bold && fam.bold != "") || path == "" {
-			path = fam.bold
-		}
-		if f := s.load(path); f != nil {
-			return s.report(key, bold, f)
+		if fam := s.lookup(key); fam != nil {
+			if f := s.load(fam.path(bold, italic)); f != nil {
+				return s.report(key, bold, italic, f)
+			}
 		}
 	}
-	if bold {
-		return s.report("", true, s.Bold)
-	}
-	return s.report("", false, s.Regular)
+	return s.report("", bold, italic, s.BaseFace(bold, italic))
 }
 
 type monoLocaleClass int
@@ -260,10 +333,13 @@ func preferredMonoNames(goos string, class monoLocaleClass) []string {
 // a generic scan of families whose lower-cased name contains "mono": names
 // containing "cjk" or "jp" come first, then the rest alphabetically, and a
 // face with Japanese glyphs is preferred. The result is cached per weight.
-func (s *FontSet) monospace(bold bool) *Face {
+func (s *FontSet) monospace(bold, italic bool) *Face {
 	w := 0
 	if bold {
 		w = 1
+	}
+	if italic {
+		w += 2
 	}
 	s.monoMu.Lock()
 	defer s.monoMu.Unlock()
@@ -276,10 +352,7 @@ func (s *FontSet) monospace(bold bool) *Face {
 		if fam == nil {
 			return nil
 		}
-		path := fam.regular
-		if (bold && fam.bold != "") || path == "" {
-			path = fam.bold
-		}
+		path := fam.path(bold, italic)
 		if path == "" {
 			return nil
 		}
@@ -367,6 +440,8 @@ func (s *FontSet) buildIndex() {
 	seen := map[string]bool{}
 	regScore := map[string]int{}
 	boldScore := map[string]int{}
+	italicScore := map[string]int{}
+	boldItalicScore := map[string]int{}
 	for _, d := range dirs {
 		for _, p := range listFontFiles(d) {
 			if abs, err := filepath.Abs(p); err == nil {
@@ -385,6 +460,19 @@ func (s *FontSet) buildIndex() {
 			if fam == nil {
 				fam = &family{}
 				s.index[key] = fam
+			}
+			isItalic := strings.Contains(f.subfamily, "italic") || strings.Contains(f.subfamily, "oblique")
+			if isItalic {
+				if f.bold {
+					if sc := styleScore(f, "bold"); fam.boldItalic == "" || sc < boldItalicScore[key] {
+						fam.boldItalic, boldItalicScore[key] = p, sc
+					}
+				} else {
+					if sc := styleScore(f, "regular"); fam.italic == "" || sc < italicScore[key] {
+						fam.italic, italicScore[key] = p, sc
+					}
+				}
+				continue
 			}
 			if f.bold {
 				if sc := styleScore(f, "bold"); fam.bold == "" || sc < boldScore[key] {

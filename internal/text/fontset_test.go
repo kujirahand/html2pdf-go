@@ -17,7 +17,7 @@ func containsString(list []string, s string) bool {
 }
 
 func TestFaceForMonospace(t *testing.T) {
-	fs, err := LoadFontSet(nil, "", "")
+	fs, err := LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no usable base font: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestFaceForMonospace(t *testing.T) {
 			hasMono = true
 		}
 	}
-	if got := fs.FaceFor([]string{"monospace"}, false); hasMono {
+	if got := fs.FaceFor([]string{"monospace"}, false, false); hasMono {
 		if got == fs.Regular {
 			t.Error("monospace fell back to the base face although mono families are installed")
 		} else if name := strings.ToLower(got.FamilyName()); !strings.Contains(name, "mono") && !containsString(preferredMonoNames(runtime.GOOS, detectMonoLocaleClass()), name) {
@@ -40,7 +40,7 @@ func TestFaceForMonospace(t *testing.T) {
 			t.Errorf("monospace resolved to %q, want a Mono family or a browser default", got.FamilyName())
 		}
 	}
-	if got := fs.FaceFor([]string{"serif"}, false); got != fs.Regular {
+	if got := fs.FaceFor([]string{"serif"}, false, false); got != fs.Regular {
 		t.Error("serif should still give the base regular face")
 	}
 }
@@ -51,37 +51,37 @@ func TestFontSetFaceForNamedFamily(t *testing.T) {
 	if _, err := os.Stat(notoSerifCJK); err != nil {
 		t.Skipf("Noto Serif CJK not available: %v", err)
 	}
-	fs, err := LoadFontSet(nil, "", "")
+	fs, err := LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no usable base font: %v", err)
 	}
-	got := fs.FaceFor([]string{"Noto Serif CJK JP", "serif"}, false)
+	got := fs.FaceFor([]string{"Noto Serif CJK JP", "serif"}, false, false)
 	if got == nil || got == fs.Regular {
 		t.Fatalf("FaceFor(Noto Serif CJK JP) = %p, want a face distinct from the base %p", got, fs.Regular)
 	}
 	if got.FamilyName() != "Noto Serif CJK JP" {
 		t.Errorf("FamilyName = %q, want Noto Serif CJK JP", got.FamilyName())
 	}
-	if lower := fs.FaceFor([]string{"noto serif cjk jp"}, false); lower != got {
+	if lower := fs.FaceFor([]string{"noto serif cjk jp"}, false, false); lower != got {
 		t.Error("family lookup should be case-insensitive and cached")
 	}
 }
 
 func TestFontSetFaceForFallsBackToBase(t *testing.T) {
-	fs, err := LoadFontSet(nil, "", "")
+	fs, err := LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no usable base font: %v", err)
 	}
-	if got := fs.FaceFor([]string{"serif", "sans-serif", "No Such Family 12345"}, false); got != fs.Regular {
+	if got := fs.FaceFor([]string{"serif", "sans-serif", "No Such Family 12345"}, false, false); got != fs.Regular {
 		t.Error("unknown and generic families should give the base regular face")
 	}
-	if got := fs.FaceFor(nil, true); got != fs.Bold {
+	if got := fs.FaceFor(nil, true, false); got != fs.Bold {
 		t.Error("no families with bold should give the base bold face")
 	}
 }
 
 func TestIndexPrefersUprightRegular(t *testing.T) {
-	fs, err := LoadFontSet(nil, "", "")
+	fs, err := LoadFontSet(nil, "", "", "", "")
 	if err != nil {
 		t.Skipf("no system fonts: %v", err)
 	}
@@ -110,10 +110,10 @@ func TestIndexPrefersUprightRegular(t *testing.T) {
 }
 
 func TestLoadFontSetMissingFile(t *testing.T) {
-	if _, err := LoadFontSet(nil, "/nonexistent/font.ttf", ""); err == nil {
+	if _, err := LoadFontSet(nil, "/nonexistent/font.ttf", "", "", ""); err == nil {
 		t.Error("missing regular font file should fail")
 	}
-	if _, err := LoadFontSet(nil, "", "/nonexistent/bold.ttf"); err == nil {
+	if _, err := LoadFontSet(nil, "", "/nonexistent/bold.ttf", "", ""); err == nil {
 		t.Error("missing bold font file should fail")
 	}
 }
@@ -122,7 +122,7 @@ func TestLoadFontSetRegularOnlyUsesItForBold(t *testing.T) {
 	if _, err := os.Stat(notoSerifCJK); err != nil {
 		t.Skipf("Noto Serif CJK not available: %v", err)
 	}
-	fs, err := LoadFontSet(nil, notoSerifCJK, "")
+	fs, err := LoadFontSet(nil, notoSerifCJK, "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

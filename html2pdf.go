@@ -29,6 +29,8 @@ type FontUse struct {
 	// Bold reports whether bold was requested. If there is no bold face,
 	// Path is the regular file and Bold is still true.
 	Bold bool
+	// Italic reports whether italic or oblique was requested, including fallback.
+	Italic bool
 	// Path is the font file the face was loaded from.
 	Path string
 }
@@ -66,6 +68,10 @@ type Options struct {
 	// FontFileBold is the path of the bold face. If FontFile is set without
 	// FontFileBold, bold text uses the regular face.
 	FontFileBold string
+	// FontFileItalic and FontFileBoldItalic select italic faces. When omitted,
+	// matching faces are auto-detected unless FontFile is specified; missing faces use upright fonts.
+	FontFileItalic     string
+	FontFileBoldItalic string
 	// Scale shrinks (<1) or enlarges (>1) the content, like wkhtmltopdf's
 	// zoom or Chrome's printToPDF scale. 0 or less means 1.0.
 	Scale float64
@@ -121,13 +127,13 @@ func Convert(src []byte, w io.Writer, opts *Options) error {
 	if err != nil {
 		return err
 	}
-	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold)
+	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold, opts.FontFileItalic, opts.FontFileBoldItalic)
 	if err != nil {
 		return err
 	}
 	if opts.OnFontUse != nil {
-		fonts.OnUse = func(family string, bold bool, path string) {
-			opts.OnFontUse(FontUse{Family: family, Bold: bold, Path: path})
+		fonts.OnUse = func(family string, bold, italic bool, path string) {
+			opts.OnFontUse(FontUse{Family: family, Bold: bold, Italic: italic, Path: path})
 		}
 	}
 	doc, err := dom.Parse(bytes.NewReader(src))
@@ -200,13 +206,13 @@ func ConvertPNG(src []byte, opts *Options, scale float64) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold)
+	fonts, err := text.LoadFontSet(opts.FontDirs, opts.FontFile, opts.FontFileBold, opts.FontFileItalic, opts.FontFileBoldItalic)
 	if err != nil {
 		return nil, err
 	}
 	if opts.OnFontUse != nil {
-		fonts.OnUse = func(family string, bold bool, path string) {
-			opts.OnFontUse(FontUse{Family: family, Bold: bold, Path: path})
+		fonts.OnUse = func(family string, bold, italic bool, path string) {
+			opts.OnFontUse(FontUse{Family: family, Bold: bold, Italic: italic, Path: path})
 		}
 	}
 	doc, err := dom.Parse(bytes.NewReader(src))

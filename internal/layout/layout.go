@@ -32,6 +32,7 @@ type prim struct {
 	text       string
 	size       float64
 	bold       bool
+	italic     bool
 	face       *text.Face
 	underline  bool
 	src        string
@@ -226,7 +227,7 @@ func (l *layouter) scratch(f func()) {
 
 // face returns the face for st's font-family list and weight.
 func (l *layouter) face(st *css.Style) *text.Face {
-	return l.fonts.FaceFor(st.FontFamily, st.Bold())
+	return l.fonts.FaceFor(st.FontFamily, st.Bold(), st.Italic())
 }
 
 // metrics returns the line-box ascent and descent contributed by st,

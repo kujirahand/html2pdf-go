@@ -27,7 +27,7 @@
 | 要素 | 描画方法 | 備考 |
 |---|---|---|
 | `body` | ブロック、margin 8px | 描画の起点。 |
-| `div`, `section`, `article`, `header`, `footer`, `address` | ブロック | `address` は斜体になりません。 |
+| `div`, `section`, `article`, `header`, `footer`, `address` | ブロック | `address` は斜体です。 |
 | `center` | ブロック、`text-align: center` | |
 | `page-break` | ブロック、その位置で強制改ページ | 次のページを始めたい位置に `<page-break></page-break>`（または `<page-break>` だけ）を置きます。閉じていない `<page-break>` の後ろに書いた内容は、要素の後ろへ移されます。9 章を参照。 |
 | `frameset` | フレームのグリッド | 下の「フレーム」を参照。 |
@@ -66,6 +66,7 @@
 | `blockquote` | ブロック、margin `1em 0` | インデントなし。 |
 | `pre` | ブロック、等幅 | 等幅フォントで描かれます。空白・改行は引き続き畳まれます。 |
 | `code`, `kbd`, `samp`, `tt` | インライン、等幅、背景 `#f0f0f0` | |
+| `i`, `em`, `cite`, `dfn`, `var` | 斜体 | |
 | `br` | 強制改行 | |
 | `b`, `strong` | 太字 | |
 | `u`, `ins` | 下線 | |
@@ -160,7 +161,7 @@
 
 例: `#a` = (1, 0, 0)、`div#a.b` = (1, 1, 1)、`td.a.b` = (0, 2, 1)、`.total td` = (0, 1, 1)、`p` = (0, 0, 1)。ID はクラスがいくつあっても常に優先されます。
 
-**継承。** 継承されるプロパティは `font-size`、`font-weight`、`font-family`、`color`、`text-align`、`text-decoration`、`line-height` だけです。それ以外は要素ごとに初期値から始まります。
+**継承。** 継承されるプロパティは `font-size`、`font-weight`、`font-style`、`font-family`、`color`、`text-align`、`text-decoration`、`line-height` だけです。それ以外は要素ごとに初期値から始まります。
 
 ## 6. 値の形式
 
@@ -198,7 +199,8 @@
 |---|---|---|
 | `display` | 任意のキーワード | レイアウトが認識するのは `none`、`block`、`list-item`、`table`、`table-row-group`、`table-row`、`table-cell`、`table-caption`。それ以外の値（`inline`、`inline-block`、`flex`、`grid` など）はすべてインライン扱い。値の検証はありません。 |
 | `font-size` | 長さ、または `xx-small` `x-small` `small` `medium` `large` `x-large` `xx-large` `smaller` `larger` | キーワードは 9, 10, 13, 16, 18, 24, 32px。`smaller` = 0.8333em、`larger` = 1.2em。単位なしの数値や負の値は無視。継承されます。 |
-| `font-weight` | `bold`, `bolder`, `normal`, `lighter`, 数値 | `bold`/`bolder` = 700、`normal`/`lighter` = 400。数値は 700 以上なら太字、未満なら通常（フェイスは 2 種類のみ）。継承されます。 |
+| `font-weight` | `bold`, `bolder`, `normal`, `lighter`, 数値 | `bold`/`bolder` = 700、`normal`/`lighter` = 400。数値は 700 以上なら太字、未満なら通常。継承されます。 |
+| `font-style` | `normal`, `italic`, `oblique` | 継承されます。`oblique` は `italic` と同じフェイスを使います。 |
 | `font-family` | カンマ区切りのファミリー名 | 各名前から前後の空白と引用符（`'` または `"`）を取り除きます。名前は先頭から順に、インストール済みフォントのファミリー名（大文字小文字を区別せず、name テーブルのみ。ファイル名では照合しない）と照合され、最初に一致したものが使われます（太字なら その太字フェイス）。汎用名 `monospace` は、Webブラウザの等幅フォントのデフォルトと同じ考え方で、OSと言語環境によって解決されます。日本語の Windows では MS Gothic、英語の Windows では Courier New、日本語の macOS では Osaka-Mono、英語の macOS では Courier、Linux では fontconfig の一般的な選択（日本語なら Noto Sans Mono CJK JP、それ以外は DejaVu Sans Mono や Liberation Mono）です。言語環境は LC_ALL、LC_CTYPE、LANG の順に読み、判定できない場合はその OS の日本語候補と欧文候補の両方を試します。ブラウザのデフォルト候補がどれもインストールされていない場合は、ファミリー名に "Mono" を含むインストール済みフォント（日本語対応のものを優先）を使い、等幅フォントが全く無ければ基本フォントにフォールバックします。解決された等幅フォントに日本語グリフが無い場合、そのフォントで描く日本語は表示されません。それ以外の汎用名（`serif`、`sans-serif`、`cursive`、`fantasy`、`system-ui`、`ui-serif`、`ui-sans-serif`、`ui-monospace`、`ui-rounded`）は読み飛ばされます。一致がなければ基本フォントを使います。継承されます。 |
 | `color` | 色 | 継承されます。罫線色の既定値でもあります。 |
 | `background-color` | 色 | ブロック、表、行（`tr`）、セルに描かれます。インライン要素にも、行ごとにテキストの背面へ描かれます。 |
@@ -258,6 +260,7 @@
 | `td`, `th` | `padding: 1px` |
 | `page-break` | `page-break-after: always` |
 | `code`, `kbd`, `samp`, `tt` | `font-family: monospace`、`background-color: #f0f0f0` |
+| `i`, `em`, `cite`, `dfn`, `var`, `address` | `font-style: italic` |
 | `pre` | `font-family: monospace` |
 
 初期フォントサイズは 16px（12pt）です。これらのルールにない要素（例: `nav`、`main`、`aside`、`figure`、`dl`、`dt`、`dd`、`form`、`hr`、`fieldset`）はインラインになり、前後の改行や余白は付きません。`hr` は何も描きません。
@@ -266,7 +269,7 @@
 
 **ブロック。** `width` は content 幅で、padding と罫線はその外側に加わります。縦方向の margin は隣り合うブロック同士で相殺されます（大きい方が採用）。親子間の margin 相殺はなく、負の margin は相殺されません。`height`、`min-*`、`max-*` は存在しない（ただし `iframe` のボックスでは `height` が効く）ため、高さは常に内容で決まります。背景や罫線を持つブロックは、1 ページに収まるなら 1 ページにまとめられます。
 
-**インライン内容。** インライン要素が影響するのは、テキストの `color`、`font-size`、`font-weight`、下線、`line-height` だけです。インライン要素の margin、padding、罫線は無視されますが、`background-color` はテキストの背面に描かれます（折り返す場合は行ごとに分割されます）。空白（改行を含み、`pre` の中でも）は 1 個の空白に畳まれ、行頭の空白は捨てられます。`&nbsp;` は保持され、そこでは改行されません。インライン内容の中のブロック要素は新しい行を始めます。
+**インライン内容。** インライン要素が影響するのは、テキストの `color`、`font-size`、`font-weight`、`font-style`、下線、`line-height` だけです。インライン要素の margin、padding、罫線は無視されますが、`background-color` はテキストの背面に描かれます（折り返す場合は行ごとに分割されます）。空白（改行を含み、`pre` の中でも）は 1 個の空白に畳まれ、行頭の空白は捨てられます。`&nbsp;` は保持され、そこでは改行されません。インライン内容の中のブロック要素は新しい行を始めます。
 
 **改行と禁則処理。**
 - 空白の位置と、CJK 文字（CJK 漢字・かな、ハングル、CJK 互換文字・全角形、U+20000–3FFFF）の間で改行されます。
@@ -293,11 +296,11 @@
 - `<page-break>` は強制改ページ専用の要素で、後ろの内容が次のページから始まります。`page-break-after: always`（8 章）を使って実現しているため、制限も同じです。閉じていない `<page-break>` の後ろの内容はパーサーによって要素の子になってしまうため、子要素を順序を保ったまま要素の直後へ移します。したがって `<p>a</p><page-break><p>b</p>` と書いても `b` は次のページになります。文書の先頭・末尾に置いた場合や連続して置いた場合も、空白ページはできません。インライン要素の中に置いた `<page-break>` は改ページしません。
 - テキストも画像も含まないページは破棄されるため、空白ページは作れません。
 
-**テキスト。** 基本のフェイスは通常と太字の 2 種類で、変換時に見つかった日本語対応フォント 1 つから選ばれます（Noto Sans CJK / Noto Sans JP を優先）。`FontFile` / `FontFileBold` を指定した場合はそのファイルが使われます。太字のフェイスがなければ、太字も通常のフェイスで描かれます。`font-family` では、ファミリー名でほかのインストール済みフォントも選べます（7 章）。インストール済みフォントは、初めて名前検索したときにフォントディレクトリ（`FontDirs`、なければ標準のディレクトリ）を走査して索引化されます。フォントコレクション（`.ttc`）は 1 つのフェイスがファイルを代表します。斜体はありません。
+**テキスト。** 基本の通常・太字は日本語対応フォントから自動選択するか `FontFile` / `FontFileBold` で指定します。斜体・太字斜体は基本通常と同じファミリーから自動検索し、`FontFileItalic` / `FontFileBoldItalic`（CLI: `-font-italic` / `-font-bold-italic`）で指定できます。`FontFile` 指定時は斜体を自動検索しません。ファミリー指定が一致すればそのファミリー内で選びます。斜体がなければ通常、太字斜体がなければ太字、さらに通常へフォールバックします。`-verbose` は要求された斜体・太字斜体と実際のパスを表示します。索引は `FontDirs`（空なら標準ディレクトリ）を走査し、`.ttc` は 1 フェイスで代表します。合成斜体は未対応です。
 
 ## 10. 未対応
 
-- フォントとテキスト: `font-style`（斜体）、`font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
+- フォントとテキスト: `font` ショートハンド、`letter-spacing`、`word-spacing`、`text-indent`、`text-transform`、`white-space`、`vertical-align`、`text-shadow`、`line-through` / `overline`、`justify`（両端揃え）。
 - ボックス: `height`（`iframe` を除く）、`min-width`、`max-width`、`min-height`、`max-height`、`box-sizing`、`overflow`、`outline`、`box-shadow`、`opacity`、`visibility`、`margin: auto` による中央寄せ。
 - レイアウト: `float`、`clear`、`position`（`absolute`、`fixed`、`relative`、`sticky`）、`z-index`、flex、grid、マルチカラム、`inline-block` の挙動。
 - 表: `rowspan`、`border-collapse`、`border-spacing`、`cellspacing` / `cellpadding`、表の `caption`、`colgroup` / `col`、セルの `vertical-align`、`table-layout`、セルの `border-radius`。
@@ -318,9 +321,10 @@
 | `BaseDir` | string | 相対パス（画像・スタイルシート・フレーム文書）を解決する基準ディレクトリ。`AllowExternalFiles` を指定しない限り、これらのファイルはこのディレクトリの内側になければなりません。 |
 | `AllowExternalFiles` | bool | 文書が `BaseDir` の外のファイルを、絶対パスや `..` で参照することを許可します。既定は false で、画像・スタイルシート・フレーム文書は `BaseDir` の内側からしか読めません（`..` やシンボリックリンクで外へ出ることはできません。絶対パスは `BaseDir` の内側を指す場合のみ使えます）。`//` や `\\` で始まるパス（ネットワークパス）は、どちらのモードでも拒否されます。信頼できる文書でのみ有効にしてください。 |
 | `FontDirs` | []string | フォントを探すディレクトリ（深さ 4 階層まで、`.ttf`、`.ttc`、`.otf`）。指定したディレクトリだけを探し、空なら標準のシステムフォントディレクトリ。ライブラリは環境変数も設定ファイルも読みません。使えるフォントが見つからないとエラーを返します。`font-family` の名前検索の対象にもなります。 |
-| `OnFontUse` | func(FontUse) | 変換中に解決されたフォントのフェイスごとに、重複を除いて 1 回呼ばれます。`FontUse` は `Family`（一致した `font-family` の名前。照合用に正規化され小文字になります。既定のフェイスなら空）、`Bold`（太字が要求されたことを表します。太字フェイスが無い場合、`Path` は通常体のファイルで、`Bold` は true のままです）、`Path`（フォントファイル）を持ちます。nil ならコールバックなし。 |
+| `OnFontUse` | func(FontUse) | 変換中に解決されたフォントのフェイスごとに、重複を除いて 1 回呼ばれます。`FontUse` は `Family`（一致した `font-family` の名前。照合用に正規化され小文字になります。既定のフェイスなら空）、`Bold`（太字が要求されたことを表します。太字フェイスが無い場合、`Path` は通常体のファイルで、`Bold` は true のままです）、`Italic`（斜体が要求されたこと）、`Path`（フォントファイル）を持ちます。nil ならコールバックなし。 |
 | `FontFile` | string | 自動選択の代わりに通常フェイスとして使うフォントファイルのパス。読み込めない・解析できない場合、`Convert` はエラーを返します。空なら自動選択。 |
 | `FontFileBold` | string | 太字フェイスのファイルパス。`FontFile` だけを指定した場合、太字は通常フェイスで代用されます。読み込めないファイルはエラーです。 |
+| `FontFileItalic`, `FontFileBoldItalic` | string | 斜体・太字斜体のパス。未指定時は上記の自動検索と立体フォールバックを使います。不正なパスはエラーです。 |
 | `Scale` | float64 | 内容を縮小（1 未満）・拡大（1 超）します。0 以下は 1.0 として扱い、NaN と無限大はエラー。 |
 | `Margin` | float64（pt） | 4 辺共通のページ余白。0 は余白なし（`body` 自身の 8px の margin は残ります）。 |
 | `MarkdownCSS` | string | `DefaultMarkdownCSS` の後ろに追加される CSS。`ConvertMarkdown` と `ConvertMarkdownFile` だけが使います。[markdown-ja.md](markdown-ja.md) を参照。 |
@@ -346,6 +350,8 @@ html2pdf [flags] -e '<html>'
 | `-margin` | `0` | 4 辺共通のページ余白（pt）。 |
 | `-font` | 自動検出 | 通常フェイスのフォントファイル（`Options.FontFile`）。 |
 | `-font-bold` | 通常フォント | 太字フェイスのフォントファイル（`Options.FontFileBold`）。 |
+| `-font-italic` | 自動検出 | 斜体フェイス（`Options.FontFileItalic`）。 |
+| `-font-bold-italic` | 自動検出 | 太字斜体フェイス（`Options.FontFileBoldItalic`）。 |
 | `-font-dirs` | なし | 先に探すフォントディレクトリのカンマ区切り一覧。ほかのフォントディレクトリの前に追加されます（下記参照）。 |
 | `-allow-external-files` | オフ | 文書が自身のフォルダの外のファイルを読むことを許可します（`Options.AllowExternalFiles`）。信頼できる文書専用です。 |
 | `-format` | 自動 | 出力形式: `pdf` または `png`。このフラグを省略すると、`-o` の名前が `.png` で終わる場合は PNG、それ以外は PDF になります。`png` ではページごとに PNG 画像を書き出し、複数ページの場合は `.png` の前に `-1`、`-2`、... が付きます。 |

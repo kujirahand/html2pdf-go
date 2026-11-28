@@ -86,7 +86,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # appends your CSS after the default stylesheet
 ```
 
-It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
+It accepts the same flags as `html2pdf` (`-o`, `-page-size`, `-page-width`, `-page-height`, `-landscape`, `-scale`, `-margin`, `-font`, `-font-bold`, `-font-italic`, `-font-bold-italic`, `-font-dirs`, `-allow-external-files`, `-format`, `-png-scale`, `-verbose`) plus `-css`. Relative image paths resolve against the Markdown file's directory.
 
 From a Go program:
 
@@ -105,7 +105,7 @@ Supported Markdown: headings, paragraphs, bold, lists (including nested ones), t
 
 Limitations:
 
-- There is no italic face, so emphasis is drawn as regular text.
+- Emphasis uses an italic face when available. Japanese fonts often lack italic faces, so emphasis falls back to upright text.
 - Code blocks keep their line breaks and indentation (through a transform of `<pre>` blocks), but they are not set in a monospace font.
 - Raw HTML in the Markdown passes through unchanged, so only convert input you trust.
 

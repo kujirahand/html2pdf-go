@@ -86,7 +86,7 @@ md2pdf -o out.pdf -margin 48 input.md
 md2pdf -css style.css input.md         # 既定のスタイルシートの後ろに自分の CSS を追加
 ```
 
-`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-dirs`、`-allow-external-files`、`-format`、`-png-scale`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
+`html2pdf` と同じフラグ（`-o`、`-page-size`、`-page-width`、`-page-height`、`-landscape`、`-scale`、`-margin`、`-font`、`-font-bold`、`-font-italic`、`-font-bold-italic`、`-font-dirs`、`-allow-external-files`、`-format`、`-png-scale`、`-verbose`）に加えて `-css` が使えます。画像の相対パスは Markdown ファイルのあるフォルダを基準に解決されます。
 
 Go のプログラムからは次のように使います。
 
@@ -105,7 +105,7 @@ htmlDoc, err := html2pdf.MarkdownToHTML(src)
 
 制限:
 
-- 斜体のフェースがないため、強調は通常の文字で描かれます。
+- 強調は斜体フェイスがあれば斜体になります。日本語フォントには斜体がないことが多く、その場合は立体で描かれます。
 - コードブロックは（`<pre>` ブロックの変換により）改行とインデントを保ちますが、等幅フォントにはなりません。
 - Markdown 中の生の HTML はそのまま通るため、信頼できる入力だけを変換してください。
 

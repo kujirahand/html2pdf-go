@@ -22,14 +22,18 @@ func fontUseLine(u html2pdf.FontUse) string {
 	if family == "" {
 		family = "(default)"
 	}
-	if u.Bold {
+	if u.Bold && u.Italic {
+		family += " (bold italic)"
+	} else if u.Bold {
 		family += " (bold)"
+	} else if u.Italic {
+		family += " (italic)"
 	}
 	return "font: " + family + " -> " + u.Path
 }
 
 // valueFlags lists the flags that take a value (so "-o out.pdf" moves as a pair).
-var valueFlags = map[string]bool{"e": true, "o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-dirs": true, "format": true, "png-scale": true}
+var valueFlags = map[string]bool{"e": true, "o": true, "page-size": true, "page-width": true, "page-height": true, "scale": true, "margin": true, "font": true, "font-bold": true, "font-italic": true, "font-bold-italic": true, "font-dirs": true, "format": true, "png-scale": true}
 
 // reorderArgs moves flags (and their values) in front of positional
 // arguments, because the flag package stops parsing at the first one.
@@ -122,6 +126,8 @@ func main() {
 	margin := flag.Float64("margin", 0, "page margin in points, applied to all sides")
 	fontFile := flag.String("font", "", "regular font file (default: auto-detect a Japanese font)")
 	fontBold := flag.String("font-bold", "", "bold font file (default: the regular font)")
+	fontItalic := flag.String("font-italic", "", "italic font file")
+	fontBoldItalic := flag.String("font-bold-italic", "", "bold italic font file")
 	fontDirs := flag.String("font-dirs", "", "comma-separated directories searched first for fonts")
 	verbose := flag.Bool("verbose", false, "print the font directories searched and the fonts used to stderr")
 	allowExternal := flag.Bool("allow-external-files", false, "let the document read files outside its own directory (absolute paths, ..); for trusted documents only")
@@ -201,7 +207,9 @@ func main() {
 		FontFile:           *fontFile,
 		FontDirs:           fontcfg.Paths(dirs),
 
-		FontFileBold: *fontBold,
+		FontFileBold:       *fontBold,
+		FontFileItalic:     *fontItalic,
+		FontFileBoldItalic: *fontBoldItalic,
 	}
 	if *pageWidth > 0 {
 		opts.PageWidth = mmToPt(*pageWidth)

@@ -19,6 +19,7 @@ type Style struct {
 	Display         string
 	FontSize        Length
 	FontWeight      int
+	FontStyle       string
 	FontFamily      []string // family names in order, unquoted
 	Color           Color
 	BackgroundColor *Color
@@ -48,11 +49,14 @@ type Style struct {
 // Bold reports whether the font weight is bold.
 func (s *Style) Bold() bool { return s.FontWeight >= 700 }
 
+func (s *Style) Italic() bool { return s.FontStyle == "italic" || s.FontStyle == "oblique" }
+
 func defaultStyle() *Style {
 	s := &Style{
 		Display:        "inline",
 		FontSize:       Length{RootFontSize, UnitPT},
 		FontWeight:     400,
+		FontStyle:      "normal",
 		TextAlign:      "left",
 		TextDecoration: "none",
 	}
@@ -72,6 +76,7 @@ func inheritFrom(p *Style) *Style {
 	s := defaultStyle()
 	s.FontSize = p.FontSize
 	s.FontWeight = p.FontWeight
+	s.FontStyle = p.FontStyle
 	s.FontFamily = p.FontFamily
 	s.Color = p.Color
 	s.TextAlign = p.TextAlign
@@ -320,6 +325,10 @@ func (s *Style) apply(prop, val string, parentFontSize float64) {
 			if l, ok := ParseLength(val); ok && l.Unit == UnitNone {
 				s.FontWeight = int(l.Value)
 			}
+		}
+	case "font-style":
+		if lv == "normal" || lv == "italic" || lv == "oblique" {
+			s.FontStyle = lv
 		}
 	case "font-family":
 		s.FontFamily = parseFontFamily(val)

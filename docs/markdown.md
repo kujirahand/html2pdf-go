@@ -41,7 +41,7 @@ body { font-size: 12pt; }
 |---|---|
 | `#` to `######` | `h1` to `h6` |
 | Paragraphs, `**bold**` | `p`, bold text |
-| `*emphasis*` | `em`, drawn as regular text (no italic face) |
+| `*emphasis*` | `em`, drawn with an italic face when available |
 | `~~strikethrough~~` | `del`, drawn as regular text |
 | `` `code` `` | `code`; the background is not drawn (see section 5) |
 | Fenced and indented code blocks | `pre`, with line breaks and indentation preserved |
@@ -65,7 +65,7 @@ The layout engine collapses all whitespace (including newlines) and has no white
 
 ## 5. Limitations
 
-- No italic: emphasis is drawn as regular text.
+- Japanese fonts often lack italic faces; emphasis then falls back to upright text.
 - Code blocks and inline code are not set in a monospace font; the engine skips generic font families such as `monospace`. Indentation and line breaks are preserved, but characters are not aligned in columns.
 - Background color is not drawn on inline elements, so inline `code` has no background. Code blocks (blocks) do.
 - Links are drawn but are not clickable.

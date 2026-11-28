@@ -58,7 +58,8 @@ type TextItem struct {
 	X, Y      float64
 	Size      float64
 	Bold      bool
-	Face      *text.Face // resolved font; nil means the base face chosen by Bold
+	Italic    bool
+	Face      *text.Face // resolved font; nil means the base face chosen by Bold and Italic
 	Color     css.Color
 	Underline bool
 }

@@ -94,10 +94,7 @@ func (r *renderer) item(pg *pdf.Page, it layout.Item) error {
 	case layout.TextItem:
 		face := it.Face
 		if face == nil {
-			face = r.fonts.Regular
-			if it.Bold {
-				face = r.fonts.Bold
-			}
+			face = r.fonts.BaseFace(it.Bold, it.Italic)
 		}
 		pg.SetFillColor(it.Color.R, it.Color.G, it.Color.B)
 		pg.ShowText(r.font(face), it.Size, it.X, it.Y, it.Text)

@@ -269,10 +269,7 @@ func (r *renderer) rasterFace(face *text.Face, size float64) font.Face {
 func (r *renderer) text(it layout.TextItem) {
 	face := it.Face
 	if face == nil && r.fonts != nil {
-		face = r.fonts.Regular
-		if it.Bold {
-			face = r.fonts.Bold
-		}
+		face = r.fonts.BaseFace(it.Bold, it.Italic)
 	}
 	if face == nil || !(it.Size > 0) {
 		return
